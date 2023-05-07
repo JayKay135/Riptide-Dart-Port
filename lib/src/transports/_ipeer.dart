@@ -46,7 +46,7 @@ extension MessageHeaderExtension on MessageHeader {
   }
 }
 
-/// Defines methods, properties, and events which every transport's server <i>and</i> client must implement.
+/// Defines methods, properties, and events which every transport's server and client must implement.
 abstract class IPeer {
   /// Invoked when data is received by the transport.
   abstract Event<DataReceivedEventArgs> dataReceived;

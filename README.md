@@ -83,7 +83,7 @@ Timer.periodic(const Duration(milliseconds: 20), (timer) {
 ```
 to
 ```dart
-MultiThreadedServer mtServer = MultiThreadedServer()
+MultiThreadedServer mtServer = MultiThreadedServer();
 mtServer.start(PORT, 10);
 ```
 or
@@ -97,13 +97,18 @@ Timer.periodic(const Duration(milliseconds: 20), (timer) {
 ```
 to
 ```dart
-MultiThreadedClient mtClient = MultiThreadedClient()
+MultiThreadedClient mtClient = MultiThreadedClient();
 mtClient.connect(InternetAddress("127.0.0.1"), PORT);
 ```
 
 ## Low-Level Transports supported by this library
 
 * UDP (built-in)
+
+## Contributions
+
+Contributions are very welcome. 
+Especially if you know about low-level udp/ tcp sockets and isolates.
 
 ## License
 

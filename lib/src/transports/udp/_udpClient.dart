@@ -10,6 +10,7 @@ import '../../utils/_eventHandler.dart';
 import '../_iclient.dart';
 import '_udpConnection.dart';
 
+/// A client which can connect to a UdpServer.
 class UdpClient extends UdpPeer implements IClient {
   @override
   Event<DisconnectedEventArgs> disconnected = Event<DisconnectedEventArgs>();
@@ -23,18 +24,16 @@ class UdpClient extends UdpPeer implements IClient {
   @override
   Event<DataReceivedEventArgs> dataReceived = Event<DataReceivedEventArgs>();
 
+  /// The connection to the server.
   late UdpConnection udpConnection;
 
-  UdpClient({int socketBufferSize = UdpPeer.defaultSocketBufferSize})
-      : super(socketBufferSize: socketBufferSize);
+  UdpClient({int socketBufferSize = UdpPeer.defaultSocketBufferSize}) : super(socketBufferSize: socketBufferSize);
 
   @override
-  Future<Tuple3<bool, Connection, String>> connect(
-      InternetAddress hostAddress, int port) async {
+  Future<Tuple3<bool, Connection, String>> connect(InternetAddress hostAddress, int port) async {
     String connectError = "";
 
-    await openSocket(listenAddress: hostAddress, port: port + 1)
-        .onError((error, stackTrace) => connectError = error.toString());
+    await openSocket(listenAddress: hostAddress, port: port + 1).onError((error, stackTrace) => connectError = error.toString());
 
     udpConnection = UdpConnection(hostAddress, port, this);
 
@@ -49,19 +48,19 @@ class UdpClient extends UdpPeer implements IClient {
     closeSocket();
   }
 
+  /// Invokes the connected event.
   void _onConnected() {
     connected.invoke(null);
   }
 
+  /// Invokes the connectionFailed event.
   void onConnectionFailed() {
     connectionFailed.invoke(null);
   }
 
   @override
-  void onDataReceived(
-      Uint8List data, int amount, InternetAddress fromEndPoint, int port) {
-    if (udpConnection.remoteEndPoint == fromEndPoint &&
-        !udpConnection.isNotConnected()) {
+  void onDataReceived(Uint8List data, int amount, InternetAddress fromEndPoint, int port) {
+    if (udpConnection.remoteEndPoint == fromEndPoint && !udpConnection.isNotConnected()) {
       dataReceived.invoke(DataReceivedEventArgs(data, amount, udpConnection));
     }
   }

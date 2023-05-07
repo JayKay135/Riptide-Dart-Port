@@ -25,6 +25,7 @@ extension MessageSendModeExtension on MessageSendMode {
   }
 }
 
+/// Provides functionality for converting data to bytes and vice versa.
 class Message {
   final int poolSize = 10;
 
@@ -89,12 +90,10 @@ class Message {
   /// [value] : new maximal payload size
   set maxPayloadSize(int value) {
     if (Peer.activeCount > 0) {
-      RiptideLogger.log(LogType.error,
-          "Changing the max message size is not allowed while a Server or Client is running!");
+      RiptideLogger.log(LogType.error, "Changing the max message size is not allowed while a Server or Client is running!");
     } else {
       if (value < 0) {
-        RiptideLogger.log(LogType.error,
-            "The max payload size cannot be negative! Setting it to 0 instead of the given value ($value).");
+        RiptideLogger.log(LogType.error, "The max payload size cannot be negative! Setting it to 0 instead of the given value ($value).");
         _maxSize = maxHeaderSize;
       } else {
         _maxSize = maxHeaderSize + value;
@@ -109,41 +108,61 @@ class Message {
     if (Peer.activeCount == 0) {
       // No Servers or Clients are running, empty the list and reset the capacity
       _pool.clear();
-      _pool.length = instancesPerPeer *
-          2; // x2 so there's some buffer room for extra Message instances in the event that more are needed
+      _pool.length = instancesPerPeer * 2; // x2 so there's some buffer room for extra Message instances in the event that more are needed
     } else {
       // Reset the pool capacity and number of Message instances in the pool to what is appropriate for how many Servers & Clients are active
       int idealInstanceAmount = Peer.activeCount * instancesPerPeer;
       if (_pool.length > idealInstanceAmount) {
-        _pool.removeRange(Peer.activeCount * instancesPerPeer,
-            pool.length - idealInstanceAmount);
+        _pool.removeRange(Peer.activeCount * instancesPerPeer, pool.length - idealInstanceAmount);
         _pool.length = idealInstanceAmount * 2;
       }
     }
   }
 
+  /// Gets a usable message instance.
+  ///
+  /// Returns a message instance ready to be used.
   static Message create() {
     return _retrieveFromPool().prepareForUse();
   }
 
+  /// Gets a message instance that can be used for sending.
+  ///
+  /// [sendMode] : The mode in which the message should be sent.
+  /// [id] : The message ID.
+  /// Returns a message instance ready to be used for sending.
   static Message createFromInt(MessageSendMode sendMode, int id) {
-    return _retrieveFromPool()
-        .prepareForUse2(sendMode.messageHeader)
-        .addUShort(id);
+    return _retrieveFromPool().prepareForUse2(sendMode.messageHeader).addUShort(id);
   }
 
+  /// Gets a message instance that can be used for sending.
+  ///
+  /// [sendMode] : The mode in which the message should be sent.
+  /// [id] : The message ID as enum.
+  /// NOTE: [id] will be cast to a ushort. You should ensure that its value never exceeds that of ushort maxvalue, otherwise you'll encounter unexpected behaviour when handling messages.
   static Message createFromEnum(MessageSendMode sendMode, Enum id) {
     return createFromInt(sendMode, id.index);
   }
 
+  /// Gets a message instance that can be used for sending.
+  ///
+  /// [header] : The message's header type.
+  /// Returns a message instance ready to be used for sending.
   static Message createFromHeader(MessageHeader header) {
     return _retrieveFromPool().prepareForUse2(header);
   }
 
+  /// Gets a message instance directly from the pool without doing any extra setup.
+  ///
+  /// As this message instance is returned straight from the pool, it will contain all previous data and settings. Using this instance without preparing it properly will likely result in unexpected behaviour.
+  /// Returns a message instance.
   static Message createRaw() {
     return _retrieveFromPool();
   }
 
+  /// Retrieves a message instance from the pool. If none is available, a new instance is created.
+  ///
+  /// Returns a message instance ready to be used for sending or handling.
   static Message _retrieveFromPool() {
     Message message;
     if (pool.isNotEmpty) {
@@ -192,7 +211,7 @@ class Message {
     return this;
   }
 
-  /// Sets the message's header byte to the given <paramref name="header and determines the appropriate MessageSendMode and read/write positions.
+  /// Sets the message's header byte to the given header and determines the appropriate MessageSendMode and read/write positions.
   ///
   /// [header] : The header to use for this message.
   void setHeader(MessageHeader header) {
@@ -286,14 +305,12 @@ class Message {
   /// [startIndex] : The position at which to start writing into the array.
   void _readBytes(int amount, Uint8List intoList, {int startIndex = 0}) {
     if (unreadLength < amount) {
-      RiptideLogger.log(
-          LogType.error, _notEnoughBytesError2(intoList.length, byteName));
+      RiptideLogger.log(LogType.error, _notEnoughBytesError2(intoList.length, byteName));
       amount = unreadLength;
     }
 
     // Copy the bytes at readPos' position to the array that will be returned
-    intoList.setRange(startIndex, startIndex + amount,
-        bytes.getRange(_readPos, _readPos + amount));
+    intoList.setRange(startIndex, startIndex + amount, bytes.getRange(_readPos, _readPos + amount));
     _readPos += amount;
   }
 
@@ -315,8 +332,7 @@ class Message {
   /// Returns the bool that was retrieved.
   bool getBool() {
     if (unreadLength < Constants.boolBytes) {
-      RiptideLogger.log(LogType.error,
-          _notEnoughBytesError(boolName, defaultReturn: "false"));
+      RiptideLogger.log(LogType.error, _notEnoughBytesError(boolName, defaultReturn: "false"));
       return false;
     }
 
@@ -408,8 +424,7 @@ class Message {
       }
 
       for (int bit = 0; bit < bitsToRead; bit++) {
-        intoList[startIndex + (i * 8 + bit)] =
-            (bytes[_readPos + i] >> bit & 1) == 1;
+        intoList[startIndex + (i * 8 + bit)] = (bytes[_readPos + i] >> bit & 1) == 1;
       }
     }
 
@@ -534,8 +549,7 @@ class Message {
   /// Returns the message that the string was added to.
   Message addString(String value) {
     Uint8List stringBytes = Uint8List.fromList(utf8.encode(value));
-    int requiredBytes = stringBytes.length +
-        (stringBytes.length <= _oneByteLengthThreshold ? 1 : 2);
+    int requiredBytes = stringBytes.length + (stringBytes.length <= _oneByteLengthThreshold ? 1 : 2);
     if (unwrittenLength < requiredBytes) {
       throw InsufficientCapacityError();
     }
@@ -548,36 +562,25 @@ class Message {
   ///
   /// Returns the string that was retrieved.
   String getString() {
-    int length =
-        _getArrayLength(); // Get the length of the string (in bytes, NOT characters)
+    int length = _getArrayLength(); // Get the length of the string (in bytes, NOT characters)
     if (unreadLength < length) {
       RiptideLogger.log(LogType.error, NotEnoughBytesError().toString());
       length = unreadLength;
     }
 
-    String value = utf8.decode(bytes
-        .getRange(_readPos, _readPos + length)
-        .toList()); // Convert the bytes at readPos' position to a string
+    String value = utf8.decode(bytes.getRange(_readPos, _readPos + length).toList()); // Convert the bytes at readPos' position to a string
     _readPos += length;
     return value;
   }
 
   /// The maximum number of elements an array can contain where the length still fits into a single byte.
-  final int _oneByteLengthThreshold =
-      (Uint8List(1)..[0] = 0x7F).buffer.asInt8List().first; // 0b_0111_1111;
+  final int _oneByteLengthThreshold = (Uint8List(1)..[0] = 0x7F).buffer.asInt8List().first; // 0b_0111_1111;
 
   /// The maximum number of elements an array can contain where the length still fits into two bytes.
-  final int _twoByteLengthThreshold = (Uint16List(1)..[0] = 0x7FFFF)
-      .buffer
-      .asInt16List()
-      .first; //0b_0111_1111_1111_1111;
+  final int _twoByteLengthThreshold = (Uint16List(1)..[0] = 0x7FFFF).buffer.asInt16List().first; //0b_0111_1111_1111_1111;
 
-  final int _oneByteComparison =
-      (Uint8List(1)..[0] = 0x80).buffer.asInt8List().first; //0b_1000_0000;
-  final int _twoByteComparison = (Uint16List(1)..[0] = 0x8000)
-      .buffer
-      .asInt16List()
-      .first; //0b_1000_0000_0000_0000;
+  final int _oneByteComparison = (Uint8List(1)..[0] = 0x80).buffer.asInt8List().first; //0b_1000_0000;
+  final int _twoByteComparison = (Uint16List(1)..[0] = 0x8000).buffer.asInt16List().first; //0b_1000_0000_0000_0000;
 
   /// Adds the length of an array to the message, using either 1 or 2 bytes depending on how large the array is. Does not support arrays with more than 32,767 elements.
   ///
@@ -600,7 +603,7 @@ class Message {
 
       length |= _twoByteComparison;
 
-      // Add the byte with the big array flag bit first, using AddUShort would add it second
+      // Add the byte with the big array flag bit first, using addUShort would add it second
       bytes[_writePos++] = length >> 8;
       bytes[_writePos++] = length;
     }
@@ -625,8 +628,7 @@ class Message {
     }
 
     // Read the byte with the big array flag bit first, using GetUShort would add it second
-    return ((bytes[_readPos++] << 8) | bytes[_readPos++]) &
-        _twoByteLengthThreshold;
+    return ((bytes[_readPos++] << 8) | bytes[_readPos++]) & _twoByteLengthThreshold;
   }
 
   /// The name of a byte value.
@@ -692,11 +694,9 @@ class Message {
   /// [arrayLength] : The length of the provided array.
   /// [startIndex] : The position in the array at which to begin writing values.
   /// [valueName] : The name of the value type which is being retrieved.
-  /// [pluralValueName] : The name of the value type in plural form. If left empty, this will be set to <paramref name="valueName with an <c>s</c> appended to it.
+  /// [pluralValueName] : The name of the value type in plural form. If left empty, this will be set to valueName with an 's' appended to it.
   /// Returns the error message.
-  String _arrayNotLongEnoughError(
-      int amount, int arrayLength, int startIndex, String valueName,
-      {String pluralValueName = ""}) {
+  String _arrayNotLongEnoughError(int amount, int arrayLength, int startIndex, String valueName, {String pluralValueName = ""}) {
     if (pluralValueName == "") {
       pluralValueName = "${valueName}s";
     }

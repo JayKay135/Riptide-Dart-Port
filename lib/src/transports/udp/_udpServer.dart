@@ -18,8 +18,7 @@ class UdpServer extends UdpPeer implements IServer {
   late Event connected = Event();
 
   @override
-  late Event<DataReceivedEventArgs> dataReceived =
-      Event<DataReceivedEventArgs>();
+  late Event<DataReceivedEventArgs> dataReceived = Event<DataReceivedEventArgs>();
 
   @override
   late int port;
@@ -35,10 +34,7 @@ class UdpServer extends UdpPeer implements IServer {
   ///
   /// [listenAddress] : The IP address to bind the socket to.
   /// [socketBufferSize] : How big the socket's send and receive buffers should be.
-  UdpServer(
-      {InternetAddress? listenAddress,
-      int socketBufferSize = UdpPeer.defaultSocketBufferSize})
-      : super(socketBufferSize: socketBufferSize) {
+  UdpServer({InternetAddress? listenAddress, int socketBufferSize = UdpPeer.defaultSocketBufferSize}) : super(socketBufferSize: socketBufferSize) {
     _listenAddress = listenAddress ?? InternetAddress.anyIPv4;
   }
 
@@ -86,10 +82,8 @@ class UdpServer extends UdpPeer implements IServer {
   }
 
   @override
-  void onDataReceived(
-      Uint8List data, int amount, InternetAddress fromEndPoint, int port) {
-    if (MessageHeader.values[data.first] == MessageHeader.connect &&
-        !_handleConnectionAttempt(fromEndPoint, port)) {
+  void onDataReceived(Uint8List data, int amount, InternetAddress fromEndPoint, int port) {
+    if (MessageHeader.values[data.first] == MessageHeader.connect && !_handleConnectionAttempt(fromEndPoint, port)) {
       return;
     }
 
