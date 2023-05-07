@@ -16,7 +16,7 @@ class PendingMessage {
   int get lastSendTime => _lastSendTime;
 
   /// The multiplier used to determine how long to wait before resending a pending message.
-  double _retryTimeMultiplier = 1.2;
+  final double _retryTimeMultiplier = 1.2;
 
   /// How often to try sending the message before giving up.
   final int _maxSendAttempts = 15; // TODO: get rid of this
@@ -56,21 +56,15 @@ class PendingMessage {
   /// [sequenceID] : The sequence ID of the message.
   /// [message] : The message that is being sent reliably.
   /// [connection] : The Connection to use to send (and resend) the pending message.
-  static void createAndSend(
-      int sequenceID, Message message, Connection connection) {
+  static void createAndSend(int sequenceID, Message message, Connection connection) {
     PendingMessage pendingMessage = _retrieveFromPool();
     pendingMessage._connection = connection;
     pendingMessage._sequenceId = sequenceID;
 
     pendingMessage.data[0] = message.bytes[0]; // Copy message header
-    Converter.fromUShort(sequenceID, pendingMessage.data.buffer.asByteData(),
-        1); // Insert sequence ID
+    Converter.fromUShort(sequenceID, pendingMessage.data.buffer.asByteData(), 1); // Insert sequence ID
 
-    // Array.Copy(message.bytes, 3, pendingMessage.data, 3,
-    //     message.writtenLength - 3); // Copy the rest of the message
-
-    pendingMessage.data.setRange(3, message.writtenLength,
-        message.bytes.getRange(3, message.writtenLength));
+    pendingMessage.data.setRange(3, message.writtenLength, message.bytes.getRange(3, message.writtenLength));
 
     pendingMessage._writtenLength = message.writtenLength;
 
@@ -99,8 +93,8 @@ class PendingMessage {
   /// Returns the PendingMessage instance to the pool so it can be reused.
   void _release() {
     if (!pool.contains(this)) {
-      pool.add(
-          this); // Only add it if it's not already in the list, otherwise this method being called twice in a row for whatever reason could cause *serious* issues
+      // Only add it if it's not already in the list, otherwise this method being called twice in a row for whatever reason could cause *serious* issues
+      pool.add(this);
     }
 
     // TODO: consider doing something to decrease pool capacity if there are far more
@@ -113,18 +107,12 @@ class PendingMessage {
   void retrySend() {
     if (!_wasCleared) {
       int time = _connection.peer!.currentTime;
-      if (lastSendTime +
-              (_connection.smoothRtt < 0 ? 25 : _connection.smoothRtt / 2) <=
-          time) {
+      if (lastSendTime + (_connection.smoothRtt < 0 ? 25 : _connection.smoothRtt / 2) <= time) {
         // Avoid triggering a resend if the latest resend was less than half a RTT ago
         trySend();
       } else {
         _connection.peer!.executeLater(
-            _connection.smoothRtt < 0
-                ? 50
-                : max(
-                    10, (_connection.smoothRtt * _retryTimeMultiplier).toInt()),
-            PendingMessageResendEvent(this, time));
+            _connection.smoothRtt < 0 ? 50 : max(10, (_connection.smoothRtt * _retryTimeMultiplier).toInt()), PendingMessageResendEvent(this, time));
       }
     }
   }
@@ -153,16 +141,13 @@ class PendingMessage {
     _lastSendTime = _connection.peer!.currentTime;
     _sendAttempts++;
 
-    _connection.peer!.executeLater(
-        _connection.smoothRtt < 0
-            ? 50
-            : max(10, (_connection.smoothRtt * _retryTimeMultiplier).toInt()),
+    _connection.peer!.executeLater(_connection.smoothRtt < 0 ? 50 : max(10, (_connection.smoothRtt * _retryTimeMultiplier).toInt()),
         PendingMessageResendEvent(this, _connection.peer!.currentTime));
   }
 
   /// Clears the message.
   ///
-  /// [shouldRemoveFromDictionary] : Whether or not to remove the message from Connection.PendingMessages.
+  /// [shouldRemoveFromDictionary] : Whether or not to remove the message from Connection.pendingMessages.
   void clear({bool shouldRemoveFromDictionary = true}) {
     if (shouldRemoveFromDictionary) {
       _connection.pendingMessages.remove(_sequenceId);

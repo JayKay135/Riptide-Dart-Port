@@ -8,8 +8,7 @@ class Helper {
   /// [singular] : The singular form.
   /// [plural] : The plural form.
   /// Returns [singular] if [amount] is 1; otherwise [plural].
-  static String correctForm(int amount, String singular,
-      {String? plural = ""}) {
+  static String correctForm(int amount, String singular, {String? plural = ""}) {
     if (plural == null || plural == "") {
       plural = "${singular}s";
     }
@@ -31,22 +30,20 @@ class Helper {
       return gap;
     } else {
       // Difference is big, meaning sequence IDs are far apart
-      return (seqId1 <= 32768 ? Constants.ushortMaxVal + 1 + seqId1 : seqId1) -
-          (seqId2 <= 32768 ? Constants.ushortMaxVal + 1 + seqId2 : seqId2);
+      return (seqId1 <= 32768 ? Constants.ushortMaxVal + 1 + seqId1 : seqId1) - (seqId2 <= 32768 ? Constants.ushortMaxVal + 1 + seqId2 : seqId2);
     }
   }
 
   /// Converts an integer (also negatives) to the range of a two byte ushort
   ///
-  /// [value] : Possibly negative value
+  /// [value] : Int value with possible range greater than 2 bytes
   static int toUShort(int value) {
     return value & 0xffff;
-    //return (Uint16List(1)..[0] = value).first;
   }
 
   /// Converts an integer (also negatives) to the range of a byte
   ///
-  /// [value] : Possibly negative value
+  /// [value] : Int value with possible range greater than 1 byte
   static int toByte(int value) {
     return value & 0xff;
   }

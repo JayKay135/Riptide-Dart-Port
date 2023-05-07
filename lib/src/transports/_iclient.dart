@@ -18,9 +18,8 @@ abstract class IClient extends IPeer {
   ///
   /// [hostAddress] :The host address to connect to.
   /// [port] : The hosts port to connect to
-  /// Returns ´true´ if a connection attempt will be made and ´false´ if an issue occurred. It will also contain the connection and error message if an error occured
-  Future<Tuple3<bool, Connection, String>> connect(
-      InternetAddress hostAddress, int port);
+  /// Returns true if a connection attempt will be made and false if an issue occurred. It will also contain the connection and error message if an error occured
+  Future<Tuple3<bool, Connection, String>> connect(InternetAddress hostAddress, int port);
 
   /// Closes the connection to the server.
   void disconnect();

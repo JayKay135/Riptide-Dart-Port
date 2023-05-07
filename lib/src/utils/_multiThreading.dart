@@ -22,8 +22,9 @@ class MultiThreadedServer {
   ///
   /// [port] : The local port on which to start the server.
   /// [maxClientCount] : The maximum number of concurrent connections to allow.
-  Future<void> start(int port, int maxClientCount) async {
-    _sendPort = await _multiThreadedServer(port, maxClientCount);
+  /// [loggingEnabled] : If true the Riptider logger is initialized on the isolate.
+  Future<void> start(int port, int maxClientCount, {bool loggingEnabled = false}) async {
+    _sendPort = await _multiThreadedServer(port, maxClientCount, loggingEnabled);
   }
 
   /// Stops the multi threaded server.
@@ -57,7 +58,7 @@ class MultiThreadedServer {
   }
 
   /// Internal function to start the riptide server isolate in a different thread.
-  Future<SendPort> _multiThreadedServer(int port, int maxClientCount) async {
+  Future<SendPort> _multiThreadedServer(int port, int maxClientCount, bool loggingEnabled) async {
     Completer<SendPort> completer = Completer<SendPort>();
     ReceivePort receivePort = ReceivePort();
 
@@ -67,12 +68,13 @@ class MultiThreadedServer {
       final SendPort sendPort = map['sendPort'];
       sendPort.send(receiver.sendPort);
 
-      RiptideLogger.initialize2(print, print, print, print, true);
+      if (map['loggingEnabled']) {
+        RiptideLogger.initialize2(print, print, print, print, true);
+      }
 
       // actual riptide code
       Server server = Server();
-      server.start(map['port'], map['maxClientCount'],
-          useMessageHandlers: false);
+      server.start(map['port'], map['maxClientCount'], useMessageHandlers: false);
 
       // received command or message data
       receiver.listen((data) {
@@ -101,11 +103,7 @@ class MultiThreadedServer {
       });
 
       server.messageReceived.subscribe((MessageReceivedEventArgs? args) {
-        sendPort.send({
-          'messageId': args!.messageID,
-          'connectionId': args.fromConnection.id,
-          'message': args.message
-        });
+        sendPort.send({'messageId': args!.messageID, 'connectionId': args.fromConnection.id, 'message': args.message});
       });
 
       Timer.periodic(const Duration(milliseconds: 20), (timer) {
@@ -115,6 +113,7 @@ class MultiThreadedServer {
       'sendPort': receivePort.sendPort,
       'port': port,
       'maxClientCount': maxClientCount,
+      'loggingEnabled': loggingEnabled,
     });
 
     // send received socket data
@@ -130,8 +129,7 @@ class MultiThreadedServer {
         if (_messageHandlers.containsKey(messageId)) {
           _messageHandlers[messageId]!(connectionId, message);
         } else {
-          RiptideLogger.log2(LogType.warning, _logName,
-              "No message handler method found for message ID $messageId!");
+          RiptideLogger.log2(LogType.warning, _logName, "No message handler method found for message ID $messageId!");
         }
       }
     });
@@ -153,12 +151,11 @@ class MultiThreadedClient {
   /// [hostAddress] : The host address to connect to.
   /// [port] : The host port to connect to.
   /// [maxConnectionAttempts] : How many connection attempts to make before giving up.
+  /// [loggingEnabled] : If true the Riptider logger is initialized on the isolate.
   ///
   /// Returns true if a connection attempt will be made. False if an issue occurred and a connection attempt will not be made.
-  Future<void> connect(InternetAddress hostAddress, int port,
-      {int maxConnectionAttempts = 5, bool useMessageHandlers = true}) async {
-    _sendPort = await _multiThreadedClient(hostAddress, port,
-        maxConnectionAttempts: maxConnectionAttempts);
+  Future<void> connect(InternetAddress hostAddress, int port, {int maxConnectionAttempts = 5, loggingEnabled = false}) async {
+    _sendPort = await _multiThreadedClient(hostAddress, port, maxConnectionAttempts, loggingEnabled);
   }
 
   /// Disconnects from the client from the server and directly closes the isolate.
@@ -184,8 +181,7 @@ class MultiThreadedClient {
   }
 
   /// Internal function to start the riptide client isolate in a different thread.
-  Future<SendPort> _multiThreadedClient(InternetAddress hostAddress, int port,
-      {int maxConnectionAttempts = 5}) async {
+  Future<SendPort> _multiThreadedClient(InternetAddress hostAddress, int port, int maxConnectionAttempts, bool loggingEnabled) async {
     Completer<SendPort> completer = Completer<SendPort>();
     ReceivePort receivePort = ReceivePort();
 
@@ -195,11 +191,13 @@ class MultiThreadedClient {
       final SendPort sendPort = map['sendPort'];
       sendPort.send(receiver.sendPort);
 
+      if (map['loggingEnabled']) {
+        RiptideLogger.initialize2(print, print, print, print, true);
+      }
+
       // actual riptide code
       Client client = Client();
-      client.connect(map['hostAddress'], map['port'],
-          maxConnectionAttempts: map['maxConnectionAttempts'],
-          useMessageHandlers: false);
+      client.connect(map['hostAddress'], map['port'], maxConnectionAttempts: map['maxConnectionAttempts'], useMessageHandlers: false);
 
       // received command or message data
       receiver.listen((data) {
@@ -234,6 +232,7 @@ class MultiThreadedClient {
       'hostAddress': hostAddress,
       'port': port,
       'maxConnectionAttempts': maxConnectionAttempts,
+      'loggingEnabled': loggingEnabled
     });
 
     // send received socket data
@@ -248,8 +247,7 @@ class MultiThreadedClient {
         if (_messageHandlers.containsKey(messageId)) {
           _messageHandlers[messageId]!(message);
         } else {
-          RiptideLogger.log2(LogType.warning, _logName,
-              "No message handler method found for message ID $messageId!");
+          RiptideLogger.log2(LogType.warning, _logName, "No message handler method found for message ID $messageId!");
         }
       }
     });

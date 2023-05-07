@@ -27,7 +27,7 @@ enum ConnectionState {
   rejected,
 }
 
-/// Represents a connection to a <see cref="Server"/> or <see cref="Client"/>.
+/// Represents a connection to a Server or Client.
 abstract class Connection {
   /// The connection's numeric ID.
   int id = 0;
@@ -49,15 +49,10 @@ abstract class Connection {
   Peer? peer;
 
   /// Whether or not the connection has timed out.
-  bool get hasTimedOut =>
-      _canTimeout &&
-      (DateTime.now().difference(_lastHeartbeat).inMilliseconds) >
-          peer!.timeoutTime;
+  bool get hasTimedOut => _canTimeout && (DateTime.now().difference(_lastHeartbeat).inMilliseconds) > peer!.timeoutTime;
 
   /// Whether or not the connection attempt has timed out. Uses a multiple of timeoutTime and ignores the value of canTimeout.
-  bool get hasConnectAttemptTimedOut =>
-      (DateTime.now().difference(_lastHeartbeat).inMilliseconds) >
-      peer!.connectTimeoutTime;
+  bool get hasConnectAttemptTimedOut => (DateTime.now().difference(_lastHeartbeat).inMilliseconds) > peer!.connectTimeoutTime;
 
   /// The currently pending reliably sent messages whose delivery has not been acknowledged yet. Stored by sequence ID.
   Map<int, PendingMessage> pendingMessages = {};
@@ -77,15 +72,11 @@ abstract class Connection {
   /// Messages that we sent which have been acknoweledged.
   int _ackedMessagesBitfield = 0;
 
-  /// A <see cref="ushort"/> with the left-most bit set to 1.
-  final int leftBit = (Uint16List(1)..[0] = 0x8000)
-      .buffer
-      .asInt8List()
-      .first; // 0b_1000_0000_0000_0000;
+  /// A ushort with the left-most bit set to 1.
+  final int leftBit = (Uint16List(1)..[0] = 0x8000).buffer.asInt8List().first; // 0b_1000_0000_0000_0000;
 
   /// The next sequence ID to use.
-  int get nextSequenceID =>
-      (++_lastSequenceID) & 0xffff; // Ushort + simulated overflow
+  int get nextSequenceID => (++_lastSequenceID) & 0xffff; // Ushort + simulated overflow
 
   int _lastSequenceID = 0;
 
@@ -138,8 +129,7 @@ abstract class Connection {
   ///
   /// -1 if not calculated yet.
   set rtt(int value) {
-    _smoothRtt =
-        _rtt < 0 ? value : max(1, (_smoothRtt * .7 + value * .3).toInt());
+    _smoothRtt = _rtt < 0 ? value : max(1, (_smoothRtt * .7 + value * .3).toInt());
     _rtt = value;
   }
 
@@ -168,8 +158,7 @@ abstract class Connection {
   /// Returns true if the connection attempt has timed out. Uses a multiple of Peer.timeoutTime
   /// and ignores the value of CanTimeout
   bool get hasConnecntingAttemptTimedOut {
-    return DateTime.now().difference(_lastHeartbeat).inMilliseconds * 1000 >
-        peer!.timeoutTime * 2;
+    return DateTime.now().difference(_lastHeartbeat).inMilliseconds * 1000 > peer!.timeoutTime * 2;
   }
 
   /// Initializes the connection.
@@ -221,19 +210,15 @@ abstract class Connection {
       _duplicateFilterBitfield <<= sequenceGap;
       if (sequenceGap <= 16) {
         int shiftedBits = _acksBitfield << sequenceGap;
-        _acksBitfield = Helper.toUShort(
-            shiftedBits); // Give the acks bitfield the first 2 ints of the shifted bits
-        _duplicateFilterBitfield |= shiftedBits >>
-            16; // OR the last 6 ints worth of the shifted bits into the duplicate filter bitfield
+        _acksBitfield = Helper.toUShort(shiftedBits); // Give the acks bitfield the first 2 ints of the shifted bits
+        _duplicateFilterBitfield |= shiftedBits >> 16; // OR the last 6 ints worth of the shifted bits into the duplicate filter bitfield
 
         doHandle = _updateAcksBitfield(sequenceGap);
         _lastReceivedSeqID = sequenceId;
       } else if (sequenceGap <= 80) {
         int shiftedBits = _acksBitfield << (sequenceGap - 16);
-        _acksBitfield =
-            0; // Reset the acks bitfield as all its bits are being moved to the duplicate filter bitfield
-        _duplicateFilterBitfield |=
-            shiftedBits; // OR the shifted bits into the duplicate filter bitfield
+        _acksBitfield = 0; // Reset the acks bitfield as all its bits are being moved to the duplicate filter bitfield
+        _duplicateFilterBitfield |= shiftedBits; // OR the shifted bits into the duplicate filter bitfield
 
         doHandle = _updateDuplicateFilterBitfield(sequenceGap);
       }
@@ -260,8 +245,7 @@ abstract class Connection {
   ///
   /// [wasRejected] : Whether or not the connection was rejected.
   void localDisconnect({bool wasRejected = false}) {
-    _state =
-        wasRejected ? ConnectionState.rejected : ConnectionState.notConnected;
+    _state = wasRejected ? ConnectionState.rejected : ConnectionState.notConnected;
 
     for (PendingMessage pendingMessage in pendingMessages.values) {
       pendingMessage.clear(shouldRemoveFromDictionary: false);
@@ -275,13 +259,10 @@ abstract class Connection {
   /// [sequenceGap] : The gap between the newly received sequence ID and the previously last received sequence ID.
   /// Returns whether or not the message should be handled, based on whether or not it's a duplicate.
   bool _updateAcksBitfield(int sequenceGap) {
-    int seqIdBit = 1 <<
-        Helper.toUShort(sequenceGap -
-            1); // Calculate which bit corresponds to the sequence ID and set it to 1
+    int seqIdBit = 1 << Helper.toUShort(sequenceGap - 1); // Calculate which bit corresponds to the sequence ID and set it to 1
     if ((_acksBitfield & seqIdBit) == 0) {
       // If we haven't received this message before
-      _acksBitfield |=
-          seqIdBit; // Set the bit corresponding to the sequence ID to 1 because we received that ID
+      _acksBitfield |= seqIdBit; // Set the bit corresponding to the sequence ID to 1 because we received that ID
       return true; // Message was "new", handle it
     } else {
       // If we have received this message before
@@ -294,14 +275,10 @@ abstract class Connection {
   /// [sequenceGap] : The gap between the newly received sequence ID and the previously last received sequence ID.
   /// Returns whether or not the message should be handled, based on whether or not it's a duplicate.
   bool _updateDuplicateFilterBitfield(int sequenceGap) {
-    int seqIdBit = 1 <<
-        (sequenceGap -
-            1 -
-            16); // Calculate which bit corresponds to the sequence ID and set it to 1
+    int seqIdBit = 1 << (sequenceGap - 1 - 16); // Calculate which bit corresponds to the sequence ID and set it to 1
     if ((_duplicateFilterBitfield & seqIdBit) == 0) {
       // If we haven't received this message before
-      _duplicateFilterBitfield |=
-          seqIdBit; // Set the bit corresponding to the sequence ID to 1 because we received that ID
+      _duplicateFilterBitfield |= seqIdBit; // Set the bit corresponding to the sequence ID to 1 because we received that ID
       return true; // Message was "new", handle it
     } else {
       // If we have received this message before
@@ -314,36 +291,27 @@ abstract class Connection {
   /// [remoteLastReceivedSeqID] : The latest sequence ID that the other end has received.
   /// [remoteAcksBitField] : A redundant list of sequence IDs that the other end has (or has not) received.
   void updateReceivedAcks(int remoteLastReceivedSeqID, int remoteAcksBitField) {
-    int sequenceGap =
-        Helper.getSequenceGap(remoteLastReceivedSeqID, _lastAckedSeqID);
+    int sequenceGap = Helper.getSequenceGap(remoteLastReceivedSeqID, _lastAckedSeqID);
     if (sequenceGap > 0) {
       // The latest sequence ID that the other end has received is newer than the previous one
       for (int i = 1; i < sequenceGap; i++) {
         // NOTE: loop starts at 1, meaning it only runs if the gap in sequence IDs is greater than 1
-        _ackedMessagesBitfield <<=
-            1; // Shift the bits left to make room for a previous ack
-        checkMessageAckStatus(Helper.toUShort(_lastAckedSeqID - 16 + i),
-            leftBit); // Check the ack status of the oldest sequence ID in the bitfield (before it's removed)
+        _ackedMessagesBitfield <<= 1; // Shift the bits left to make room for a previous ack
+        checkMessageAckStatus(
+            Helper.toUShort(_lastAckedSeqID - 16 + i), leftBit); // Check the ack status of the oldest sequence ID in the bitfield (before it's removed)
       }
-      _ackedMessagesBitfield <<=
-          1; // Shift the bits left to make room for the latest ack
-      _ackedMessagesBitfield |= Helper.toUShort(remoteAcksBitField |
-          (1 <<
-              sequenceGap -
-                  1)); // Combine the bit fields and ensure that the bit corresponding to the ack is set to 1
+      _ackedMessagesBitfield <<= 1; // Shift the bits left to make room for the latest ack
+      _ackedMessagesBitfield |=
+          Helper.toUShort(remoteAcksBitField | (1 << sequenceGap - 1)); // Combine the bit fields and ensure that the bit corresponding to the ack is set to 1
       _lastAckedSeqID = remoteLastReceivedSeqID;
 
-      checkMessageAckStatus(Helper.toUShort(_lastAckedSeqID - 16),
-          leftBit); // Check the ack status of the oldest sequence ID in the bitfield
+      checkMessageAckStatus(Helper.toUShort(_lastAckedSeqID - 16), leftBit); // Check the ack status of the oldest sequence ID in the bitfield
     } else if (sequenceGap < 0) {
       // TODO: remove? I don't think this case ever executes
       // The latest sequence ID that the other end has received is older than the previous one (out of order ack)
-      sequenceGap =
-          Helper.toUShort(-sequenceGap - 1); // Because bit shifting is 0-based
-      int ackedBit = Helper.toUShort(1 <<
-          sequenceGap); // Calculate which bit corresponds to the sequence ID and set it to 1
-      _ackedMessagesBitfield |=
-          ackedBit; // Set the bit corresponding to the sequence ID
+      sequenceGap = Helper.toUShort(-sequenceGap - 1); // Because bit shifting is 0-based
+      int ackedBit = Helper.toUShort(1 << sequenceGap); // Calculate which bit corresponds to the sequence ID and set it to 1
+      _ackedMessagesBitfield |= ackedBit; // Set the bit corresponding to the sequence ID
 
       if (pendingMessages.containsKey(remoteLastReceivedSeqID)) {
         // Message was successfully delivered, remove it from the pending messages.
@@ -352,8 +320,7 @@ abstract class Connection {
     } else {
       // The latest sequence ID that the other end has received is the same as the previous one (duplicate ack)
       _ackedMessagesBitfield |= remoteAcksBitField; // Combine the bit fields
-      checkMessageAckStatus(Helper.toUShort(_lastAckedSeqID - 16),
-          leftBit); // Check the ack status of the oldest sequence ID in the bitfield
+      checkMessageAckStatus(Helper.toUShort(_lastAckedSeqID - 16), leftBit); // Check the ack status of the oldest sequence ID in the bitfield
     }
   }
 
@@ -375,7 +342,7 @@ abstract class Connection {
     }
   }
 
-  /// Immediately marks the <see cref="PendingMessage"/> of a given sequence ID as delivered.
+  /// Immediately marks the PendingMessage of a given sequence ID as delivered.
   ///
   /// [seqID] : The sequence ID that was acknowledged.
   ackMessage(int seqID) {
@@ -398,9 +365,7 @@ abstract class Connection {
   ///
   /// [forSeqID] : The sequence ID to acknowledge.
   void _sendAck(int forSeqID) {
-    Message message = Message.createFromHeader(forSeqID == _lastReceivedSeqID
-        ? MessageHeader.ack
-        : MessageHeader.ackExtra);
+    Message message = Message.createFromHeader(forSeqID == _lastReceivedSeqID ? MessageHeader.ack : MessageHeader.ackExtra);
     message.addUShort(_lastReceivedSeqID); // Last remote sequence ID
     message.addUShort(_acksBitfield); // Acks
 
@@ -452,8 +417,7 @@ abstract class Connection {
   void handleWelcomeResponse(Message message) {
     int id = message.getUShort();
     if (this.id != id) {
-      RiptideLogger.log2(LogType.error, peer!.logName,
-          "Client has assumed ID $id instead of ${this.id}!");
+      RiptideLogger.log2(LogType.error, peer!.logName, "Client has assumed ID $id instead of ${this.id}!");
     }
 
     _state = ConnectionState.connected;

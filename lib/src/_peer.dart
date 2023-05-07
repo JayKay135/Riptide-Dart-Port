@@ -120,9 +120,7 @@ abstract class Peer {
 
   /// Received messages which need to be handled.
   Queue<MessageToHandle> messagesToHandle = Queue<MessageToHandle>();
-  PriorityQueue<DelayedEventPriority> eventQueue =
-      PriorityQueue<DelayedEventPriority>(
-          (a, b) => b.priority.compareTo(a.priority));
+  PriorityQueue<DelayedEventPriority> eventQueue = PriorityQueue<DelayedEventPriority>((a, b) => b.priority.compareTo(a.priority));
 
   /// A stopwatch used to track how much time has passed.
   final Stopwatch _time = Stopwatch();
@@ -180,8 +178,7 @@ abstract class Peer {
 
   /// Handles data received by the transport
   void handleData(DataReceivedEventArgs e) {
-    MessageHeader header =
-        MessageHeaderExtension.fromMessageIndex(e.dataBuffer[0]);
+    MessageHeader header = MessageHeaderExtension.fromMessageIndex(e.dataBuffer[0]);
     Message message = Message.createRaw();
     message.prepareForUse3(header, e.amount);
 
@@ -191,19 +188,15 @@ abstract class Peer {
         return;
       }
 
-      if (e.fromConnection.reliableHandle(
-          Converter.toUShort(e.dataBuffer.buffer.asByteData(), 1))) {
+      if (e.fromConnection.reliableHandle(Converter.toUShort(e.dataBuffer.buffer.asByteData(), 1))) {
         // We've already established that the packet contains at least 3 bytes, and we always want to copy the sequence ID over
-        message.bytes.setRange(
-            1, e.amount - 1, e.dataBuffer.getRange(1, e.dataBuffer.length - 1));
-        messagesToHandle
-            .add(MessageToHandle(message, header, e.fromConnection));
+        message.bytes.setRange(1, e.amount - 1, e.dataBuffer.getRange(1, e.dataBuffer.length - 1));
+        messagesToHandle.add(MessageToHandle(message, header, e.fromConnection));
       }
     } else {
       if (e.amount > 1) {
         // Only bother with the array copy if there is more than 1 byte in the packet (1 or less means no payload for a reliably sent packet)
-        message.bytes.setRange(
-            1, e.amount - 1, e.dataBuffer.getRange(1, e.dataBuffer.length - 1));
+        message.bytes.setRange(1, e.amount - 1, e.dataBuffer.getRange(1, e.dataBuffer.length - 1));
       }
 
       messagesToHandle.add(MessageToHandle(message, header, e.fromConnection));
@@ -219,12 +212,12 @@ abstract class Peer {
     // NOTE: Not implemented here
   }
 
-  /// Increases [ActiveCount]. For use when a new Server or Client is started.
+  /// Increases [_activeCount]. For use when a new Server or Client is started.
   static void increaseActiveCount() {
     _activeCount++;
   }
 
-  /// Decreases [ActiveCount]. For use when a Server or Client is stopped.
+  /// Decreases [_activeCount]. For use when a Server or Client is stopped.
   static void decreaseActiveCount() {
     _activeCount--;
 
@@ -253,8 +246,7 @@ class MessageToHandle {
   /// [message] : The message that needs to be handled.
   /// [header] : The message's header type.
   /// [fromConnection] : The connection on which the message was received.
-  MessageToHandle(
-      Message message, MessageHeader header, Connection fromConnection) {
+  MessageToHandle(Message message, MessageHeader header, Connection fromConnection) {
     _message = message;
     _header = header;
     _fromConnection = fromConnection;

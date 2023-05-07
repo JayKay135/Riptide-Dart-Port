@@ -16,53 +16,72 @@ import 'transports/_ipeer.dart';
 import '_eventArgs.dart';
 import '_peer.dart';
 
+/// Encapsulates a method that handles a message from a server.
+/// [message] : The message that was received.
 typedef MessageHandler = void Function(Message message);
 
+/// A client that can connect to a Server.
 class Client extends Peer {
+  /// Invoked when a connection to the server is established.
   Event connected = Event();
 
+  /// Invoked when a connection to the server fails to be established.
   Event connectionFailed = Event();
 
-  Event<MessageReceivedEventArgs> messageReceived =
-      Event<MessageReceivedEventArgs>();
+  /// Invoked when a message is received.
+  Event<MessageReceivedEventArgs> messageReceived = Event<MessageReceivedEventArgs>();
 
+  /// Invoked when disconnected from the server.
   Event<DisconnectedEventArgs> disconnected = Event<DisconnectedEventArgs>();
 
-  Event<ClientConnectedEventArgs> clientConnected =
-      Event<ClientConnectedEventArgs>();
+  /// Invoked when another non-localclient connects.
+  Event<ClientConnectedEventArgs> clientConnected = Event<ClientConnectedEventArgs>();
 
-  Event<ClientDisconnectedEventArgs> clientDisconnected =
-      Event<ClientDisconnectedEventArgs>();
+  /// Invoked when another non-local client disconnects.
+  Event<ClientDisconnectedEventArgs> clientDisconnected = Event<ClientDisconnectedEventArgs>();
 
+  /// The client's connection to a server.
   Connection? _connection;
   Connection? get connection => _connection;
 
   Map<int, MessageHandler> _messageHandlers = {};
 
+  /// The client's numeric ID.
   int get id => _connection!.id;
 
   int get rtt => _connection!.rtt;
 
+  /// This value is slower to accurately represent lasting changes in latency than rtt, but it is less susceptible to changing drastically due to significant—but temporary—jumps in latency.
   int get smoothRtt => _connection!.smoothRtt;
 
+  /// Whether or not the client is currently not trying to connect, pending, nor actively connected.
   bool get isNotConnected => _connection!.isNotConnected();
 
+  /// Whether or not the client is currently in the process of connecting.
   bool get isConnecting => _connection!.isConnecting();
 
+  /// Whether or not the client's connection is currently pending (waiting to be accepted/rejected by the server).
   bool get isPending => _connection!.isPending();
 
+  /// Whether or not the client is currently connected.
   bool get isConnected => _connection!.isConnected();
 
+  /// How many connection attempts have been made so far.
   late int _connectionAttempts;
 
+  /// How many connection attempts to make before giving up.
   late int _maxConnectionAttempts;
 
-  late Uint8List? connectBytes;
-
+  /// The underlying transport's client that is used for sending and receiving data.
   late IClient _transport;
 
-  Client({IClient? transport, String logname = "CLIENT"})
-      : super(logName: logname) {
+  /// Custom data to include when connecting.
+  late Uint8List? connectBytes;
+
+  /// Handles initial setup.
+  /// [transport] : The transport to use for sending and receiving data.
+  /// [logName] : The name to use when logging messages via RiptideLogger.
+  Client({IClient? transport, String logname = "CLIENT"}) : super(logName: logname) {
     _transport = transport ?? UdpClient();
   }
 
@@ -85,10 +104,7 @@ class Client extends Peer {
   ///
   /// Setting useMessageHandlers to false will disable the subscription system of the messageHandler, which is beneficial if you prefer to handle messages via the messageReceived event.
   /// Returns true if a connection attempt will be made. False if an issue occurred and a connection attempt will not be made.
-  Future<bool> connect(InternetAddress hostAddress, int port,
-      {int maxConnectionAttempts = 5,
-      Message? message,
-      bool useMessageHandlers = true}) async {
+  Future<bool> connect(InternetAddress hostAddress, int port, {int maxConnectionAttempts = 5, Message? message, bool useMessageHandlers = true}) async {
     disconnect();
 
     _subToTransportEvents();
@@ -121,27 +137,28 @@ class Client extends Peer {
     return true;
   }
 
+  /// Subscribes appropriate methods to the transport's events.
   void _subToTransportEvents() {
     _transport.connected.subscribe((args) => _transportConnected);
-    _transport.connectionFailed
-        .subscribe((args) => _transportConnnectionFailed);
+    _transport.connectionFailed.subscribe((args) => _transportConnnectionFailed);
     _transport.dataReceived.subscribe((args) => handleData(args!));
     _transport.disconnected.subscribe((args) => _transportDisconnected(args!));
   }
 
+  /// Unsubscribes methods from all of the transport's events.
   void _unsubFromTransportEvents() {
     _transport.connected.unsubscribe((args) => _transportConnected);
-    _transport.connectionFailed
-        .unsubscribe((args) => _transportConnnectionFailed);
+    _transport.connectionFailed.unsubscribe((args) => _transportConnnectionFailed);
     _transport.dataReceived.unsubscribe((args) => handleData(args!));
-    _transport.disconnected
-        .unsubscribe((args) => _transportDisconnected(args!));
+    _transport.disconnected.unsubscribe((args) => _transportDisconnected(args!));
   }
 
+  /// Registers a callback handler for a specifc [messageID] when messages with this particular id are received.
   void registerMessageHandler(int messageID, Function(Message) callback) {
     _messageHandlers[messageID] = callback;
   }
 
+  /// Removes the callback handler for a certain [messageID].
   void removeMessageHandler(int messageID) {
     _messageHandlers.remove(messageID);
   }
@@ -209,17 +226,14 @@ class Client extends Peer {
       case MessageHeader.reject:
         if (!isConnected) {
           // Don't disconnect if we are connected
-          localDisconnect(DisconnectReason.connectionRejected,
-              message: message,
-              rejectReason: RejectReason.values[message.getByte()]);
+          localDisconnect(DisconnectReason.connectionRejected, message: message, rejectReason: RejectReason.values[message.getByte()]);
         }
         break;
       case MessageHeader.heartbeat:
         connection.handleHeartbeatResponse(message);
         break;
       case MessageHeader.disconnect:
-        localDisconnect(DisconnectReason.values[message.getByte()],
-            message: message);
+        localDisconnect(DisconnectReason.values[message.getByte()], message: message);
         break;
       case MessageHeader.welcome:
         if (isConnecting || isPending) {
@@ -234,8 +248,7 @@ class Client extends Peer {
         _onClientDisconnected(message.getUShort());
         break;
       default:
-        RiptideLogger.log2(LogType.warning, logName,
-            "Unexpected message header '$header'! Discarding ${message.writtenLength} bytes.");
+        RiptideLogger.log2(LogType.warning, logName, "Unexpected message header '$header'! Discarding ${message.writtenLength} bytes.");
         break;
     }
 
@@ -266,10 +279,8 @@ class Client extends Peer {
   ///
   /// [reason] : The reason why the client has disconnected.
   /// [message] : The disconnection or rejection message, potentially containing extra data to be handled externally.
-  /// [rejectReason] : TData that should be sent to the client being disconnected. Use <see cref="Message.Create()"/> to get an empty message instance. Unused if the connection wasn't rejected.
-  void localDisconnect(DisconnectReason reason,
-      {Message? message,
-      RejectReason rejectReason = RejectReason.noConnection}) {
+  /// [rejectReason] : TData that should be sent to the client being disconnected. Use Message.create to get an empty message instance. Unused if the connection wasn't rejected.
+  void localDisconnect(DisconnectReason reason, {Message? message, RejectReason rejectReason = RejectReason.noConnection}) {
     if (isNotConnected) return;
 
     _unsubFromTransportEvents();
@@ -337,8 +348,7 @@ class Client extends Peer {
         break;
     }
 
-    RiptideLogger.log2(
-        LogType.info, logName, "Connection to server failed: $reasonString.");
+    RiptideLogger.log2(LogType.info, logName, "Connection to server failed: $reasonString.");
     connectionFailed.invoke(ConnectionFailedEventArgs(message));
   }
 
@@ -347,15 +357,13 @@ class Client extends Peer {
   /// [message] : The received message.
   void _onMessageReceived(Message message) {
     int messageID = message.getUShort();
-    messageReceived
-        .invoke(MessageReceivedEventArgs(_connection!, messageID, message));
+    messageReceived.invoke(MessageReceivedEventArgs(_connection!, messageID, message));
 
     if (useMessageHandlers) {
       if (_messageHandlers.containsKey(messageID)) {
         _messageHandlers[messageID]!.call(message);
       } else {
-        RiptideLogger.log2(LogType.warning, logName,
-            "No message handler method found for message ID $messageID!");
+        RiptideLogger.log2(LogType.warning, logName, "No message handler method found for message ID $messageID!");
       }
     }
   }
@@ -390,8 +398,7 @@ class Client extends Peer {
         break;
     }
 
-    RiptideLogger.log2(
-        LogType.info, logName, "Disconnected from server: $reasonString.");
+    RiptideLogger.log2(LogType.info, logName, "Disconnected from server: $reasonString.");
     disconnected.invoke(DisconnectedEventArgs(reason, message));
   }
 
