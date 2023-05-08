@@ -8,16 +8,28 @@ This port provides functionality for establishing connections with clients and s
 
 This port was last tested for functionality with Riptide [Commit a292470](https://github.com/RiptideNetworking/Riptide/commit/a29247052505cdb2f5e0c8994cb4006d6da857d4), Feb 12 2023
 
+It was tested for Android and Windows devices.
+
 ## Getting started
 
 The API is mostly identical to [Riptide](https://github.com/RiptideNetworking/Riptide).
 
 ### Installation
-
-Clone this repository and copy the src folder into your working directory.
+In you projects pubspec.yaml under dependencies add:
+```yaml
+riptide:
+    git:
+      url: https://github.com/JayKay135/Riptide-Dart-Port.git
+      ref: master
+```
 
 
 ## Usage
+
+### Enable Logging
+```dart
+    RiptideLogger.initialize2(print, print, print, print, true);
+```
 
 ### Create a new Server
 ```dart

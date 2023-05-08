@@ -10,6 +10,7 @@ import '../_server.dart' as server_ref;
 import '../_client.dart' as client_ref;
 import '_riptideLogger.dart';
 
+/// Intended multi threaded copy of the Server class
 class MultiThreadedServer {
   late SendPort _sendPort;
 
@@ -138,6 +139,7 @@ class MultiThreadedServer {
   }
 }
 
+/// Intended multi threaded copy of the Client class
 class MultiThreadedClient {
   late SendPort _sendPort;
 
@@ -203,7 +205,7 @@ class MultiThreadedClient {
       receiver.listen((data) {
         // NOTE: Isolates only allow for a few data types to be passed through ports.
         // The nicest way is to use maps to send multiple objects at once.
-        // Downside is that the whole api infrastructure from the Server class has to be encoded and decoded through maps.
+        // Downside is that the whole api infrastructure from the Client class has to be encoded and decoded through maps.
         Map<String, dynamic> map = data;
 
         bool? disconnect = map['disconnect'];
