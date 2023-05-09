@@ -28,7 +28,7 @@ riptide:
 
 ### Enable Logging
 ```dart
-    RiptideLogger.initialize2(print, print, print, print, true);
+RiptideLogger.initialize2(print, print, print, print, true);
 ```
 
 ### Create a new Server
