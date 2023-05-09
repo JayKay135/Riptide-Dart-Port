@@ -43,7 +43,7 @@ class UdpServer extends UdpPeer implements IServer {
     port = port;
     _connections = {};
 
-    openSocket(port: port, listenAddress: listenAddress);
+    openSocket(listenAddress: listenAddress, port: port);
   }
 
   /// Decides what to do with a connection attempt.

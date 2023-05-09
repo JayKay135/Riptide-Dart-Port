@@ -33,7 +33,7 @@ class UdpClient extends UdpPeer implements IClient {
   Future<Tuple3<bool, Connection, String>> connect(InternetAddress hostAddress, int port) async {
     String connectError = "";
 
-    await openSocket(listenAddress: hostAddress, port: port + 1).onError((error, stackTrace) => connectError = error.toString());
+    await openSocket(listenAddress: InternetAddress.anyIPv4, port: port + 1);
 
     udpConnection = UdpConnection(hostAddress, port, this);
 
