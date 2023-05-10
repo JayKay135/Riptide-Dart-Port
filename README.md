@@ -10,6 +10,12 @@ This port was last tested for functionality with Riptide [Commit a292470](https:
 
 It was tested for Android and Windows devices.
 
+
+## Compatible libraries in other languages
+
+- C#: [Riptide](https://github.com/RiptideNetworking/Riptide)
+- Python: [Pytide](https://github.com/ebosseck/PytideNetworking/tree/main)
+
 ## Getting started
 
 The API is mostly identical to [Riptide](https://github.com/RiptideNetworking/Riptide).
