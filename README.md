@@ -34,7 +34,7 @@ riptide:
 
 ### Enable Logging
 ```dart
-RiptideLogger.initialize2(print, print, print, print, true);
+RiptideLogger.initialize(print, true);
 ```
 
 ### Create a new Server
@@ -90,7 +90,7 @@ server.sendToAll(message);
 It is recommended to run the whole server/ client code execution in a seperate isolate to increase performance.
 A lightweight implementation of such an isolate is provided by this library.
 
-Simple swap from
+Simply swap from
 ```dart
 Server server = Server();
 server.start(PORT, 10);
@@ -102,7 +102,7 @@ Timer.periodic(const Duration(milliseconds: 20), (timer) {
 to
 ```dart
 MultiThreadedServer mtServer = MultiThreadedServer();
-mtServer.start(PORT, 10);
+mtServer.start(PORT, 10, loggingEnabled: true);
 ```
 or
 ```dart
@@ -116,7 +116,7 @@ Timer.periodic(const Duration(milliseconds: 20), (timer) {
 to
 ```dart
 MultiThreadedClient mtClient = MultiThreadedClient();
-mtClient.connect(InternetAddress("127.0.0.1"), PORT);
+mtClient.connect(InternetAddress("127.0.0.1"), PORT, loggingEnabled: true);
 ```
 
 ## Low-Level Transports supported by this library

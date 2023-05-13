@@ -8,6 +8,7 @@ import '../_server.dart';
 import '../_client.dart';
 import '../_server.dart' as server_ref;
 import '../_client.dart' as client_ref;
+import '_eventHandler.dart';
 import '_riptideLogger.dart';
 
 /// Intended multi threaded copy of the Server class
@@ -16,6 +17,12 @@ class MultiThreadedServer {
 
   /// Methods used to handle messages, accessible by their corresponding message IDs.
   Map<int, server_ref.MessageHandler> _messageHandlers = {};
+
+  /// Invoked when a client connects.
+  Event<MultiThreadedServerConnectedEventArgs> clientConnected = Event<MultiThreadedServerConnectedEventArgs>();
+
+  /// Invoked when a client disconnects.
+  Event<MultiThreadedServerDisconnectedEventArgs> clientDisconnected = Event<MultiThreadedServerDisconnectedEventArgs>();
 
   final String _logName = "MULTI_THREADED_SERVER";
 
@@ -70,7 +77,7 @@ class MultiThreadedServer {
       sendPort.send(receiver.sendPort);
 
       if (map['loggingEnabled']) {
-        RiptideLogger.initialize2(print, print, print, print, true);
+        RiptideLogger.initialize(print, true);
       }
 
       // actual riptide code
@@ -103,6 +110,15 @@ class MultiThreadedServer {
         }
       });
 
+      server.clientConnected.subscribe((ServerConnectedEventArgs? args) {
+        sendPort.send({'clientConnected': args!.client.id});
+      });
+
+      server.clientDisconnected.subscribe((ServerDisconnectedEventArgs? args) {
+        sendPort.send({'clientDisconnected': args!.client.id, 'reason': args.reason});
+      });
+
+      // listen for received messages and forward them through the sendPort
       server.messageReceived.subscribe((MessageReceivedEventArgs? args) {
         sendPort.send({'messageId': args!.messageID, 'connectionId': args.fromConnection.id, 'message': args.message});
       });
@@ -122,10 +138,21 @@ class MultiThreadedServer {
       if (data is SendPort) {
         completer.complete(data);
       } else {
+        Map<String, dynamic> map = data;
+
+        // distinguish between certain events from the isolate
+        if (map.containsKey('clientConnected')) {
+          return clientConnected.invoke(MultiThreadedServerConnectedEventArgs(map['clientConnected']));
+        }
+
+        if (map.containsKey('clientDisconnected')) {
+          return clientDisconnected.invoke(MultiThreadedServerDisconnectedEventArgs(map['clientDisconnected'], map['reason']));
+        }
+
         // received message data
-        int messageId = data['messageId'];
-        int connectionId = data['connectionId'];
-        Message message = data['message'];
+        int messageId = map['messageId'];
+        int connectionId = map['connectionId'];
+        Message message = map['message'];
 
         if (_messageHandlers.containsKey(messageId)) {
           _messageHandlers[messageId]!(connectionId, message);
@@ -145,6 +172,21 @@ class MultiThreadedClient {
 
   /// Methods used to handle messages, accessible by their corresponding message IDs.
   Map<int, client_ref.MessageHandler> _messageHandlers = {};
+
+  /// Invoked when a connection to the server is established.
+  Event connected = Event();
+
+  /// Invoked when a connection to the server fails to be established.
+  Event connectionFailed = Event();
+
+  /// Invoked when disconnected from the server.
+  Event<DisconnectedEventArgs> disconnected = Event<DisconnectedEventArgs>();
+
+  /// Invoked when another non-localclient connects.
+  Event<ClientConnectedEventArgs> clientConnected = Event<ClientConnectedEventArgs>();
+
+  /// Invoked when another non-local client disconnects.
+  Event<ClientDisconnectedEventArgs> clientDisconnected = Event<ClientDisconnectedEventArgs>();
 
   final String _logName = "MULTI_THREADED_CLIENT";
 
@@ -194,7 +236,7 @@ class MultiThreadedClient {
       sendPort.send(receiver.sendPort);
 
       if (map['loggingEnabled']) {
-        RiptideLogger.initialize2(print, print, print, print, true);
+        RiptideLogger.initialize(print, true);
       }
 
       // actual riptide code
@@ -222,6 +264,23 @@ class MultiThreadedClient {
         client.send(message!);
       });
 
+      client.connected.subscribe((_) => sendPort.send({'connected': null}));
+
+      client.connectionFailed.subscribe((_) => sendPort.send({'connectionFailed': null}));
+
+      client.disconnected.subscribe((DisconnectedEventArgs? args) {
+        sendPort.send({'disconnected': args!.message, 'reason': args.reason});
+      });
+
+      client.clientConnected.subscribe((ClientConnectedEventArgs? args) {
+        sendPort.send({'clientConnected': args!.id});
+      });
+
+      client.clientDisconnected.subscribe((ClientDisconnectedEventArgs? args) {
+        sendPort.send({'clientDisconnected': args!.id});
+      });
+
+      // listen for received messages and forward them through the sendPort
       client.messageReceived.subscribe((MessageReceivedEventArgs? args) {
         sendPort.send({'messageId': args!.messageID, 'message': args.message});
       });
@@ -242,9 +301,32 @@ class MultiThreadedClient {
       if (data is SendPort) {
         completer.complete(data);
       } else {
+        Map<String, dynamic> map = data;
+
+        // distinguish between certain events from the isolate
+        if (map.containsKey('connected')) {
+          return connected.invoke(null);
+        }
+
+        if (map.containsKey('connectionFailed')) {
+          return connectionFailed.invoke(null);
+        }
+
+        if (map.containsKey('disconnected')) {
+          return disconnected.invoke(DisconnectedEventArgs(map['reason'], map['disconnected']));
+        }
+
+        if (map.containsKey('clientConnected')) {
+          return clientConnected.invoke(ClientConnectedEventArgs(map['clientConnected']));
+        }
+
+        if (map.containsKey('clientDisconnected')) {
+          return clientDisconnected.invoke(ClientDisconnectedEventArgs(map['clientDisconnected']));
+        }
+
         // received message data
-        int messageId = data['messageId'];
-        Message message = data['message'];
+        int messageId = map['messageId'];
+        Message message = map['message'];
 
         if (_messageHandlers.containsKey(messageId)) {
           _messageHandlers[messageId]!(message);
