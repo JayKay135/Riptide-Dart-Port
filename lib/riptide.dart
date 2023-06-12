@@ -9,3 +9,15 @@ export 'src/transports/udp/_udpConnection.dart' show UdpConnection;
 export 'src/transports/udp/_udpClient.dart' show UdpClient;
 export 'src/transports/udp/_udpServer.dart' show UdpServer;
 export 'src/utils/_riptideLogger.dart' show RiptideLogger;
+export 'src/_eventArgs.dart'
+    show
+        ServerConnectedEventArgs,
+        MultiThreadedServerConnectedEventArgs,
+        ServerDisconnectedEventArgs,
+        MultiThreadedServerDisconnectedEventArgs,
+        MessageReceivedEventArgs,
+        ConnectionFailedEventArgs,
+        DisconnectedEventArgs,
+        ClientConnectedEventArgs,
+        ClientDisconnectedEventArgs;
+export 'src/_peer.dart' show DisconnectReason;

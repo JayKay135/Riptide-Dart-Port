@@ -1,4 +1,4 @@
-# Riptide dart port
+# Riptide Dart Port
 
 Dart port of [Riptide](https://github.com/RiptideNetworking/Riptide), a light weight networking library from Tom Weiland.
 
