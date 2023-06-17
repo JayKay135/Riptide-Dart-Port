@@ -119,6 +119,20 @@ MultiThreadedClient mtClient = MultiThreadedClient();
 mtClient.connect(InternetAddress("127.0.0.1"), PORT, loggingEnabled: true);
 ```
 
+## Note
+
+If you are using android: Make sure to enable the internet permission in the AndroidManifest.xml.
+
+Under *android/app/src/main/AndroidManifest.xml* add 
+```xml
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    ...
+    <uses-permission android:name="android.permission.INTERNET"/>
+    ...
+```
+
+And if you are using an android emulator with localhost note that instead of localhost you should use the ip 10.0.2.2.
+
 ## Low-Level Transports supported by this library
 
 * UDP (built-in)
