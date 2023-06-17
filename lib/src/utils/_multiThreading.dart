@@ -77,7 +77,13 @@ class MultiThreadedServer {
       sendPort.send(receiver.sendPort);
 
       if (map['loggingEnabled']) {
-        RiptideLogger.initialize(print, true);
+        RiptideLogger.initializeExtended(
+          (debugMessage) => sendPort.send({'debug': debugMessage}),
+          (infoMessage) => sendPort.send({'info': infoMessage}),
+          (warningMessage) => sendPort.send({'warning': warningMessage}),
+          (errorMessage) => sendPort.send({'error': errorMessage}),
+          true,
+        );
       }
 
       // actual riptide code
@@ -144,9 +150,21 @@ class MultiThreadedServer {
         if (map.containsKey('clientConnected')) {
           return clientConnected.invoke(MultiThreadedServerConnectedEventArgs(map['clientConnected']));
         }
-
         if (map.containsKey('clientDisconnected')) {
           return clientDisconnected.invoke(MultiThreadedServerDisconnectedEventArgs(map['clientDisconnected'], map['reason']));
+        }
+
+        if (map.containsKey('debug')) {
+          return RiptideLogger.log2(LogType.debug, _logName, map['debug']);
+        }
+        if (map.containsKey('info')) {
+          return RiptideLogger.log2(LogType.info, _logName, map['info']);
+        }
+        if (map.containsKey('warning')) {
+          return RiptideLogger.log2(LogType.warning, _logName, map['warning']);
+        }
+        if (map.containsKey('error')) {
+          return RiptideLogger.log2(LogType.error, _logName, map['error']);
         }
 
         // received message data
@@ -236,7 +254,13 @@ class MultiThreadedClient {
       sendPort.send(receiver.sendPort);
 
       if (map['loggingEnabled']) {
-        RiptideLogger.initialize(print, true);
+        RiptideLogger.initializeExtended(
+          (debugMessage) => sendPort.send({'debug': debugMessage}),
+          (infoMessage) => sendPort.send({'info': infoMessage}),
+          (warningMessage) => sendPort.send({'warning': warningMessage}),
+          (errorMessage) => sendPort.send({'error': errorMessage}),
+          true,
+        );
       }
 
       // actual riptide code
@@ -307,21 +331,30 @@ class MultiThreadedClient {
         if (map.containsKey('connected')) {
           return connected.invoke(null);
         }
-
         if (map.containsKey('connectionFailed')) {
           return connectionFailed.invoke(null);
         }
-
         if (map.containsKey('disconnected')) {
           return disconnected.invoke(DisconnectedEventArgs(map['reason'], map['disconnected']));
         }
-
         if (map.containsKey('clientConnected')) {
           return clientConnected.invoke(ClientConnectedEventArgs(map['clientConnected']));
         }
-
         if (map.containsKey('clientDisconnected')) {
           return clientDisconnected.invoke(ClientDisconnectedEventArgs(map['clientDisconnected']));
+        }
+
+        if (map.containsKey('debug')) {
+          return RiptideLogger.log2(LogType.debug, _logName, map['debug']);
+        }
+        if (map.containsKey('info')) {
+          return RiptideLogger.log2(LogType.info, _logName, map['info']);
+        }
+        if (map.containsKey('warning')) {
+          return RiptideLogger.log2(LogType.warning, _logName, map['warning']);
+        }
+        if (map.containsKey('error')) {
+          return RiptideLogger.log2(LogType.error, _logName, map['error']);
         }
 
         // received message data
