@@ -1,7 +1,7 @@
 name: riptide
 description: >-
   Dart port of the Riptide library from Tom Weiland. This port provides functionality for establishing connections with clients and servers using the Riptide protocol.
-version: 0.0.1
+version: 0.0.2
 homepage: https://github.com/JayKay135/Riptide-Dart-Port
 
 environment:
