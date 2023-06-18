@@ -10,7 +10,6 @@ import 'transports/udp/_udpServer.dart';
 import 'utils/_delayedEvents.dart';
 import 'utils/_eventHandler.dart';
 import 'utils/_riptideLogger.dart';
-import 'package:tuple/tuple.dart';
 
 import '_eventArgs.dart';
 import '_messageRelayFilter.dart';
@@ -394,10 +393,10 @@ class Server extends Peer {
   ///
   /// [id] : The ID of the client to retrieve.
   /// Returns true if a client with the given ID was connected; otherwise false
-  Tuple2<bool, Connection?> tryGetClient(int id) {
+  (bool, Connection?) tryGetClient(int id) {
     Connection? client = _clients[id];
 
-    return Tuple2(client != null, client);
+    return (client != null, client);
   }
 
   /// Disconnects a specific client.
