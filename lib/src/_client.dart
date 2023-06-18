@@ -1,7 +1,6 @@
 import 'dart:io';
 import 'dart:typed_data';
 
-import 'package:flutter/services.dart';
 import '_message.dart';
 import 'transports/_connection.dart';
 import 'transports/_eventArgs.dart' as event_args;
