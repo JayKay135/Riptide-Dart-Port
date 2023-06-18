@@ -1,21 +1,18 @@
 name: riptide
-description: Dart port of the Riptide library from Tom Weiland.
+description: >-
+  Dart port of the Riptide library from Tom Weiland. This port provides functionality for establishing connections with clients and servers using the Riptide protocol.
 version: 0.0.1
 homepage: https://github.com/JayKay135/Riptide-Dart-Port
 
 environment:
-  sdk: '>=3.0.0 < 4.0.0'
-  flutter: ">=1.17.0"
+  sdk: '^3.0.0'
 
 dependencies:
-  flutter:
-    sdk: flutter
-    
   intl: ^0.18.1
-  collection: ^1.17.2
+  collection: ^1.17.1
   tuple: ^2.0.1
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: ^2.0.0
+  lints: ^2.1.1
