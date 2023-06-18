@@ -40,7 +40,6 @@ abstract class UdpPeer extends Peer {
     _remoteEndPoint = InternetAddress.anyIPv4;
   }
 
-  @override
   void poll() {
     // NOTE: Not required for the underlying dart socket library
   }
