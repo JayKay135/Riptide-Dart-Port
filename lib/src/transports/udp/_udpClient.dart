@@ -1,8 +1,6 @@
 import 'dart:io';
 import 'dart:typed_data';
 
-import 'package:tuple/tuple.dart';
-
 import '../../transports/_connection.dart';
 import '../../transports/_eventArgs.dart';
 import '../../transports/udp/_udpPeer.dart';
@@ -30,7 +28,7 @@ class UdpClient extends UdpPeer implements IClient {
   UdpClient({int socketBufferSize = UdpPeer.defaultSocketBufferSize}) : super(socketBufferSize: socketBufferSize);
 
   @override
-  Future<Tuple3<bool, Connection, String>> connect(InternetAddress hostAddress, int port) async {
+  Future<(bool, Connection, String)> connect(InternetAddress hostAddress, int port) async {
     String connectError = "";
 
     await openSocket(listenAddress: InternetAddress.anyIPv4, port: port + 1);
@@ -40,7 +38,7 @@ class UdpClient extends UdpPeer implements IClient {
     // UDP is connectionless, so from the transport POV everything is immediately ready to send/receive data
     _onConnected();
 
-    return Tuple3(true, udpConnection, connectError);
+    return (true, udpConnection, connectError);
   }
 
   @override

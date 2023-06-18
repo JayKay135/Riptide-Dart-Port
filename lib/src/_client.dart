@@ -9,7 +9,6 @@ import 'transports/udp/_udpClient.dart';
 import 'utils/_delayedEvents.dart';
 import 'utils/_eventHandler.dart';
 import 'utils/_riptideLogger.dart';
-import 'package:tuple/tuple.dart';
 
 import 'transports/_ipeer.dart';
 import '_eventArgs.dart';
@@ -108,11 +107,10 @@ class Client extends Peer {
 
     _subToTransportEvents();
 
-    Tuple3 res = await _transport.connect(hostAddress, port);
-    String connectError = res.item3;
-    _connection = res.item2;
+    var (bool connected, Connection connection, String connectError) = await _transport.connect(hostAddress, port);
+    _connection = connection;
 
-    if (!res.item1) {
+    if (!connected) {
       RiptideLogger.log2(LogType.error, logName, connectError);
       _unsubFromTransportEvents();
       return false;
