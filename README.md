@@ -20,16 +20,6 @@ It was tested for Android and Windows devices.
 
 The API is mostly identical to [Riptide](https://github.com/RiptideNetworking/Riptide).
 
-### Installation
-In you projects pubspec.yaml under dependencies add:
-```yaml
-riptide:
-    git:
-      url: https://github.com/JayKay135/Riptide-Dart-Port.git
-      ref: master
-```
-
-
 ## Usage
 
 ### Enable Logging
