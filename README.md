@@ -21,7 +21,7 @@ It was tested for Android and Windows devices.
 The API is mostly identical to [Riptide](https://github.com/RiptideNetworking/Riptide).
 
 ### Installation
-In you projects pubspec.yaml file add riptide under your dependencies.
+In your projects pubspec.yaml file add riptide under your dependencies.
 ```yaml
 dependencies:
     riptide: ^0.0.3
