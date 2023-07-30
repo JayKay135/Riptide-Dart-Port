@@ -60,9 +60,6 @@ abstract class Peer {
   /// The name to use when logging messages via RiptideLogger.
   late String logName;
 
-  /// The time (in milliseconds) after which to disconnect if no heartbeats are received.
-  int timeoutTime = 5000;
-
   /// The interval (in milliseconds) at which to send and expect heartbeats to be received.
   ///
   /// Changes to this value will only take effect after the next heartbeat is executed.
@@ -76,8 +73,8 @@ abstract class Peer {
   int connectTimeoutTime = 10000;
 
   /// The current time.
-  int currentTime = 0;
-  int _startTime = DateTime.now().millisecondsSinceEpoch;
+  int _currentTime = 0;
+  int get currentTime => _currentTime;
 
   /// The text to log when disconnected due to DisconnectReason.NeverConnected.
   final String DCNeverConnected = "Never connected";
@@ -133,14 +130,14 @@ abstract class Peer {
 
   /// Starts tracking how much time has passed.
   void startTime() {
-    // currentTime = 0;
+    _currentTime = 0;
+    _time.reset();
     _time.start();
-    _startTime = DateTime.now().millisecondsSinceEpoch;
   }
 
   /// Stops tracking how much time has passed.
   void stopTime() {
-    // currentTime = 0;
+    _currentTime = 0;
     _time.reset();
     eventQueue.clear();
   }
@@ -152,9 +149,9 @@ abstract class Peer {
 
   /// Handles any received messages and invokes any delayed events which need to be invoked.
   void update() {
-    currentTime = DateTime.now().millisecondsSinceEpoch - _startTime;
+    _currentTime = _time.elapsedMilliseconds;
 
-    while (eventQueue.isNotEmpty && eventQueue.first.priority <= currentTime) {
+    while (eventQueue.isNotEmpty && eventQueue.first.priority <= _currentTime) {
       DelayedEventPriority event = eventQueue.removeFirst();
       event.delayedEvent.invoke();
     }
@@ -165,7 +162,7 @@ abstract class Peer {
   /// [delay] : How long from now to execute the delayed event, in milliseconds.
   /// [event] : The delayed event to execute later
   void executeLater(int delay, DelayedEvent event) {
-    eventQueue.add(DelayedEventPriority(currentTime + delay, event));
+    eventQueue.add(DelayedEventPriority(_currentTime + delay, event));
   }
 
   /// Handles all queued messages
@@ -179,27 +176,37 @@ abstract class Peer {
   /// Handles data received by the transport
   void handleData(DataReceivedEventArgs e) {
     MessageHeader header = MessageHeaderExtension.fromMessageIndex(e.dataBuffer[0]);
-    Message message = Message.createRaw();
-    message.prepareForUse3(header, e.amount);
 
-    if (message.sendMode == MessageSendMode.reliable) {
-      if (e.amount < 3) {
-        // Reliable messages have a 3 byte header, if there aren't that many bytes in the packet don't handle it
+    Message message = Message.createFromHeaderWithLength(header, e.amount);
+
+    if (header == MessageHeader.notify) {
+      if (e.amount < Message.notifyHeaderSize) {
         return;
       }
 
-      if (e.fromConnection.reliableHandle(Converter.toUShort(e.dataBuffer.buffer.asByteData(), 1))) {
-        // We've already established that the packet contains at least 3 bytes, and we always want to copy the sequence ID over
-        message.bytes.setRange(1, e.amount - 1, e.dataBuffer.getRange(1, e.dataBuffer.length - 1));
-        messagesToHandle.add(MessageToHandle(message, header, e.fromConnection));
-      }
-    } else {
-      if (e.amount > 1) {
-        // Only bother with the array copy if there is more than 1 byte in the packet (1 or less means no payload for a reliably sent packet)
+      e.fromConnection.processNotify(e.dataBuffer, e.amount, message);
+    } else if (message.sendMode == MessageSendMode.unreliable) {
+      // Only bother with the array copy if there is more than 1 byte in the packet (1 or less means no payload for a reliably sent packet)
+      if (e.amount > Message.unreliableHeaderSize) {
         message.bytes.setRange(1, e.amount - 1, e.dataBuffer.getRange(1, e.dataBuffer.length - 1));
       }
 
       messagesToHandle.add(MessageToHandle(message, header, e.fromConnection));
+
+      // if (e.fromConnection.reliableHandle(Converter.toUShort(e.dataBuffer.buffer.asByteData(), 1))) {
+      //   // We've already established that the packet contains at least 3 bytes, and we always want to copy the sequence ID over
+      //   message.bytes.setRange(1, e.amount - 1, e.dataBuffer.getRange(1, e.dataBuffer.length - 1));
+      //   messagesToHandle.add(MessageToHandle(message, header, e.fromConnection));
+      // }
+    } else {
+      if (e.amount < Message.reliableHeaderSize) {
+        return;
+      }
+
+      if (e.fromConnection.shouldHandle(Converter.toUShort(e.dataBuffer.buffer.asByteData(), 1))) {
+        message.bytes.setRange(1, e.amount - 1, e.dataBuffer.getRange(1, e.dataBuffer.length - 1));
+        messagesToHandle.add(MessageToHandle(message, header, e.fromConnection));
+      }
     }
   }
 

@@ -90,7 +90,7 @@ class UdpServer extends UdpPeer implements IServer {
     if (_connections.containsKey(fromEndPoint)) {
       Connection connection = _connections[fromEndPoint]!;
 
-      if (!connection.isNotConnected()) {
+      if (!connection.isNotConnected) {
         dataReceived.invoke(DataReceivedEventArgs(data, amount, connection));
       }
     }

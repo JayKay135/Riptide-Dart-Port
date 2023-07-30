@@ -58,7 +58,7 @@ class UdpClient extends UdpPeer implements IClient {
 
   @override
   void onDataReceived(Uint8List data, int amount, InternetAddress fromEndPoint, int port) {
-    if (udpConnection.remoteEndPoint == fromEndPoint && !udpConnection.isNotConnected()) {
+    if (udpConnection.remoteEndPoint == fromEndPoint && !udpConnection.isNotConnected) {
       dataReceived.invoke(DataReceivedEventArgs(data, amount, udpConnection));
     }
   }

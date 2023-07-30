@@ -1,3 +1,4 @@
+/// Byte sizes for the different data types in C#
 class Constants {
   static const int boolBytes = 1;
 
@@ -6,6 +7,8 @@ class Constants {
   static const int shortBytes = 2;
 
   static const int intBytes = 4;
+
+  static const int uintBytes = 4;
 
   static const int doubleBytes = 8;
 

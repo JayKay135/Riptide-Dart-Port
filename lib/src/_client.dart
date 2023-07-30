@@ -53,16 +53,16 @@ class Client extends Peer {
   int get smoothRtt => _connection!.smoothRtt;
 
   /// Whether or not the client is currently not trying to connect, pending, nor actively connected.
-  bool get isNotConnected => _connection!.isNotConnected();
+  bool get isNotConnected => _connection!.isNotConnected;
 
   /// Whether or not the client is currently in the process of connecting.
-  bool get isConnecting => _connection!.isConnecting();
+  bool get isConnecting => _connection!.isConnecting;
 
   /// Whether or not the client's connection is currently pending (waiting to be accepted/rejected by the server).
-  bool get isPending => _connection!.isPending();
+  bool get isPending => _connection!.isPending;
 
   /// Whether or not the client is currently connected.
-  bool get isConnected => _connection!.isConnected();
+  bool get isConnected => _connection!.isConnected;
 
   /// How many connection attempts have been made so far.
   late int _connectionAttempts;
@@ -129,6 +129,7 @@ class Client extends Peer {
       connectBytes = null;
     }
 
+    startTime();
     heartbeat();
     RiptideLogger.log2(LogType.info, logName, "Connecting to $connection...");
     return true;
@@ -214,9 +215,6 @@ class Client extends Peer {
       case MessageHeader.ack:
         connection.handleAck(message);
         break;
-      case MessageHeader.ackExtra:
-        connection.handleAckExtra(message);
-        break;
       case MessageHeader.connect:
         connection.setPending();
         break;
@@ -298,9 +296,7 @@ class Client extends Peer {
   }
 
   /// What to do when the transport establishes a connection.
-  void _transportConnected(EventArgs e) {
-    startTime();
-  }
+  void _transportConnected(EventArgs e) {}
 
   /// What to do when the transport fails to connect.
   void _transportConnnectionFailed(EventArgs e) {

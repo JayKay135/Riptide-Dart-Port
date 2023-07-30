@@ -29,14 +29,31 @@ extension MessageSendModeExtension on MessageSendMode {
 class Message {
   final int poolSize = 10;
 
+  /// The header size for unreliable messages. Does not count the 2 bytes used for the message ID.
+  ///
+  /// 1 byte - header
+  static const int unreliableHeaderSize = 1;
+
+  /// The header size for reliable messages. Does not count the 2 bytes used for the message ID.
+  ///
+  /// 1 byte - header, 2 bytes - sequence ID
+  static const int reliableHeaderSize = 3;
+
+  /// The header size for notify messages.
+  ///
+  /// 1 byte - header, 3 bytes - ack, 2 bytes - sequence ID
+  static const int notifyHeaderSize = 6;
+
   /// The maximum number of bytes required for a message's header.
+  ///
   /// 1 byte for the actual header, 2 bytes for the sequence ID (only for reliable messages), 2 bytes for the message ID. Messages sent unreliably will use 2 bytes less than this value for the header.
-  static const int maxHeaderSize = 5;
+  static const int maxHeaderSize = notifyHeaderSize;
 
   /// The maximum number of bytes that a message can contain, including the MaxHeaderSize.
   static int _maxSize = maxHeaderSize + 1225;
 
   /// How many messages to add to the pool for each Server or Client instance that is started.
+  ///
   /// Changes will not affect Server and Client instances which are already running until they are restarted.
   static int instancesPerPeer = 4;
 
@@ -119,9 +136,9 @@ class Message {
     }
   }
 
-  /// Gets a usable message instance.
+  /// Gets a completely empty message instance with no header.
   ///
-  /// Returns a message instance ready to be used.
+  /// Returns an empty message instance.
   static Message create() {
     return _retrieveFromPool().prepareForUse();
   }
@@ -130,7 +147,7 @@ class Message {
   ///
   /// [sendMode] : The mode in which the message should be sent.
   /// [id] : The message ID.
-  /// Returns a message instance ready to be used for sending.
+  /// Returns a message instance ready to be sent.
   static Message createFromInt(MessageSendMode sendMode, int id) {
     return _retrieveFromPool().prepareForUse2(sendMode.messageHeader).addUShort(id);
   }
@@ -147,17 +164,24 @@ class Message {
   /// Gets a message instance that can be used for sending.
   ///
   /// [header] : The message's header type.
-  /// Returns a message instance ready to be used for sending.
+  /// Returns a message instance ready to be sent.
   static Message createFromHeader(MessageHeader header) {
     return _retrieveFromPool().prepareForUse2(header);
   }
 
-  /// Gets a message instance directly from the pool without doing any extra setup.
+  /// Gets a message instance that can be used for receiving/handling.
   ///
-  /// As this message instance is returned straight from the pool, it will contain all previous data and settings. Using this instance without preparing it properly will likely result in unexpected behaviour.
-  /// Returns a message instance.
-  static Message createRaw() {
-    return _retrieveFromPool();
+  /// [header] : The message's header type.
+  /// [contentLength] : The number of bytes which this message will contain.
+  /// Returns a message instance ready to be populated with received data.
+  static Message createFromHeaderWithLength(MessageHeader header, int contentLength) {
+    return _retrieveFromPool().prepareForUse3(header, contentLength);
+  }
+
+  /// Gets a notify message instance that can be used for sending.
+  /// <returns>A notify message instance ready to be sent.</returns>
+  static Message createNotify() {
+    return _retrieveFromPool().prepareForUse2(MessageHeader.notify);
   }
 
   /// Retrieves a message instance from the pool. If none is available, a new instance is created.
@@ -203,7 +227,7 @@ class Message {
   /// Prepares the message to be used for handling.
   ///
   /// [header] : The header of the message.
-  /// [contentLength] : The number of bytes that this message contains and which can be retrieved.
+  /// [contentLength] : The number of bytes that this message will contain and which can be retrieved.
   /// Returns the message, ready to be used for handling.
   Message prepareForUse3(MessageHeader header, int contentLength) {
     setHeader(header);
@@ -217,13 +241,19 @@ class Message {
   void setHeader(MessageHeader header) {
     bytes[0] = header.messageIndex;
 
-    if (header.index >= MessageHeader.reliable.index) {
-      _readPos = 3;
-      _writePos = 3;
+    if (header.index == MessageHeader.notify.index) {
+      _readPos = notifyHeaderSize;
+      _writePos = notifyHeaderSize;
+
+      // Technically it's different but notify messages *are* still unreliable
+      _sendMode = MessageSendMode.unreliable;
+    } else if (header.index >= MessageHeader.reliable.index) {
+      _readPos = reliableHeaderSize;
+      _writePos = reliableHeaderSize;
       _sendMode = MessageSendMode.reliable;
     } else {
-      _readPos = 1;
-      _writePos = 1;
+      _readPos = unreliableHeaderSize;
+      _writePos = unreliableHeaderSize;
       _sendMode = MessageSendMode.unreliable;
     }
   }

@@ -29,7 +29,7 @@ class PendingMessage {
   late Connection _connection;
 
   /// The sequence ID of the message.
-  late int _sequenceId;
+  late int _sequenceID;
 
   /// The contents of the message.
   late Uint8List _data;
@@ -51,15 +51,15 @@ class PendingMessage {
 
   // #region Pooling
 
-  /// Retrieves a PendingMessage instance, initializes it and then sends it.
+  /// Retrieves a PendingMessage instance and initializes it.
   ///
   /// [sequenceID] : The sequence ID of the message.
   /// [message] : The message that is being sent reliably.
   /// [connection] : The Connection to use to send (and resend) the pending message.
-  static void createAndSend(int sequenceID, Message message, Connection connection) {
+  static PendingMessage create(int sequenceID, Message message, Connection connection) {
     PendingMessage pendingMessage = _retrieveFromPool();
     pendingMessage._connection = connection;
-    pendingMessage._sequenceId = sequenceID;
+    pendingMessage._sequenceID = sequenceID;
 
     pendingMessage.data[0] = message.bytes[0]; // Copy message header
     Converter.fromUShort(sequenceID, pendingMessage.data.buffer.asByteData(), 1); // Insert sequence ID
@@ -71,8 +71,7 @@ class PendingMessage {
     pendingMessage._sendAttempts = 0;
     pendingMessage._wasCleared = false;
 
-    connection.pendingMessages[sequenceID] = pendingMessage;
-    pendingMessage.trySend();
+    return pendingMessage;
   }
 
   /// Retrieves a PendingMessage instance from the pool. If none is available, a new instance is created.
@@ -132,7 +131,7 @@ class PendingMessage {
         }
       }
 
-      clear();
+      _connection.clearMessage(_sequenceID);
       return;
     }
 
@@ -146,13 +145,7 @@ class PendingMessage {
   }
 
   /// Clears the message.
-  ///
-  /// [shouldRemoveFromDictionary] : Whether or not to remove the message from Connection.pendingMessages.
-  void clear({bool shouldRemoveFromDictionary = true}) {
-    if (shouldRemoveFromDictionary) {
-      _connection.pendingMessages.remove(_sequenceId);
-    }
-
+  void clear() {
     _wasCleared = true;
     _release();
   }

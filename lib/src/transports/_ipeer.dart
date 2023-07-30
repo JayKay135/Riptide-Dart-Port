@@ -8,9 +8,6 @@ enum MessageHeader {
   /// An internal unreliable ack message.
   ack,
 
-  /// An internal unreliable ack message, used when acknowledging a sequence ID other than the last received one.
-  ackExtra,
-
   /// An internal unreliable connect message.
   connect,
 
@@ -22,6 +19,9 @@ enum MessageHeader {
 
   /// An internal unreliable disconnect message.
   disconnect,
+
+  /// A notify message.
+  notify,
 
   /// A reliable user message.
   reliable,

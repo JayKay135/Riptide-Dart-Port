@@ -310,9 +310,6 @@ class Server extends Peer {
       case MessageHeader.ack:
         connection.handleAck(message);
         break;
-      case MessageHeader.ackExtra:
-        connection.handleAckExtra(message);
-        break;
       case MessageHeader.connect:
         _handleConnect(connection, message);
         break;
@@ -323,7 +320,7 @@ class Server extends Peer {
         _localDisconnect(connection, DisconnectReason.disconnected);
         break;
       case MessageHeader.welcome:
-        if (connection.isPending()) {
+        if (connection.isPending) {
           connection.handleWelcomeResponse(message);
           onClientConnected(connection);
         }
@@ -447,7 +444,7 @@ class Server extends Peer {
       _availableClientIds.add(client.id);
     }
 
-    if (client.isConnected()) {
+    if (client.isConnected) {
       onClientDisconnected(client, reason); // Only run if the client was ever actually connected
     }
 
