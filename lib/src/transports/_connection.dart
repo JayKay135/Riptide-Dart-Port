@@ -41,18 +41,48 @@ abstract class Connection {
   /// Invoked when a notify message is received.
   Event<Message>? notifyReceived;
 
+  /// Returns `true` if the connection is currently not connected nor trying to connect.
+  bool get isNotConnected => _state == ConnectionState.notConnected;
+
+  /// Returns `true` if the client is currently in the process of connecting
+  bool get isConnecting => _state == ConnectionState.connecting;
+
+  /// Returns `true` if the client's connection is currently pending
+  ///
+  /// Will only be True when a server doesn't immediately accept the connection request
+  bool get isPending => _state == ConnectionState.pending;
+
+  /// Returns `true` if the client is currently connected.
+  bool get isConnected => _state == ConnectionState.connected;
+
   /// The connection's numeric ID.
   int id = 0;
-
-  /// Whether or not the connection is currently <i>not</i> trying to connect, pending, nor actively connected.
-  ConnectionState _state = ConnectionState.connecting;
 
   /// The round trip time (ping) of the connection, in milliseconds. -1 if not calculated yet.
   int _rtt = -1;
 
+  /// Gets the round trip time (ping) of the connection, in milliseconds.
+  ///
+  /// -1 if not calculated yet.
+  int get rtt => _rtt;
+
+  /// Sets the round trip time (ping) of the connection, in milliseconds.
+  ///
+  /// -1 if not calculated yet.
+  set rtt(int value) {
+    _smoothRtt = _rtt < 0 ? value : max(1, (_smoothRtt * .7 + value * .3).toInt());
+    _rtt = value;
+  }
+
   /// The smoothed round trip time (ping) of the connection, in milliseconds. -1 if not calculated yet.
   /// This value is slower to accurately represent lasting changes in latency than rtt, but it is less susceptible to changing drastically due to significant—but temporary—jumps in latency.
   int _smoothRtt = -1;
+
+  /// Returns the smoothed round trip time (ping) of the connection, in milliseconds. -1 if not calculated yet.
+  ///
+  /// This value is slower to accurately represent lasting changes in latency than rtt, but it is less susceptible to
+  /// changing drastically due to significant—but temporary—jumps in latency.
+  int get smoothRtt => _smoothRtt;
 
   /// The time (in milliseconds) after which to disconnect if no heartbeats are received.
   int timeoutTime = 5000;
@@ -78,28 +108,8 @@ abstract class Connection {
   /// The currently pending reliably sent messages whose delivery has not been acknowledged yet. Stored by sequence ID.
   Map<int, PendingMessage> pendingMessages = {};
 
-  /// The sequence ID of the latest message that we want to acknowledge.
-  int _lastReceivedSeqID = 0;
-
-  /// Messages that we have received and want to acknowledge.
-  int _acksBitfield = 0;
-
-  /// Messages that we have received whose sequence IDs no longer fall into acksBitfield's range. Used to improve duplicate message filtering capabilities.
-  int _duplicateFilterBitfield = 0;
-
-  /// The sequence ID of the latest message that we've received an ack for.
-  int _lastAckedSeqID = 0;
-
-  /// Messages that we sent which have been acknoweledged.
-  int _ackedMessagesBitfield = 0;
-
-  /// A ushort with the left-most bit set to 1.
-  final int leftBit = (Uint16List(1)..[0] = 0x8000).buffer.asInt8List().first; // 0b_1000_0000_0000_0000;
-
-  /// The next sequence ID to use.
-  int get nextSequenceID => (++_lastSequenceID) & 0xffff; // Ushort + simulated overflow
-
-  int _lastSequenceID = 0;
+  /// Whether or not the connection is currently not trying to connect, pending, nor actively connected.
+  ConnectionState _state = ConnectionState.connecting;
 
   // late DateTime _lastHeartbeat;
   int _lastHeartbeat = 0;
@@ -113,61 +123,6 @@ abstract class Connection {
   /// The stopwatch that tracks the time since the currently pending ping was sent.
   Stopwatch _pendingPingStopwatch = Stopwatch();
   Stopwatch get pendingPingStopwatch => _pendingPingStopwatch;
-
-  // #region Connection State
-
-  /// Returns `true` if the connection is currently not connected nor trying to connect.
-  bool get isNotConnected => _state == ConnectionState.notConnected;
-
-  /// Returns `true` if the client is currently in the process of connecting
-  bool get isConnecting => _state == ConnectionState.connecting;
-
-  /// Returns `true` if the client's connection is currently pending
-  ///
-  /// Will only be True when a server doesn't immediately accept the connection request
-  bool get isPending => _state == ConnectionState.pending;
-
-  /// Returns `true` if the client is currently connected.
-  bool get isConnected => _state == ConnectionState.connected;
-
-  // #endregion
-
-  // #region RTT
-
-  /// Gets the round trip time (ping) of the connection, in milliseconds.
-  ///
-  /// -1 if not calculated yet.
-  int get rtt => _rtt;
-
-  /// Sets the round trip time (ping) of the connection, in milliseconds.
-  ///
-  /// -1 if not calculated yet.
-  set rtt(int value) {
-    _smoothRtt = _rtt < 0 ? value : max(1, (_smoothRtt * .7 + value * .3).toInt());
-    _rtt = value;
-  }
-
-  /// Returns the smoothed round trip time (ping) of the connection, in milliseconds. -1 if not calculated yet.
-  ///
-  /// This value is slower to accurately represent lasting changes in latency than rtt, but it is less susceptible to
-  /// changing drastically due to significant—but temporary—jumps in latency.
-  int get smoothRtt => _smoothRtt;
-
-  // #endregion
-
-  // #region Timeout
-
-  /// Gets if the connection can time out.
-  bool get canTimeout => _canTimeout;
-
-  /// Sets if the connection can time out.
-  set canTimeout(bool value) {
-    if (value) {
-      resetTimeout();
-    }
-
-    _canTimeout = value;
-  }
 
   /// Initializes the connection.
   Connection() {
