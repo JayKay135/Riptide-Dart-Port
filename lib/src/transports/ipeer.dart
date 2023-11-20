@@ -1,5 +1,5 @@
-import '../utils/_eventHandler.dart';
-import '_eventArgs.dart';
+import '../utils/event_handler.dart';
+import 'event_args.dart';
 
 enum MessageHeader {
   /// An unreliable user message.

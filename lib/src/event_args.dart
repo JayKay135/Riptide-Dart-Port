@@ -1,7 +1,7 @@
-import 'transports/_connection.dart';
-import '_message.dart';
-import '_peer.dart';
-import 'utils/_eventHandler.dart';
+import 'transports/connection.dart';
+import 'message.dart';
+import 'peer.dart';
+import 'utils/event_handler.dart';
 
 /// Contains event data for when a client connects to the server.
 class ServerConnectedEventArgs extends EventArgs {

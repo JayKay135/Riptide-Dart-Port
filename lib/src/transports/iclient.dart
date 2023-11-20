@@ -1,8 +1,8 @@
 import 'dart:io';
 
-import '../utils/_eventHandler.dart';
-import '_connection.dart';
-import '_ipeer.dart';
+import '../utils/event_handler.dart';
+import 'connection.dart';
+import 'ipeer.dart';
 
 /// Defines methods, properties, and events which every transport's client must implement.
 abstract class IClient extends IPeer {

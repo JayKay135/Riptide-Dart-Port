@@ -1,7 +1,7 @@
 import 'dart:core';
 import 'dart:math';
 
-import '_constants.dart';
+import 'constants.dart';
 
 /// Provides functionality for managing and manipulating a collection of bits.
 class Bitfield {

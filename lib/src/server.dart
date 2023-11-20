@@ -1,19 +1,19 @@
 import 'dart:collection';
 import 'dart:typed_data';
 
-import '_message.dart';
-import 'transports/_connection.dart';
-import 'transports/_eventArgs.dart' as event_args;
-import 'transports/_ipeer.dart';
-import 'transports/_iserver.dart';
-import 'transports/udp/_udpServer.dart';
-import 'utils/_delayedEvents.dart';
-import 'utils/_eventHandler.dart';
-import 'utils/_riptideLogger.dart';
+import 'message.dart';
+import 'transports/connection.dart';
+import 'transports/event_args.dart' as event_args;
+import 'transports/ipeer.dart';
+import 'transports/iserver.dart';
+import 'transports/udp/udp_server.dart';
+import 'utils/delayed_events.dart';
+import 'utils/event_handler.dart';
+import 'utils/riptide_logger.dart';
 
-import '_eventArgs.dart';
-import '_messageRelayFilter.dart';
-import '_peer.dart';
+import 'event_args.dart';
+import 'message_relay_filter.dart';
+import 'peer.dart';
 
 /// Encapsulates a method that handles a message from a client.
 ///

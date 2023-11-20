@@ -1,13 +1,13 @@
 import 'dart:math';
 import 'dart:typed_data';
 
-import 'transports/_connection.dart';
-import 'transports/_ipeer.dart';
-import '_message.dart';
-import 'utils/_converter.dart';
-import 'utils/_delayedEvents.dart';
-import 'utils/_helper.dart';
-import 'utils/_riptideLogger.dart';
+import 'transports/connection.dart';
+import 'transports/ipeer.dart';
+import 'message.dart';
+import 'utils/converter.dart';
+import 'utils/delayed_events.dart';
+import 'utils/helper.dart';
+import 'utils/riptide_logger.dart';
 
 /// Represents a currently pending reliably sent message whose delivery has not been acknowledged yet.
 class PendingMessage {

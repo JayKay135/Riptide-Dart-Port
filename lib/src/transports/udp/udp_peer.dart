@@ -1,10 +1,10 @@
 import 'dart:io';
 import 'dart:typed_data';
 
-import '../../_peer.dart';
-import '../../utils/_eventHandler.dart';
-import '../_connection.dart';
-import '../_eventArgs.dart';
+import '../../peer.dart';
+import '../../utils/event_handler.dart';
+import '../connection.dart';
+import '../event_args.dart';
 
 /// Provides base send &#38; receive functionality for TcpServer and TcpClient.
 abstract class UdpPeer extends Peer {

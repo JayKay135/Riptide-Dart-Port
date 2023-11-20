@@ -1,12 +1,12 @@
 import 'dart:io';
 import 'dart:typed_data';
 
-import '../../transports/_connection.dart';
-import '../../transports/_eventArgs.dart';
-import '../../transports/udp/_udpPeer.dart';
-import '../../utils/_eventHandler.dart';
-import '../_iclient.dart';
-import '_udpConnection.dart';
+import '../connection.dart';
+import '../event_args.dart';
+import 'udp_peer.dart';
+import '../../utils/event_handler.dart';
+import '../iclient.dart';
+import 'udp_connection.dart';
 
 /// A client which can connect to a UdpServer.
 class UdpClient extends UdpPeer implements IClient {

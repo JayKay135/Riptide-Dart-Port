@@ -1,7 +1,7 @@
-import '../_peer.dart';
-import '../_pendingMessage.dart';
-import '../transports/_connection.dart';
-import '../transports/_iserver.dart';
+import '../peer.dart';
+import '../pending_message.dart';
+import '../transports/connection.dart';
+import '../transports/iserver.dart';
 
 /// Executes an action when invoked.
 abstract class DelayedEvent {

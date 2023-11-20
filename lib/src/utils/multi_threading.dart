@@ -2,14 +2,14 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:isolate';
 
-import '../_eventArgs.dart';
-import '../_message.dart';
-import '../_server.dart';
-import '../_client.dart';
-import '../_server.dart' as server_ref;
-import '../_client.dart' as client_ref;
-import '_eventHandler.dart';
-import '_riptideLogger.dart';
+import '../event_args.dart';
+import '../message.dart';
+import '../server.dart';
+import '../client.dart';
+import '../server.dart' as server_ref;
+import '../client.dart' as client_ref;
+import 'event_handler.dart';
+import 'riptide_logger.dart';
 
 /// Intended multi threaded copy of the Server class
 class MultiThreadedServer {

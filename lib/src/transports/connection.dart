@@ -2,15 +2,15 @@ import 'dart:core';
 import 'dart:math';
 import 'dart:typed_data';
 
-import '../_message.dart';
-import '../_peer.dart';
-import '../_pendingMessage.dart';
-import '../utils/_bitfield.dart';
-import '../utils/_converter.dart';
-import '../utils/_eventHandler.dart';
-import '../utils/_helper.dart';
-import '../utils/_riptideLogger.dart';
-import '_ipeer.dart';
+import '../message.dart';
+import '../peer.dart';
+import '../pending_message.dart';
+import '../utils/bitfield.dart';
+import '../utils/converter.dart';
+import '../utils/event_handler.dart';
+import '../utils/helper.dart';
+import '../utils/riptide_logger.dart';
+import 'ipeer.dart';
 
 /// The state of a connection
 enum ConnectionState {

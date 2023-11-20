@@ -2,12 +2,12 @@ import 'dart:collection';
 
 import 'package:collection/collection.dart';
 
-import '_message.dart';
-import 'transports/_connection.dart';
-import 'transports/_eventArgs.dart';
-import 'transports/_ipeer.dart';
-import 'utils/_converter.dart';
-import 'utils/_delayedEvents.dart';
+import 'message.dart';
+import 'transports/connection.dart';
+import 'transports/event_args.dart';
+import 'transports/ipeer.dart';
+import 'utils/converter.dart';
+import 'utils/delayed_events.dart';
 
 /// The reason the connection attempt was rejected.
 enum RejectReason {

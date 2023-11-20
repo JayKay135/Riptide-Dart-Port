@@ -1,6 +1,6 @@
-import '../utils/_eventHandler.dart';
-import '_connection.dart';
-import '_ipeer.dart';
+import '../utils/event_handler.dart';
+import 'connection.dart';
+import 'ipeer.dart';
 
 /// Defines methods, properties, and events which every transport's server must implement.
 abstract class IServer implements IPeer {

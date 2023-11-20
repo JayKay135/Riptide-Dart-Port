@@ -1,4 +1,4 @@
-import 'utils/_constants.dart';
+import 'utils/constants.dart';
 
 /// Provides functionality for enabling/disabling automatic message relaying by message type.
 class MessageRelayFilter<T extends Enum> {

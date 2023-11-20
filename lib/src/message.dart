@@ -2,13 +2,13 @@ import 'dart:convert';
 import 'dart:core';
 import 'dart:typed_data';
 
-import '_exceptions.dart';
-import '_peer.dart';
-import 'transports/_ipeer.dart';
-import 'utils/_constants.dart';
-import 'utils/_converter.dart';
-import 'utils/_helper.dart';
-import 'utils/_riptideLogger.dart';
+import 'exceptions.dart';
+import 'peer.dart';
+import 'transports/ipeer.dart';
+import 'utils/constants.dart';
+import 'utils/converter.dart';
+import 'utils/helper.dart';
+import 'utils/riptide_logger.dart';
 
 /// The send mode of a Message.
 enum MessageSendMode {
