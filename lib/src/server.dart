@@ -129,14 +129,14 @@ class Server extends Peer {
 
   /// Subscribes appropriate methods to the transport's events.
   void _subToTransportEvents() {
-    _transport.connected.subscribe((args) => _handleConnectionAttempt(args));
+    _transport.connected.subscribe((args) => _handleConnectionAttempt(args!));
     _transport.dataReceived.subscribe((args) => handleData(args!));
     _transport.disconnected.subscribe((args) => _transportDisconnected(args!));
   }
 
   /// Unsubscribes methods from all of the transport's events.
   void _unsubFromTransportEvents() {
-    _transport.connected.unsubscribe((args) => _handleConnectionAttempt(args));
+    _transport.connected.unsubscribe((args) => _handleConnectionAttempt(args!));
     _transport.dataReceived.unsubscribe((args) => handleData(args!));
     _transport.disconnected.unsubscribe((args) => _transportDisconnected(args!));
   }

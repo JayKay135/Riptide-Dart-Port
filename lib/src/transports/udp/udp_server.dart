@@ -15,10 +15,10 @@ class UdpServer extends UdpPeer implements IServer {
   Event<DisconnectedEventArgs> disconnected = Event<DisconnectedEventArgs>();
 
   @override
-  late Event connected = Event();
+  Event<ConnectedEventArgs> connected = Event<ConnectedEventArgs>();
 
   @override
-  late Event<DataReceivedEventArgs> dataReceived = Event<DataReceivedEventArgs>();
+  Event<DataReceivedEventArgs> dataReceived = Event<DataReceivedEventArgs>();
 
   @override
   late int port;
