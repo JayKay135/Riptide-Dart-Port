@@ -1,5 +1,7 @@
 import 'package:intl/intl.dart';
 
+// NOTE: Checked
+
 /// Defines log message types.
 enum LogType {
   /// Logs that are used for investigation during development.
@@ -16,6 +18,7 @@ enum LogType {
 }
 
 /// Encapsulates a method used to log messages.
+///
 /// [log] : The message to log.
 typedef LogMethod<String> = void Function(String log);
 
@@ -119,7 +122,7 @@ class RiptideLogger {
   /// [logType] : The type of log message that is being logged.
   /// [logName] : Who is logging this message.
   /// [message] : The message to log.
-  static void log2(LogType logType, String logName, String message) {
+  static void logWithLogName(LogType logType, String logName, String message) {
     if (logMethods.containsKey(logType)) {
       LogMethod logMethod = logMethods[logType]!;
 
@@ -134,6 +137,7 @@ class RiptideLogger {
   /// Converts a DateTime object to a formatted timestamp string.
   ///
   /// [time] : The time to format.
+  ///
   /// Returns the formatted timestamp.
   static String _getTimestamp(DateTime time) {
     return DateFormat(timestampFormat).format(time);

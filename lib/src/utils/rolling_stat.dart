@@ -1,5 +1,7 @@
 import 'dart:math';
 
+// NOTE: Checked
+
 /// Represents a rolling series of numbers.
 class RollingStat {
   /// The position in the array of the latest item.
@@ -16,8 +18,9 @@ class RollingStat {
   /// The sum of the mean subtracted from each value in the array.
   late double _sumOfSquares;
 
-  /// The array used to store the values.
   late List<double> _array;
+
+  /// The array used to store the values.
   List<double> get array => _array;
 
   /// The variance of the stat's values.

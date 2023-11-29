@@ -2,7 +2,7 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import '../../utils/event_handler.dart';
-import '../connection.dart';
+import '../../connection.dart';
 import '../event_args.dart';
 import '../ipeer.dart';
 import '../iserver.dart';
@@ -49,6 +49,7 @@ class UdpServer extends UdpPeer implements IServer {
   /// Decides what to do with a connection attempt.
   ///
   /// [fromEndPoint] : The endpoint the connection attempt is coming from.
+  ///
   /// Returns whether or not the connection attempt was from a new connection.
   bool _handleConnectionAttempt(InternetAddress fromEndPoint, int port) {
     if (_connections.containsKey(fromEndPoint)) {

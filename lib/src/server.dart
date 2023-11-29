@@ -1,19 +1,24 @@
 import 'dart:collection';
 import 'dart:typed_data';
 
+import 'package:riptide/src/utils/constants.dart';
+
 import 'message.dart';
-import 'transports/connection.dart';
+import 'connection.dart';
 import 'transports/event_args.dart' as event_args;
 import 'transports/ipeer.dart';
 import 'transports/iserver.dart';
 import 'transports/udp/udp_server.dart';
 import 'utils/delayed_events.dart';
 import 'utils/event_handler.dart';
+import 'utils/helper.dart';
 import 'utils/riptide_logger.dart';
 
 import 'event_args.dart';
 import 'message_relay_filter.dart';
 import 'peer.dart';
+
+// NOTE: Checked
 
 /// Encapsulates a method that handles a message from a client.
 ///
@@ -29,6 +34,9 @@ class Server extends Peer {
   /// Invoked when a client connects.
   Event<ServerConnectedEventArgs> clientConnected = Event<ServerConnectedEventArgs>();
 
+  /// Invoked when a connection fails to be fully established.
+  Event<ServerConnectionFailedEventArgs> connectionFailed = Event<ServerConnectionFailedEventArgs>();
+
   /// Invoked when a message is received.
   Event<MessageReceivedEventArgs> messageReceived = Event<MessageReceivedEventArgs>();
 
@@ -41,6 +49,18 @@ class Server extends Peer {
 
   /// The local port that the server is running on.
   int get port => _transport.port;
+
+  @override
+  int get timeoutTime => defaultTimeout;
+
+  /// Sets the default timeout time for future connections and updates the [Connection.timeoutTime] of all connected clients.
+  @override
+  set timeoutTime(int value) {
+    defaultTimeout = value;
+    for (var connection in _clients.values) {
+      connection.timeoutTime = defaultTimeout;
+    }
+  }
 
   /// The maximum number of concurrent connections.
   late int _maxClientCount;
@@ -56,12 +76,12 @@ class Server extends Peer {
 
   /// An optional method which determines whether or not to accept a client's connection attempt.
   ///
-  /// The Connection parameter is the pending connection and the Message parameter is a message containing any additional data the
-  /// client included with the connection attempt. If you choose to subscribe a method to this delegate, you should use it to call either Accept(Connection)
-  /// or Reject(Connection, Message). Not doing so will result in the connection hanging until the client times out.
+  /// The Connection parameter is the pending connection and the Message parameter is a message containing any additional data the client included with the connection attempt.
+  /// If you choose to subscribe a method to this delegate, you should use it to call either [accept] or [reject].
+  /// Not doing so will result in the connection hanging until the client times out.
   ConnectionAttemptHandler? handleConnection;
 
-  /// Stores which message IDs have auto relaying enabled. Relaying is disabled entirely when this is <see langword="null.
+  /// Stores which message IDs have auto relaying enabled. Relaying is disabled entirely when this is null.
   MessageRelayFilter? relayFilter;
 
   /// Currently pending connections which are waiting to be accepted or rejected.
@@ -96,7 +116,8 @@ class Server extends Peer {
   /// Stops the server if it's running and swaps out the transport it's using.
   ///
   /// [newTransport] : The new underlying transport server to use for sending and receiving data.
-  /// This method does not automatically restart the server. To continue accepting connections, Start(ushort, ushort, byte, bool) must be called again.
+  ///
+  /// This method does not automatically restart the server. To continue accepting connections, [start] must be called again.
   void changeTransport(IServer newTransport) {
     stop();
     _transport = newTransport;
@@ -106,13 +127,13 @@ class Server extends Peer {
   ///
   /// [port] : The local port on which to start the server.
   /// [maxClientCount] : The maximum number of concurrent connections to allow.
+  /// [messageHandlerGroupId] : The ID of the group of message handler methods to use when building [_messageHandlers].
   /// [useMessageHandlers] : Whether or not the server should use the built-in message handler system.
   /// Setting [useMessageHandlers] to false will disable the automatic detection and execution of methods with the MessageHandlerAttribute, which is beneficial if you prefer to handle messages via the MessageReceived event.
-  void start(int port, int maxClientCount, {bool useMessageHandlers = true}) {
+  void start(int port, int maxClientCount, {int messageHandlerGroupId = 0, bool useMessageHandlers = true}) {
     stop();
 
-    Peer.increaseActiveCount();
-    this.useMessageHandlers = useMessageHandlers;
+    increaseActiveCount();
 
     _maxClientCount = maxClientCount;
     _clients.clear();
@@ -124,7 +145,7 @@ class Server extends Peer {
     startTime();
     heartbeat();
     _isRunning = true;
-    RiptideLogger.log2(LogType.info, logName, "Started on port $port.");
+    RiptideLogger.logWithLogName(LogType.info, logName, "Started on port $port.");
   }
 
   /// Subscribes appropriate methods to the transport's events.
@@ -153,7 +174,8 @@ class Server extends Peer {
 
   /// Handles an incoming connection attempt.
   void _handleConnectionAttempt(event_args.ConnectedEventArgs e) {
-    e.connection.peer = _transport as Peer;
+    // e.connection.peer = _transport as Peer;
+    e.connection.initialize(this, defaultTimeout);
   }
 
   /// Handles a connect message.
@@ -168,7 +190,7 @@ class Server extends Peer {
     } else if (clientCount < _maxClientCount) {
       if (!_clients.containsValue(connection) && !_pendingConnections.contains(connection)) {
         _pendingConnections.add(connection);
-        send2(Message.createFromHeader(MessageHeader.connect), connection); // Inform the client we've received the connection attempt
+        sendWithConnection(Message.createFromHeader(MessageHeader.connect), connection); // Inform the client we've received the connection attempt
         handleConnection!(connection, connectMessage); // Externally determines whether to accept
       } else {
         _reject(connection, RejectReason.alreadyConnected);
@@ -185,20 +207,22 @@ class Server extends Peer {
     if (_pendingConnections.remove(connection)) {
       _acceptConnection(connection);
     } else {
-      RiptideLogger.log2(LogType.warning, logName, "Couldn't accept connection from $connection because no such connection was pending!");
+      RiptideLogger.logWithLogName(LogType.warning, logName, "Couldn't accept connection from $connection because no such connection was pending!");
     }
   }
 
   /// Rejects the given pending connection.
   ///
   /// [connection] : The connection to reject.
-  /// [message] : Data that should be sent to the client being rejected. Use Message.Create() to get an empty message instance.
+  /// [message] : Data that should be sent to the client being rejected. Use [Message.create] to get an empty message instance.
   void reject(Connection connection, {Message? message}) {
-    if (_pendingConnections.remove(connection)) {
-      _reject(connection, RejectReason.rejected, rejectMessage: message);
-    } else {
-      RiptideLogger.log2(LogType.warning, logName, "Couldn't reject connection from $connection because no such connection was pending!");
-    }
+    if (message != null && message.readBits != 0)
+      RiptideLogger.logWithLogName(LogType.error, logName, "Use the parameterless 'Message.create()' function when setting rejection data!");
+
+    if (_pendingConnections.remove(connection))
+      _reject(connection, message == null ? RejectReason.rejected : RejectReason.custom, message);
+    else
+      RiptideLogger.logWithLogName(LogType.warning, logName, "Couldn't reject connection from $connection because no such connection was pending!");
   }
 
   /// Accepts the given pending connection.
@@ -226,50 +250,31 @@ class Server extends Peer {
   /// [connection] : The connection to reject.
   /// [reason] : The reason why the connection is being rejected.
   /// [rejectMessage] : Data that should be sent to the client being rejected.
-  void _reject(Connection connection, RejectReason reason, {Message? rejectMessage}) {
+  void _reject(Connection connection, RejectReason reason, [Message? rejectMessage]) {
     if (reason != RejectReason.alreadyConnected) {
       // Sending a reject message about the client already being connected could theoretically be exploited to obtain information
       // on other connected clients, although in practice that seems very unlikely. However, under normal circumstances, clients
       // should never actually encounter a scenario where they are "already connected".
 
       Message message = Message.createFromHeader(MessageHeader.reject);
-      if (rejectMessage != null) {
-        message.addByte(RejectReason.custom.index);
-        message.addBytes(rejectMessage.getBytes(rejectMessage.writtenLength), includeLength: false);
-      } else {
-        message.addByte(reason.index);
+      message.addByte(reason.index);
+
+      if (reason == RejectReason.custom) {
+        message.addMessage(rejectMessage!);
       }
 
       for (int i = 0; i < 3; i++) {
         // Send the rejection message a few times to increase the odds of it arriving
-        connection.sendMessage(message, shouldRelease: false);
+        connection.sendMessage(message, false);
       }
 
       message.release();
     }
 
+    connection.resetTimeout(); // Keep the connection alive for a moment so the same client can't immediately attempt to connect again
     connection.localDisconnect(wasRejected: true);
-    executeLater(connectTimeoutTime, CloseRejectedConnectionEvent(_transport, connection));
 
-    String reasonString;
-    switch (reason) {
-      case RejectReason.alreadyConnected:
-        reasonString = CRAlreadyConnected;
-        break;
-      case RejectReason.serverFull:
-        reasonString = CRServerFull;
-        break;
-      case RejectReason.rejected:
-        reasonString = CRRejected;
-        break;
-      case RejectReason.custom:
-        reasonString = CRCustom;
-        break;
-      default:
-        reasonString = "$UnknownReason '$reason'";
-        break;
-    }
-    RiptideLogger.log2(LogType.info, logName, "Rejected connection from $connection: $reasonString.");
+    RiptideLogger.logWithLogName(LogType.info, logName, "Rejected connection from $connection: ${Helper.getRejectReasonString(reason)}.");
   }
 
   /// Checks if clients have timed out.
@@ -277,6 +282,12 @@ class Server extends Peer {
   void heartbeat() {
     for (Connection connection in _clients.values) {
       if (connection.hasTimedOut) {
+        _timedOutClients.add(connection);
+      }
+    }
+
+    for (Connection connection in _pendingConnections) {
+      if (connection.hasConnectAttemptTimedOut) {
         _timedOutClients.add(connection);
       }
     }
@@ -320,14 +331,12 @@ class Server extends Peer {
         _localDisconnect(connection, DisconnectReason.disconnected);
         break;
       case MessageHeader.welcome:
-        if (connection.isPending) {
-          connection.handleWelcomeResponse(message);
-          onClientConnected(connection);
-        }
+        connection.handleWelcomeResponse(message);
+        onClientConnected(connection);
         break;
       default:
-        RiptideLogger.log2(
-            LogType.warning, logName, "Unexpected message header '$header'! Discarding ${message.writtenLength} bytes received from $connection.");
+        RiptideLogger.logWithLogName(
+            LogType.warning, logName, "Unexpected message header '$header'! Discarding ${message.bytesInUse} bytes received from $connection.");
         break;
     }
 
@@ -339,10 +348,10 @@ class Server extends Peer {
   /// [message] : The message to send.
   /// [toClient] : The numeric ID of the client to send the message to.
   /// [shouldRelease] : Whether or not to return the message to the pool after it is sent.
-  void send(Message message, int toClient, {bool shouldRelease = true}) {
+  void send(Message message, int toClient, [bool shouldRelease = true]) {
     if (_clients.containsKey(toClient)) {
       Connection connection = _clients[toClient]!;
-      send2(message, connection, shouldRelease: shouldRelease);
+      sendWithConnection(message, connection, shouldRelease);
     }
   }
 
@@ -351,17 +360,17 @@ class Server extends Peer {
   /// [message] : The message to send.
   /// [toClient] : The client to send the message to.
   /// [shouldRelease] : Whether or not to return the message to the pool after it is sent.
-  void send2(Message message, Connection toClient, {bool shouldRelease = true}) {
-    toClient.sendMessage(message, shouldRelease: shouldRelease);
+  void sendWithConnection(Message message, Connection toClient, [bool shouldRelease = true]) {
+    toClient.sendMessage(message, shouldRelease);
   }
 
   /// Sends a message to all connected clients.
   ///
   /// [message] : The message to send.
   /// [shouldRelease] : Whether or not to return the message to the pool after it is sent.
-  void sendToAll(Message message, {bool shouldRelease = true}) {
+  void sendToAll(Message message, [bool shouldRelease = true]) {
     for (Connection client in _clients.values) {
-      client.sendMessage(message, shouldRelease: false);
+      client.sendMessage(message, false);
     }
 
     if (shouldRelease) {
@@ -374,10 +383,10 @@ class Server extends Peer {
   /// [message] : The message to send.
   /// [exceptToClientId] : The numeric ID of the client to not send the message to.
   /// [shouldRelease] : Whether or not to return the message to the pool after it is sent.
-  void sendToAll2(Message message, int exceptToClientId, {bool shouldRelease = true}) {
+  void sendToAllExcept(Message message, int exceptToClientId, [bool shouldRelease = true]) {
     for (Connection client in _clients.values) {
       if (client.id != exceptToClientId) {
-        client.sendMessage(message, shouldRelease: false);
+        client.sendMessage(message, false);
       }
     }
 
@@ -389,8 +398,9 @@ class Server extends Peer {
   /// Retrieves the client with the given ID, if a client with that ID is currently connected.
   ///
   /// [id] : The ID of the client to retrieve.
+  ///
   /// Returns true if a client with the given ID was connected; otherwise false
-  (bool, Connection?) tryGetClient(int id) {
+  (bool connected, Connection? client) tryGetClient(int id) {
     Connection? client = _clients[id];
 
     return (client != null, client);
@@ -400,14 +410,18 @@ class Server extends Peer {
   ///
   /// [id] : The numeric ID of the client to disconnect.
   /// [message] : Data that should be sent to the client being disconnected. Use Message.create() to get an empty message instance.
-  void disconnectClient(int id, {Message? message}) {
+  void disconnectClient(int id, [Message? message]) {
+    if (message != null && message.readBits != 0) {
+      RiptideLogger.logWithLogName(LogType.error, logName, "Use the parameterless 'Message.create()' function when setting disconnection data!");
+    }
+
     if (_clients.containsKey(id)) {
       Connection client = _clients[id]!;
 
       _sendDisconnect(client, DisconnectReason.kicked, message);
       _localDisconnect(client, DisconnectReason.kicked);
     } else {
-      RiptideLogger.log2(LogType.warning, logName, "Couldn't disconnect client $id because it wasn't connected!");
+      RiptideLogger.logWithLogName(LogType.warning, logName, "Couldn't disconnect client $id because it wasn't connected!");
     }
   }
 
@@ -415,12 +429,23 @@ class Server extends Peer {
   ///
   /// [client] : The client to disconnect.
   /// [message] : Data that should be sent to the client being disconnected. Use Message.create() to get an empty message instance.
-  void disconnectClient2(Connection client, {Message? message}) {
+  void disconnectClientWithConnection(Connection client, [Message? message]) {
+    if (message != null && message.readBits != 0) {
+      RiptideLogger.logWithLogName(LogType.error, logName, "Use the parameterless 'Message.create()' function when setting disconnection data!");
+    }
+
     if (_clients.containsKey(client.id)) {
       _sendDisconnect(client, DisconnectReason.kicked, message);
       _localDisconnect(client, DisconnectReason.kicked);
     } else {
-      RiptideLogger.log2(LogType.warning, logName, "Couldn't disconnect client ${client.id} because it wasn't connected!");
+      RiptideLogger.logWithLogName(LogType.warning, logName, "Couldn't disconnect client ${client.id} because it wasn't connected!");
+    }
+  }
+
+  @override
+  void disconnectConnection(Connection connection, DisconnectReason reason) {
+    if (connection.isConnected && connection.canQualityDisconnect) {
+      _localDisconnect(connection, reason);
     }
   }
 
@@ -433,7 +458,7 @@ class Server extends Peer {
     // But for some reason, does the dynamic binding for the dart port work not as expected.
     // The containsValue check should definetely work aswell, but is also more expensive.
     if (!_clients.containsValue(client)) {
-      RiptideLogger.log2(LogType.warning, logName, "Attempted to disconnect client from server $this, but client belongs to server ${client.peer}");
+      RiptideLogger.logWithLogName(LogType.warning, logName, "Attempted to disconnect client from server $this, but client belongs to server ${client.peer}");
       return; // Client does not belong to this Server instance
     }
 
@@ -446,6 +471,8 @@ class Server extends Peer {
 
     if (client.isConnected) {
       onClientDisconnected(client, reason); // Only run if the client was ever actually connected
+    } else if (client.isPending) {
+      onConnectionFailed(client);
     }
 
     client.localDisconnect();
@@ -472,15 +499,17 @@ class Server extends Peer {
     _transport.shutdown();
     _unsubFromTransportEvents();
 
-    Peer.decreaseActiveCount();
+    decreaseActiveCount();
 
     stopTime();
     _isRunning = false;
-    RiptideLogger.log2(LogType.info, logName, "Server stopped.");
+    RiptideLogger.logWithLogName(LogType.info, logName, "Server stopped.");
   }
 
   /// Initializes available client IDs.
   void _initializeClientIds() {
+    if (maxClientCount > Constants.ushortMaxVal - 1) throw new Exception("A server's max client count may not exceed ${Constants.ushortMaxVal - 1}!");
+
     _availableClientIds = ListQueue<int>(maxClientCount);
     for (int i = 1; i <= _maxClientCount; i++) {
       _availableClientIds.add(i);
@@ -495,7 +524,7 @@ class Server extends Peer {
       return _availableClientIds.removeFirst();
     }
 
-    RiptideLogger.log2(LogType.error, logName, "No available client IDs, assigned 0!");
+    RiptideLogger.logWithLogName(LogType.error, logName, "No available client IDs, assigned 0!");
     return 0;
   }
 
@@ -511,10 +540,10 @@ class Server extends Peer {
     message.addByte(reason.index);
 
     if (reason == DisconnectReason.kicked && disconnectMessage != null) {
-      message.addBytes(disconnectMessage.getBytes(disconnectMessage.writtenLength), includeLength: false);
+      message.addMessage(disconnectMessage);
     }
 
-    send2(message, client);
+    sendWithConnection(message, client);
   }
 
   /// Sends a client connected message.
@@ -524,7 +553,7 @@ class Server extends Peer {
     Message message = Message.createFromHeader(MessageHeader.clientConnected);
     message.addUShort(newClient.id);
 
-    sendToAll2(message, newClient.id);
+    sendToAllExcept(message, newClient.id);
   }
 
   /// Sends a client disconnected message.
@@ -536,17 +565,22 @@ class Server extends Peer {
 
     sendToAll(message);
   }
-  // #endregion
-
-  // #region Events
 
   /// Invokes the ClientConnected event.
   ///
   /// [client] : The newly connected client.
   void onClientConnected(Connection client) {
-    RiptideLogger.log2(LogType.info, logName, "Client ${client.id} ($client) connected successfully!");
+    RiptideLogger.logWithLogName(LogType.info, logName, "Client ${client.id} ($client) connected successfully!");
     _sendClientConnected(client);
     clientConnected.invoke(ServerConnectedEventArgs(client));
+  }
+
+  /// Invokes the [connectionFailed] event.
+  ///
+  /// [connection] : The connection that failed to be fully established.
+  void onConnectionFailed(Connection connection) {
+    RiptideLogger.logWithLogName(LogType.info, logName, "Client $connection stopped responding before the connection was fully established!");
+    connectionFailed.invoke(ServerConnectionFailedEventArgs(connection));
   }
 
   /// Invokes the MessageReceived event and initiates handling of the received message.
@@ -554,21 +588,19 @@ class Server extends Peer {
   /// [message] : The received message.
   /// [fromConnection] : The client from which the message was received.
   void onMessageReceived(Message message, Connection fromConnection) {
-    int messageId = message.getUShort();
+    int messageId = message.getVarULong();
     if (relayFilter != null && relayFilter!.shouldRelay(messageId)) {
       // The message should be automatically relayed to clients instead of being handled on the server
-      sendToAll2(message, fromConnection.id);
+      sendToAllExcept(message, fromConnection.id);
       return;
     }
 
     messageReceived.invoke(MessageReceivedEventArgs(fromConnection, messageId, message));
 
-    if (useMessageHandlers) {
-      if (_messageHandlers.containsKey(messageId)) {
-        _messageHandlers[messageId]!(fromConnection.id, message);
-      } else {
-        RiptideLogger.log2(LogType.warning, logName, "No message handler method found for message ID $messageId!");
-      }
+    if (_messageHandlers.containsKey(messageId)) {
+      _messageHandlers[messageId]!(fromConnection.id, message);
+    } else {
+      RiptideLogger.logWithLogName(LogType.warning, logName, "No message handler method found for message ID $messageId!");
     }
   }
 
@@ -577,35 +609,8 @@ class Server extends Peer {
   /// [connection] : The client that disconnected.
   /// [reason] : The reason for the disconnection.
   void onClientDisconnected(Connection connection, DisconnectReason reason) {
+    RiptideLogger.logWithLogName(LogType.info, logName, "Client ${connection.id} ($connection) disconnected: ${Helper.getDisconnectReasonString(reason)}.");
     _sendClientDisconnected(connection.id);
-
-    String reasonString;
-    switch (reason) {
-      case DisconnectReason.neverConnected:
-        reasonString = DCNeverConnected;
-        break;
-      case DisconnectReason.transportError:
-        reasonString = DCTransportError;
-        break;
-      case DisconnectReason.timedOut:
-        reasonString = DCTimedOut;
-        break;
-      case DisconnectReason.kicked:
-        reasonString = DCKicked;
-        break;
-      case DisconnectReason.serverStopped:
-        reasonString = DCServerStopped;
-        break;
-      case DisconnectReason.disconnected:
-        reasonString = DCDisconnected;
-        break;
-      default:
-        reasonString = "$UnknownReason '$reason'";
-        break;
-    }
-
-    RiptideLogger.log2(LogType.info, logName, "Client ${connection.id} ($connection) disconnected: $reasonString.");
     clientDisconnected.invoke(ServerDisconnectedEventArgs(connection, reason));
   }
-  // #endregion
 }

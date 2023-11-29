@@ -1,7 +1,9 @@
 import '../peer.dart';
 import '../pending_message.dart';
-import '../transports/connection.dart';
+import '../connection.dart';
 import '../transports/iserver.dart';
+
+// NOTE: Checked
 
 /// Executes an action when invoked.
 abstract class DelayedEvent {
@@ -9,15 +11,8 @@ abstract class DelayedEvent {
   void invoke();
 }
 
-class DelayedEventPriority {
-  int priority;
-  DelayedEvent delayedEvent;
-
-  DelayedEventPriority(this.priority, this.delayedEvent);
-}
-
 /// Resends a PendingMessage when invoked.
-class PendingMessageResendEvent extends DelayedEvent {
+class ResendEvent extends DelayedEvent {
   /// The message to resend.
   late PendingMessage _message;
   PendingMessage get message => _message;
@@ -27,9 +22,10 @@ class PendingMessageResendEvent extends DelayedEvent {
   int get initiatedAtTime => _initiatedAtTime;
 
   /// Initializes the event.
+  ///
   /// [message] : The message to resend.
   /// [initiatedAtTime] : The time at which the resend event was queued.
-  PendingMessageResendEvent(PendingMessage message, int initiatedAtTime) {
+  ResendEvent(PendingMessage message, int initiatedAtTime) {
     _message = message;
     _initiatedAtTime = initiatedAtTime;
   }
@@ -50,6 +46,7 @@ class HeartbeatEvent extends DelayedEvent {
   Peer get peer => _peer;
 
   /// Initializes the event.
+  ///
   /// [peer] : The peer whose heart to beat.
   HeartbeatEvent(Peer peer) {
     _peer = peer;
@@ -58,29 +55,5 @@ class HeartbeatEvent extends DelayedEvent {
   @override
   void invoke() {
     peer.heartbeat();
-  }
-}
-
-/// Closes the given connection when invoked.
-class CloseRejectedConnectionEvent extends DelayedEvent {
-  /// The transport which the connection belongs to.
-  late IServer _transport;
-  IServer get transport => _transport;
-
-  /// The connection to close.
-  late Connection _connection;
-  Connection get connection => _connection;
-
-  /// Initializes the event.
-  /// [transport] : The transport which the connection belongs to.
-  /// [connection] : The connection to close.
-  CloseRejectedConnectionEvent(IServer transport, Connection connection) {
-    _transport = transport;
-    _connection = connection;
-  }
-
-  @override
-  void invoke() {
-    transport.close(connection);
   }
 }

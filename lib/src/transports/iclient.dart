@@ -1,8 +1,10 @@
 import 'dart:io';
 
 import '../utils/event_handler.dart';
-import 'connection.dart';
+import '../connection.dart';
 import 'ipeer.dart';
+
+// NOTE: Checked
 
 /// Defines methods, properties, and events which every transport's client must implement.
 abstract class IClient extends IPeer {
@@ -16,6 +18,7 @@ abstract class IClient extends IPeer {
   ///
   /// [hostAddress] :The host address to connect to.
   /// [port] : The hosts port to connect to
+  ///
   /// Returns true if a connection attempt will be made and false if an issue occurred. It will also contain the connection and error message if an error occured
   Future<(bool, Connection, String)> connect(InternetAddress hostAddress, int port);
 

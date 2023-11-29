@@ -1,5 +1,7 @@
 import 'rolling_stat.dart';
-import '../transports/connection.dart';
+import '../connection.dart';
+
+// NOTE: Checked
 
 /// Tracks and manages various metrics of a [Connection].
 class ConnectionMetrics {
@@ -97,9 +99,11 @@ class ConnectionMetrics {
   /// Initializes metrics.
   ConnectionMetrics() {
     reset();
-    _rollingReliableSends = RollingStat(64);
+    rollingNotifyDelivered = 0;
+    rollingNotifyLost = 0;
     _notifyLossTracker = 0;
     _notifyBufferCount = 0;
+    _rollingReliableSends = RollingStat(64);
   }
 
   /// Resets all non-rolling metrics to 0.

@@ -155,16 +155,16 @@ class MultiThreadedServer {
         }
 
         if (map.containsKey('debug')) {
-          return RiptideLogger.log2(LogType.debug, _logName, map['debug']);
+          return RiptideLogger.logWithLogName(LogType.debug, _logName, map['debug']);
         }
         if (map.containsKey('info')) {
-          return RiptideLogger.log2(LogType.info, _logName, map['info']);
+          return RiptideLogger.logWithLogName(LogType.info, _logName, map['info']);
         }
         if (map.containsKey('warning')) {
-          return RiptideLogger.log2(LogType.warning, _logName, map['warning']);
+          return RiptideLogger.logWithLogName(LogType.warning, _logName, map['warning']);
         }
         if (map.containsKey('error')) {
-          return RiptideLogger.log2(LogType.error, _logName, map['error']);
+          return RiptideLogger.logWithLogName(LogType.error, _logName, map['error']);
         }
 
         // received message data
@@ -175,7 +175,7 @@ class MultiThreadedServer {
         if (_messageHandlers.containsKey(messageId)) {
           _messageHandlers[messageId]!(connectionId, message);
         } else {
-          RiptideLogger.log2(LogType.warning, _logName, "No message handler method found for message ID $messageId!");
+          RiptideLogger.logWithLogName(LogType.warning, _logName, "No message handler method found for message ID $messageId!");
         }
       }
     });
@@ -265,7 +265,7 @@ class MultiThreadedClient {
 
       // actual riptide code
       Client client = Client();
-      client.connect(map['hostAddress'], map['port'], maxConnectionAttempts: map['maxConnectionAttempts'], useMessageHandlers: false);
+      client.connect(map['hostAddress'], map['port'], maxConnectionAttempts: map['maxConnectionAttempts']);
 
       // received command or message data
       receiver.listen((data) {
@@ -345,16 +345,16 @@ class MultiThreadedClient {
         }
 
         if (map.containsKey('debug')) {
-          return RiptideLogger.log2(LogType.debug, _logName, map['debug']);
+          return RiptideLogger.logWithLogName(LogType.debug, _logName, map['debug']);
         }
         if (map.containsKey('info')) {
-          return RiptideLogger.log2(LogType.info, _logName, map['info']);
+          return RiptideLogger.logWithLogName(LogType.info, _logName, map['info']);
         }
         if (map.containsKey('warning')) {
-          return RiptideLogger.log2(LogType.warning, _logName, map['warning']);
+          return RiptideLogger.logWithLogName(LogType.warning, _logName, map['warning']);
         }
         if (map.containsKey('error')) {
-          return RiptideLogger.log2(LogType.error, _logName, map['error']);
+          return RiptideLogger.logWithLogName(LogType.error, _logName, map['error']);
         }
 
         // received message data
@@ -364,7 +364,7 @@ class MultiThreadedClient {
         if (_messageHandlers.containsKey(messageId)) {
           _messageHandlers[messageId]!(message);
         } else {
-          RiptideLogger.log2(LogType.warning, _logName, "No message handler method found for message ID $messageId!");
+          RiptideLogger.logWithLogName(LogType.warning, _logName, "No message handler method found for message ID $messageId!");
         }
       }
     });

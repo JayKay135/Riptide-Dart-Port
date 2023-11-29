@@ -1,7 +1,7 @@
 import 'dart:io';
 import 'dart:typed_data';
 
-import '../connection.dart';
+import '../../connection.dart';
 import 'udp_peer.dart';
 
 /// Represents a connection to a UdpServer or UdpClient.

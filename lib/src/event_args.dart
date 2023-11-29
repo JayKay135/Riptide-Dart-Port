@@ -1,7 +1,9 @@
-import 'transports/connection.dart';
+import 'connection.dart';
 import 'message.dart';
 import 'peer.dart';
 import 'utils/event_handler.dart';
+
+// NOTE: Checked
 
 /// Contains event data for when a client connects to the server.
 class ServerConnectedEventArgs extends EventArgs {
@@ -26,6 +28,20 @@ class MultiThreadedServerConnectedEventArgs extends EventArgs {
   ///
   /// [id] : The newly connected clients ID.
   MultiThreadedServerConnectedEventArgs(this.id);
+}
+
+/// Contains event data for when a connection fails to be fully established.
+class ServerConnectionFailedEventArgs extends EventArgs {
+  /// The connection that failed to be established.
+  late Connection _client;
+  Connection get client => _client;
+
+  /// Initializes event data.
+  ///
+  /// [client] : The connection that failed to be established.
+  ServerConnectionFailedEventArgs(Connection client) {
+    _client = client;
+  }
 }
 
 /// Contains event data for when a client disconnects from the server.
@@ -90,6 +106,10 @@ class MessageReceivedEventArgs extends EventArgs {
 
 /// Contains event data for when a connection attempt to a server fails.
 class ConnectionFailedEventArgs extends EventArgs {
+  /// The reason for the connection failure.
+  late RejectReason _reason;
+  RejectReason get reason => _reason;
+
   /// Additional data related to the failed connection attempt (if any).
   late Message? _message;
   Message? get message => _message;
@@ -97,7 +117,8 @@ class ConnectionFailedEventArgs extends EventArgs {
   /// Initializes event data.
   ///
   /// [message] : Additional data related to the failed connection attempt (if any).
-  ConnectionFailedEventArgs(Message? message) {
+  ConnectionFailedEventArgs(RejectReason reason, Message? message) {
+    _reason = reason;
     _message = message;
   }
 }

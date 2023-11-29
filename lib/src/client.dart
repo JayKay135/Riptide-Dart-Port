@@ -1,8 +1,10 @@
 import 'dart:io';
 import 'dart:typed_data';
 
+import 'package:riptide/src/utils/helper.dart';
+
 import 'message.dart';
-import 'transports/connection.dart';
+import 'connection.dart';
 import 'transports/event_args.dart' as event_args;
 import 'transports/iclient.dart';
 import 'transports/udp/udp_client.dart';
@@ -14,7 +16,10 @@ import 'transports/ipeer.dart';
 import 'event_args.dart';
 import 'peer.dart';
 
+// NOTE: Checked
+
 /// Encapsulates a method that handles a message from a server.
+///
 /// [message] : The message that was received.
 typedef MessageHandler = void Function(Message message);
 
@@ -24,7 +29,7 @@ class Client extends Peer {
   Event connected = Event();
 
   /// Invoked when a connection to the server fails to be established.
-  Event connectionFailed = Event();
+  Event<ConnectionFailedEventArgs> connectionFailed = Event();
 
   /// Invoked when a message is received.
   Event<MessageReceivedEventArgs> messageReceived = Event<MessageReceivedEventArgs>();
@@ -38,12 +43,6 @@ class Client extends Peer {
   /// Invoked when another non-local client disconnects.
   Event<ClientDisconnectedEventArgs> clientDisconnected = Event<ClientDisconnectedEventArgs>();
 
-  /// The client's connection to a server.
-  Connection? _connection;
-  Connection? get connection => _connection;
-
-  Map<int, MessageHandler> _messageHandlers = {};
-
   /// The client's numeric ID.
   int get id => _connection!.id;
 
@@ -52,17 +51,32 @@ class Client extends Peer {
   /// This value is slower to accurately represent lasting changes in latency than rtt, but it is less susceptible to changing drastically due to significant—but temporary—jumps in latency.
   int get smoothRtt => _connection!.smoothRtt;
 
+  /// Sets the client's [Connection.timeoutTime].
+  @override
+  set timeoutTime(int value) {
+    defaultTimeout = value;
+    connection!.timeoutTime = defaultTimeout;
+  }
+
   /// Whether or not the client is currently not trying to connect, pending, nor actively connected.
-  bool get isNotConnected => _connection!.isNotConnected;
+  bool get isNotConnected => connection == null || _connection!.isNotConnected;
 
   /// Whether or not the client is currently in the process of connecting.
-  bool get isConnecting => _connection!.isConnecting;
+  bool get isConnecting => !(connection == null) && _connection!.isConnecting;
 
   /// Whether or not the client's connection is currently pending (waiting to be accepted/rejected by the server).
-  bool get isPending => _connection!.isPending;
+  bool get isPending => !(connection == null) && _connection!.isPending;
 
   /// Whether or not the client is currently connected.
-  bool get isConnected => _connection!.isConnected;
+  bool get isConnected => !(connection == null) && _connection!.isConnected;
+
+  Connection? _connection;
+
+  /// The client's connection to a server.
+  /// Not an auto property because properties can't be passed as ref/out parameters. Could
+  /// use a local variable in the Connect method, but that's arguably not any cleaner. This
+  /// property will also probably only be used rarely from outside the class/library.
+  Connection? get connection => _connection;
 
   /// How many connection attempts have been made so far.
   late int _connectionAttempts;
@@ -70,11 +84,13 @@ class Client extends Peer {
   /// How many connection attempts to make before giving up.
   late int _maxConnectionAttempts;
 
+  Map<int, MessageHandler> _messageHandlers = {};
+
   /// The underlying transport's client that is used for sending and receiving data.
   late IClient _transport;
 
-  /// Custom data to include when connecting.
-  late Uint8List? connectBytes;
+  /// The message sent when connecting. May include custom data.
+  Message? _connectMessage;
 
   /// Handles initial setup.
   /// [transport] : The transport to use for sending and receiving data.
@@ -86,6 +102,7 @@ class Client extends Peer {
   /// Disconnects the client if it's connected and swaps out the transport it's using.
   ///
   /// [newTransport] : The new transport to use for sending and receiving data.
+  ///
   /// This method does not automatically reconnect to the server. To continue communicating with the server, connect must be called again.
   void changeTransport(IClient newTransport) {
     disconnect();
@@ -98,11 +115,14 @@ class Client extends Peer {
   /// [port] : The host port to connect to.
   /// [maxConnectionAttempts] : How many connection attempts to make before giving up.
   /// [message] : Data that should be sent to the server with the connection attempt. Use Message.create() to get an empty message instance.
-  /// [useMessageHandlers] : Whether or not the client should use the built-in message handler system.
   ///
-  /// Setting useMessageHandlers to false will disable the subscription system of the messageHandler, which is beneficial if you prefer to handle messages via the messageReceived event.
   /// Returns true if a connection attempt will be made. False if an issue occurred and a connection attempt will not be made.
-  Future<bool> connect(InternetAddress hostAddress, int port, {int maxConnectionAttempts = 5, Message? message, bool useMessageHandlers = true}) async {
+  Future<bool> connect(
+    InternetAddress hostAddress,
+    int port, {
+    int maxConnectionAttempts = 5,
+    Message? message,
+  }) async {
     disconnect();
 
     _subToTransportEvents();
@@ -111,7 +131,7 @@ class Client extends Peer {
     _connection = connection;
 
     if (!connected) {
-      RiptideLogger.log2(LogType.error, logName, connectError);
+      RiptideLogger.logWithLogName(LogType.error, logName, connectError);
       _unsubFromTransportEvents();
       return false;
     }
@@ -119,19 +139,21 @@ class Client extends Peer {
     _maxConnectionAttempts = maxConnectionAttempts;
     _connectionAttempts = 0;
     _connection!.peer = this;
-    Peer.increaseActiveCount();
-    this.useMessageHandlers = useMessageHandlers;
+    increaseActiveCount();
 
+    _connectMessage = Message.createFromHeader(MessageHeader.connect);
     if (message != null) {
-      connectBytes = message.getBytes(message.writtenLength);
+      if (message.readBits != 0) {
+        RiptideLogger.logWithLogName(LogType.error, logName, "Use the parameterless 'Message.create()' function when setting connection attempt data!");
+      }
+
+      _connectMessage!.addMessage(message);
       message.release();
-    } else {
-      connectBytes = null;
     }
 
     startTime();
     heartbeat();
-    RiptideLogger.log2(LogType.info, logName, "Connecting to $connection...");
+    RiptideLogger.logWithLogName(LogType.info, logName, "Connecting to $connection...");
     return true;
   }
 
@@ -166,12 +188,7 @@ class Client extends Peer {
     if (isConnecting) {
       // If still trying to connect, send connect messages instead of heartbeats
       if (_connectionAttempts < _maxConnectionAttempts) {
-        Message message = Message.createFromHeader(MessageHeader.connect);
-        if (connectBytes != null) {
-          message.addBytes(connectBytes!, includeLength: false);
-        }
-
-        send(message);
+        send(_connectMessage!);
         _connectionAttempts++;
       } else {
         localDisconnect(DisconnectReason.neverConnected);
@@ -243,7 +260,7 @@ class Client extends Peer {
         _onClientDisconnected(message.getUShort());
         break;
       default:
-        RiptideLogger.log2(LogType.warning, logName, "Unexpected message header '$header'! Discarding ${message.writtenLength} bytes.");
+        RiptideLogger.logWithLogName(LogType.warning, logName, "Unexpected message header '$header'! Discarding ${message.bytesInUse} bytes.");
         break;
     }
 
@@ -254,10 +271,11 @@ class Client extends Peer {
   ///
   /// [message] : The message to send.
   /// [shouldRelease] : Whether or not to return the message to the pool after it is sent.
-  ///  If you intend to continue using the message instance after calling this method, you must set [shouldRelease]
-  ///  to false. Message.release can be used to manually return the message to the pool at a later time.
-  void send(Message message, {bool shouldRelease = true}) {
-    _connection!.sendMessage(message, shouldRelease: shouldRelease);
+  ///
+  ///  If you intend to continue using the message instance after calling this method, you must set [shouldRelease] to false.
+  /// [Message.release] can be used to manually return the message to the pool at a later time.
+  void send(Message message, [bool shouldRelease = true]) {
+    _connection!.sendMessage(message, shouldRelease);
   }
 
   /// Disconnects from the server.
@@ -270,6 +288,14 @@ class Client extends Peer {
     localDisconnect(DisconnectReason.disconnected);
   }
 
+  /// Disconnects from the server.
+  @override
+  void disconnectConnection(Connection connection, DisconnectReason reason) {
+    if (connection.isConnected && connection.canQualityDisconnect) {
+      localDisconnect(reason);
+    }
+  }
+
   /// Cleans up the local side of the connection.
   ///
   /// [reason] : The reason why the client has disconnected.
@@ -279,7 +305,7 @@ class Client extends Peer {
     if (isNotConnected) return;
 
     _unsubFromTransportEvents();
-    Peer.decreaseActiveCount();
+    decreaseActiveCount();
 
     stopTime();
     _transport.disconnect();
@@ -312,7 +338,9 @@ class Client extends Peer {
 
   /// Invokes the connected event.
   void _onConnected() {
-    RiptideLogger.log2(LogType.info, logName, "Connected successfully!");
+    _connectMessage!.release();
+    _connectMessage = null;
+    RiptideLogger.logWithLogName(LogType.info, logName, "Connected successfully!");
     connected.invoke(null);
   }
 
@@ -321,43 +349,23 @@ class Client extends Peer {
   /// [reason] : The reason for the connection failure.
   /// [message] : Additional data related to the failed connection attempt.
   void _onConnectionFailed(RejectReason reason, {Message? message}) {
-    String reasonString;
-
-    switch (reason) {
-      case RejectReason.noConnection:
-        reasonString = CRNoConnection;
-        break;
-      case RejectReason.serverFull:
-        reasonString = CRServerFull;
-        break;
-      case RejectReason.rejected:
-        reasonString = CRRejected;
-        break;
-      case RejectReason.custom:
-        reasonString = CRCustom;
-        break;
-      default:
-        reasonString = "$UnknownReason '$reason'";
-        break;
-    }
-
-    RiptideLogger.log2(LogType.info, logName, "Connection to server failed: $reasonString.");
-    connectionFailed.invoke(ConnectionFailedEventArgs(message));
+    _connectMessage!.release();
+    _connectMessage = null;
+    RiptideLogger.logWithLogName(LogType.info, logName, "Connection to server failed: ${Helper.getRejectReasonString(reason)}.");
+    connectionFailed.invoke(ConnectionFailedEventArgs(reason, message));
   }
 
   /// Invokes the messageReceived event and initiates handling of the received message.
   ///
   /// [message] : The received message.
   void _onMessageReceived(Message message) {
-    int messageID = message.getUShort();
+    int messageID = message.getVarULong();
     messageReceived.invoke(MessageReceivedEventArgs(_connection!, messageID, message));
 
-    if (useMessageHandlers) {
-      if (_messageHandlers.containsKey(messageID)) {
-        _messageHandlers[messageID]!.call(message);
-      } else {
-        RiptideLogger.log2(LogType.warning, logName, "No message handler method found for message ID $messageID!");
-      }
+    if (_messageHandlers.containsKey(messageID)) {
+      _messageHandlers[messageID]!.call(message);
+    } else {
+      RiptideLogger.logWithLogName(LogType.warning, logName, "No message handler method found for message ID $messageID!");
     }
   }
 
@@ -366,32 +374,7 @@ class Client extends Peer {
   /// [reason] : The reason for the disconnection.
   /// [message] : Additional data related to the disconnection.
   void _onDisconnected(DisconnectReason reason, Message? message) {
-    String reasonString;
-    switch (reason) {
-      case DisconnectReason.neverConnected:
-        reasonString = DCNeverConnected;
-        break;
-      case DisconnectReason.transportError:
-        reasonString = DCTransportError;
-        break;
-      case DisconnectReason.timedOut:
-        reasonString = DCTimedOut;
-        break;
-      case DisconnectReason.kicked:
-        reasonString = DCKicked;
-        break;
-      case DisconnectReason.serverStopped:
-        reasonString = DCServerStopped;
-        break;
-      case DisconnectReason.disconnected:
-        reasonString = DCDisconnected;
-        break;
-      default:
-        reasonString = "$UnknownReason '$reason'";
-        break;
-    }
-
-    RiptideLogger.log2(LogType.info, logName, "Disconnected from server: $reasonString.");
+    RiptideLogger.logWithLogName(LogType.info, logName, "Disconnected from server: ${Helper.getDisconnectReasonString(reason)}.");
     disconnected.invoke(DisconnectedEventArgs(reason, message));
   }
 
@@ -399,7 +382,7 @@ class Client extends Peer {
   ///
   /// [clientID] : The numeric ID of the client that connected.
   void _onClientConnected(int clientID) {
-    RiptideLogger.log2(LogType.info, logName, "Client $clientID connected.");
+    RiptideLogger.logWithLogName(LogType.info, logName, "Client $clientID connected.");
     clientConnected.invoke(ClientConnectedEventArgs(clientID));
   }
 
@@ -407,7 +390,7 @@ class Client extends Peer {
   ///
   /// [clientID] : The numeric ID of the client that disconnected.
   void _onClientDisconnected(int clientID) {
-    RiptideLogger.log2(LogType.info, logName, "Client $clientID disconnected.");
+    RiptideLogger.logWithLogName(LogType.info, logName, "Client $clientID disconnected.");
     clientDisconnected.invoke(ClientDisconnectedEventArgs(clientID));
   }
 }

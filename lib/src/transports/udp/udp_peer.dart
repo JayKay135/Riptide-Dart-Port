@@ -3,8 +3,10 @@ import 'dart:typed_data';
 
 import '../../peer.dart';
 import '../../utils/event_handler.dart';
-import '../connection.dart';
+import '../../connection.dart';
 import '../event_args.dart';
+
+// NOTE: Checked
 
 /// Provides base send &#38; receive functionality for TcpServer and TcpClient.
 abstract class UdpPeer extends Peer {
@@ -15,6 +17,9 @@ abstract class UdpPeer extends Peer {
 
   /// The minimum size that may be used for the socket's send and receive buffers.
   static const int minSocketBufferSize = 256 * 1024;
+
+  /// How long to wait for a packet, in microseconds.
+  final int receivePollingTime = 500000; // 0.5 seconds
 
   /// The size to use for the socket's send and receive buffers.
   late int _socketBufferSize;
@@ -77,8 +82,14 @@ abstract class UdpPeer extends Peer {
   /// [numBytes] : The number of bytes in the array which should be sent.
   /// [toEndPoint] : The endpoint to send the data to.
   void send(Uint8List data, int numBytes, InternetAddress toEndPoint, int port) {
-    if (_isRunning) {
-      socket.send(data.sublist(0, numBytes), toEndPoint, port);
+    try {
+      if (_isRunning) {
+        socket.send(data.sublist(0, numBytes), toEndPoint, port);
+      }
+    } on SocketException {
+      // May want to consider triggering a disconnect here (perhaps depending on the type
+      // of SocketException)? Timeout should catch disconnections, but disconnecting
+      // explicitly might be better...
     }
   }
 

@@ -3,11 +3,15 @@ import 'dart:collection';
 import 'package:collection/collection.dart';
 
 import 'message.dart';
-import 'transports/connection.dart';
+import 'connection.dart';
 import 'transports/event_args.dart';
 import 'transports/ipeer.dart';
 import 'utils/converter.dart';
 import 'utils/delayed_events.dart';
+import 'server.dart';
+import 'client.dart';
+
+// NOTE: Checked
 
 /// The reason the connection attempt was rejected.
 enum RejectReason {
@@ -52,13 +56,19 @@ enum DisconnectReason {
   serverStopped,
 
   /// The disconnection was initiated by the client.
-  disconnected
+  disconnected,
+
+  /// The connection's loss and/or resend rates exceeded the maximum acceptable thresholds, or a reliably sent message could not be delivered.
+  poorConnection
 }
 
 /// Provides base functionality for Server and Client
 abstract class Peer {
   /// The name to use when logging messages via RiptideLogger.
   late String logName;
+
+  /// Sets the relevant connections' [Connection.timeoutTime]s.
+  late int timeoutTime;
 
   /// The interval (in milliseconds) at which to send and expect heartbeats to be received.
   ///
@@ -76,52 +86,20 @@ abstract class Peer {
   int _currentTime = 0;
   int get currentTime => _currentTime;
 
-  /// The text to log when disconnected due to DisconnectReason.NeverConnected.
-  final String DCNeverConnected = "Never connected";
-
-  /// The text to log when disconnected due to DisconnectReason.TransportError.
-  String DCTransportError = "Transport error";
-
-  /// The text to log when disconnected due to DisconnectReason.TimedOut.
-  String DCTimedOut = "Timed out";
-
-  /// The text to log when disconnected due to DisconnectReason.Kicked.
-  String DCKicked = "Kicked";
-
-  /// The text to log when disconnected due to DisconnectReason.ServerStopped.
-  String DCServerStopped = "Server stopped";
-
-  /// The text to log when disconnected due to DisconnectReason.Disconnected.
-  String DCDisconnected = "Disconnected";
-
-  /// The text to log when disconnected or rejected due to an unknown reason.
-  String UnknownReason = "Unknown reason";
-
-  /// The text to log when the connection failed due to RejectReason.NoConnection.
-  String CRNoConnection = "No connection";
-
-  /// The text to log when the connection failed due to RejectReason.AlreadyConnected.
-  String CRAlreadyConnected = "This client is already connected";
-
-  /// The text to log when the connection failed due to RejectReason.ServerFull.
-  String CRServerFull = "Server is full";
-
-  /// The text to log when the connection failed due to RejectReason.Rejected.
-  String CRRejected = "Rejected";
-
-  /// The text to log when the connection failed due to RejectReason.Custom.
-  String CRCustom = "Rejected (with custom data)";
-
-  /// Whether or not the peer should use the built-in message handler system.
-  late bool useMessageHandlers;
-
-  /// Received messages which need to be handled.
-  Queue<MessageToHandle> messagesToHandle = Queue<MessageToHandle>();
-  PriorityQueue<DelayedEventPriority> eventQueue = PriorityQueue<DelayedEventPriority>((a, b) => b.priority.compareTo(a.priority));
+  /// The default time (in milliseconds) after which to disconnect if no heartbeats are received.
+  int defaultTimeout = 5000;
 
   /// A stopwatch used to track how much time has passed.
   final Stopwatch _time = Stopwatch();
   Stopwatch get time => _time;
+
+  /// Received messages which need to be handled.
+  Queue<MessageToHandle> _messagesToHandle = Queue<MessageToHandle>();
+  Queue<MessageToHandle> get messageToHandle => _messagesToHandle;
+
+  /// A queue of events to execute, ordered by how soon they need to be executed.
+  PriorityQueue<(DelayedEvent, int)> _eventQueue = PriorityQueue<(DelayedEvent, int)>((a, b) => b.$2.compareTo(a.$2));
+  PriorityQueue<(DelayedEvent, int)> get eventQueue => _eventQueue;
 
   /// Initializes the peer.
   ///
@@ -151,9 +129,9 @@ abstract class Peer {
   void update() {
     _currentTime = _time.elapsedMilliseconds;
 
-    while (eventQueue.isNotEmpty && eventQueue.first.priority <= _currentTime) {
-      DelayedEventPriority event = eventQueue.removeFirst();
-      event.delayedEvent.invoke();
+    while (eventQueue.isNotEmpty && eventQueue.first.$2 <= _currentTime) {
+      DelayedEvent event = eventQueue.removeFirst().$1;
+      event.invoke();
     }
   }
 
@@ -162,50 +140,45 @@ abstract class Peer {
   /// [delay] : How long from now to execute the delayed event, in milliseconds.
   /// [event] : The delayed event to execute later
   void executeLater(int delay, DelayedEvent event) {
-    eventQueue.add(DelayedEventPriority(_currentTime + delay, event));
+    eventQueue.add((event, _currentTime + delay));
   }
 
   /// Handles all queued messages
   void handleMessages() {
-    while (messagesToHandle.isNotEmpty) {
-      MessageToHandle handleMsg = messagesToHandle.removeFirst();
+    while (_messagesToHandle.isNotEmpty) {
+      MessageToHandle handleMsg = _messagesToHandle.removeFirst();
       handle(handleMsg.message, handleMsg.header, handleMsg.fromConnection);
     }
   }
 
   /// Handles data received by the transport
   void handleData(DataReceivedEventArgs e) {
-    MessageHeader header = MessageHeaderExtension.fromMessageIndex(e.dataBuffer[0]);
+    (Message message, MessageHeader header) data = Message.create().initWithByte(e.dataBuffer[0], e.amount);
 
-    Message message = Message.createFromHeaderWithLength(header, e.amount);
-
-    if (header == MessageHeader.notify) {
-      if (e.amount < Message.notifyHeaderSize) {
+    if (data.$1.sendMode == MessageHeader.notify) {
+      if (e.amount < Message.minNotifyBytes) {
         return;
       }
 
-      e.fromConnection.processNotify(e.dataBuffer, e.amount, message);
-    } else if (message.sendMode == MessageSendMode.unreliable) {
-      // Only bother with the array copy if there is more than 1 byte in the packet (1 or less means no payload for a reliably sent packet)
-      if (e.amount > Message.unreliableHeaderSize) {
-        message.bytes.setRange(1, e.amount - 1, e.dataBuffer.getRange(1, e.dataBuffer.length - 1));
+      e.fromConnection.processNotify(e.dataBuffer, e.amount, data.$1);
+    } else if (data.$1.sendMode == MessageSendMode.unreliable) {
+      if (e.amount > Message.minUnreliableBytes) {
+        data.$1.data.setRange(1, e.amount - 1, e.dataBuffer.getRange(1, e.dataBuffer.length - 1));
       }
 
-      messagesToHandle.add(MessageToHandle(message, header, e.fromConnection));
-
-      // if (e.fromConnection.reliableHandle(Converter.toUShort(e.dataBuffer.buffer.asByteData(), 1))) {
-      //   // We've already established that the packet contains at least 3 bytes, and we always want to copy the sequence ID over
-      //   message.bytes.setRange(1, e.amount - 1, e.dataBuffer.getRange(1, e.dataBuffer.length - 1));
-      //   messagesToHandle.add(MessageToHandle(message, header, e.fromConnection));
-      // }
+      _messagesToHandle.add(MessageToHandle(data.$1, data.$2, e.fromConnection));
+      e.fromConnection.metrics.receivedUnreliable(e.dataBuffer.length);
     } else {
-      if (e.amount < Message.reliableHeaderSize) {
+      if (e.amount < Message.minReliableBytes) {
         return;
       }
 
+      e.fromConnection.metrics.receivedReliable(e.dataBuffer.length);
       if (e.fromConnection.shouldHandle(Converter.toUShort(e.dataBuffer.buffer.asByteData(), 1))) {
-        message.bytes.setRange(1, e.amount - 1, e.dataBuffer.getRange(1, e.dataBuffer.length - 1));
-        messagesToHandle.add(MessageToHandle(message, header, e.fromConnection));
+        data.$1.data.setRange(1, e.amount - 1, e.dataBuffer.getRange(1, e.dataBuffer.length - 1));
+        _messagesToHandle.add(MessageToHandle(data.$1, data.$2, e.fromConnection));
+      } else {
+        e.fromConnection.metrics.reliableDiscarded++;
       }
     }
   }
@@ -219,13 +192,21 @@ abstract class Peer {
     // NOTE: Not implemented here
   }
 
-  /// Increases [_activeCount]. For use when a new Server or Client is started.
-  static void increaseActiveCount() {
+  /// Disconnects the connection in question. Necessary for connections to be able to initiate disconnections (like in the case of poor connection quality).
+  ///
+  /// [connection] : The connection to disconnect.
+  /// [reason] : The reason why the connection is being disconnected.
+  void disconnectConnection(Connection connection, DisconnectReason reason) {
+    // NOTE: Not implemented here
+  }
+
+  /// Increases [activeCount]. For use when a new [Server] or [Client] is started.
+  void increaseActiveCount() {
     _activeCount++;
   }
 
-  /// Decreases [_activeCount]. For use when a Server or Client is stopped.
-  static void decreaseActiveCount() {
+  /// Decreases [activeCount]>. For use when a [Server] or [Client] is stopped.
+  void decreaseActiveCount() {
     _activeCount--;
 
     if (_activeCount < 0) {

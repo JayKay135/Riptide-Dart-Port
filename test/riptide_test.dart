@@ -5,7 +5,7 @@ import 'package:riptide/riptide.dart';
 void main() {
   // Message tests
   test('test byte message creation', () {
-    Message message = Message(3).prepareForUse();
+    Message message = Message();
 
     message.addByte(0);
     message.addByte(255);
@@ -16,7 +16,7 @@ void main() {
   });
 
   test('test bool message creation', () {
-    Message message = Message(2).prepareForUse();
+    Message message = Message();
 
     message.addBool(true);
     message.addBool(false);
@@ -25,7 +25,7 @@ void main() {
   });
 
   test('test short message creation', () {
-    Message message = Message(10).prepareForUse();
+    Message message = Message();
 
     message.addShort(1);
     message.addShort(32768);
@@ -40,7 +40,7 @@ void main() {
   });
 
   test('test ushort message creation', () {
-    Message message = Message(8).prepareForUse();
+    Message message = Message();
 
     message.addUShort(1);
     message.addUShort(65535);
@@ -53,7 +53,7 @@ void main() {
   });
 
   test('test int message creation', () {
-    Message message = Message(8).prepareForUse();
+    Message message = Message();
 
     message.addInt(1);
     message.addInt(2147483648);
@@ -62,7 +62,7 @@ void main() {
   });
 
   test('test double message creation', () {
-    Message message = Message(16).prepareForUse();
+    Message message = Message();
 
     message.addDouble(3.1415);
     message.addDouble(0);
@@ -71,7 +71,7 @@ void main() {
   });
 
   test('test string message creation', () {
-    Message message = Message(32).prepareForUse();
+    Message message = Message();
 
     message.addString("Hello World !");
     expect(message.getString(), "Hello World !");

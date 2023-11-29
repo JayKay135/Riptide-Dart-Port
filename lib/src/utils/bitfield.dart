@@ -3,6 +3,8 @@ import 'dart:math';
 
 import 'constants.dart';
 
+// NOTE: Checked
+
 /// Provides functionality for managing and manipulating a collection of bits.
 class Bitfield {
   /// The first 8 bits stored in the bitfield.
@@ -30,7 +32,7 @@ class Bitfield {
   ///
   /// [isDynamicCapacity] : Whether or not the bitfield's capacity should dynamically adjust when shifting.
   Bitfield({bool isDynamicCapacity = true}) {
-    segments = List<int>.filled(4, 0, growable: false); //new List<uint>(4) { 0 };
+    segments = List<int>.filled(4, 0, growable: false);
     _capacity = segments.length * _segmentSize;
     _isDynamicCapacity = isDynamicCapacity;
   }
@@ -38,6 +40,7 @@ class Bitfield {
   /// Checks if the bitfield has capacity for the given number of bits.
   ///
   /// [amount] : The number of bits for which to check if there is capacity.
+  ///
   /// Whether or not there is sufficient capacity and the number of bits from [amount] which there is no capacity for.
   (bool hasCapacity, int overflow) hasCapacityFor(int amount) {
     int overflow = _count + amount - _capacity;
@@ -59,7 +62,9 @@ class Bitfield {
 
       if (_count > _capacity) {
         int increaseBy = segmentShift + 1;
-        for (int i = 0; i < increaseBy; i++) segments.add(0);
+        for (int i = 0; i < increaseBy; i++) {
+          segments.add(0);
+        }
 
         _capacity = segments.length * _segmentSize;
       }
@@ -71,8 +76,8 @@ class Bitfield {
     segments[s] <<= bitShift;
     s -= 1 + segmentShift;
     while (s > -1) {
-      // IMPORTANT: shiftedBits does originally is of type ulong => Which has a size of 64bits in C#
-      // the int type in dart does also has a size of 64bits, but this does include the negative numbers too
+      // IMPORTANT: shiftedBits is originally of type ulong => Which has a size of 64bits in C#
+      // the int type in dart also has a size of 64bits, but this includes the negative numbers too
       int shiftedBits = segments[s] << bitShift;
       segments[s] = shiftedBits;
 
@@ -102,7 +107,8 @@ class Bitfield {
   /// Sets the given bit to 1.
   ///
   /// [bit] : The bit to set.
-  /// Throws RangeError if [bit] is less than 1.
+  ///
+  /// Throws a [RangeError] if [bit] is less than 1.
   void set(int bit) {
     if (bit < 1) {
       throw RangeError("'${bit}' must be greater than zero!");
@@ -119,8 +125,10 @@ class Bitfield {
   /// Checks if the given bit is set to 1.
   ///
   /// [bit] : The bit to check.
+  ///
   /// Returns whether or not the bit is set.
-  /// Throws RangeError if [bit] is less than 1.
+  ///
+  /// Throws a [RangeError] if [bit] is less than 1.
   bool isSet(int bit) {
     if (bit > _count) {
       return true;

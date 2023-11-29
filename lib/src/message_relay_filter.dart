@@ -1,5 +1,7 @@
 import 'utils/constants.dart';
 
+// NOTE: Checked
+
 /// Provides functionality for enabling/disabling automatic message relaying by message type.
 class MessageRelayFilter<T extends Enum> {
   /// The number of bits an int consists of.
@@ -9,11 +11,12 @@ class MessageRelayFilter<T extends Enum> {
   late List<int> _filter;
 
   /// Creates a filter of a given size.
-  /// [size] : How big to make the filter.
   ///
-  /// [size] should be set to the value of the largest message ID, plus 1. For example, if a server will
-  /// handle messages with IDs 1, 2, 3, 7, and 8, [size] should be set to 9 (8 is the largest possible value,
-  /// and 8 + 1 = 9) despite the fact that there are only 5 unique message IDs the server will ever handle.
+  /// [size] : How big to make the filter.
+  /// [size] should be set to the value of the largest message ID, plus 1.
+  ///
+  /// For example, if a server will handle messages with IDs 1, 2, 3, 7, and 8, [size] should be set to 9 (8 is the largest possible value, and 8 + 1 = 9)
+  /// despite the fact that there are only 5 unique message IDs the server will ever handle.
   MessageRelayFilter(int size) {
     _set(size);
   }
@@ -29,9 +32,10 @@ class MessageRelayFilter<T extends Enum> {
   ///
   /// [size] : How big to make the filter.
   /// [idsToEnable] : Message IDs to enable auto relaying for.
-  /// [size] should be set to the value of the largest message ID, plus 1. For example, if a server will
-  /// handle messages with IDs 1, 2, 3, 7, and 8, [size] should be set to 9 (8 is the largest possible value,
-  /// and 8 + 1 = 9) despite the fact that there are only 5 unique message IDs the server will ever handle.
+  /// [size] should be set to the value of the largest message ID, plus 1.
+  ///
+  /// For example, if a server will handle messages with IDs 1, 2, 3, 7, and 8, [size] should be set to 9 (8 is the largest possible value, and 8 + 1 = 9)
+  /// despite the fact that there are only 5 unique message IDs the server will ever handle.
   MessageRelayFilter.fromSize(int size, List<int> idsToEnable) {
     _set(size);
     enableIds(idsToEnable);
@@ -41,7 +45,7 @@ class MessageRelayFilter<T extends Enum> {
   ///
   /// [idEnum] : The enum type.
   /// [idsToEnable] : Message IDs to enable relaying for.
-  MessageRelayFilter.fromType2(Type idEnum, List<T> idsToEnable) {
+  MessageRelayFilter.fromTypeAndIds(Type idEnum, List<T> idsToEnable) {
     _set(_getSizeFromEnum(idEnum));
     enableIds(idsToEnable.map((e) => e.index).toList());
   }
@@ -58,6 +62,7 @@ class MessageRelayFilter<T extends Enum> {
   /// Calculate the filter size necessary to manage all message IDs in the given enum.
   ///
   /// [idEnum] : The enum type.
+  ///
   /// Returns the appropriate filter size.
   int _getSizeFromEnum<T>(Type idEnum) {
     if (idEnum is! Enum) {
@@ -81,7 +86,7 @@ class MessageRelayFilter<T extends Enum> {
     _filter[forMessageID ~/ _bitsPerInt] |= 1 << (forMessageID % _bitsPerInt);
   }
 
-  void enableRelay2(Enum forMessageID) => enableRelay(forMessageID.index);
+  void enableRelayFromEnum(Enum forMessageID) => enableRelay(forMessageID.index);
 
   /// Disables auto relaying for the given message ID.
   ///
@@ -90,7 +95,7 @@ class MessageRelayFilter<T extends Enum> {
     _filter[forMessageID ~/ _bitsPerInt] &= ~(1 << (forMessageID % _bitsPerInt));
   }
 
-  void disableRelay2(Enum forMessageID) => disableRelay(forMessageID.index);
+  void disableRelayFromEnum(Enum forMessageID) => disableRelay(forMessageID.index);
 
   /// Checks whether or not messages with the given ID should be relayed.
   ///

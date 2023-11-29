@@ -1,53 +1,63 @@
 import 'dart:typed_data';
 
 import '../peer.dart';
-import 'connection.dart';
+import '../connection.dart';
+
+// NOTE: Checked
 
 /// Contains event data for when a server's transport successfully establishes a connection to a client.
 class ConnectedEventArgs {
-  final Connection connection;
+  late Connection _connection;
+
+  /// The newly established connection.
+  Connection get connection => _connection;
 
   /// Initializes event data.
-  /// [connection] extends The newly established connection.
-  ConnectedEventArgs(this.connection);
+  ///
+  /// [connection] : The newly established connection.
+  ConnectedEventArgs(this._connection);
 }
 
 /// Contains event data for when a server's or client's transport receives data.
 class DataReceivedEventArgs {
-  /// An array containing the received data.
   late Uint8List _dataBuffer;
+
+  /// An array containing the received data.
   Uint8List get dataBuffer => _dataBuffer;
 
-  /// The number of bytes that were received.
   late int _amount;
+
+  /// The number of bytes that were received.
   int get amount => _amount;
 
+  late Connection _fromConnection;
+
   /// The connection which the data was received from.
-  final Connection fromConnection;
+  Connection get fromConnection => _fromConnection;
 
   /// Initializes event data.
-  /// [dataBuffer] extends An array containing the received data.
-  /// [amount] extends The number of bytes that were received.
-  /// [fromConnection] extends The connection which the data was received from.
-  DataReceivedEventArgs(Uint8List dataBuffer, int amount, this.fromConnection) {
-    _dataBuffer = dataBuffer;
-    _amount = amount;
-  }
+  ///
+  /// [dataBuffer] : An array containing the received data.
+  /// [amount] : The number of bytes that were received.
+  /// [fromConnection] : The connection which the data was received from.
+  DataReceivedEventArgs(this._dataBuffer, this._amount, this._fromConnection);
 }
 
 /// Contains event data for when a server's or client's transport initiates or detects a disconnection.
 class DisconnectedEventArgs {
+  final Connection _connection;
+
   /// The closed connection.
-  final Connection connection;
+  Connection get connection => _connection;
+
+  late DisconnectReason _reason;
 
   /// The reason for the disconnection.
-  late DisconnectReason _reason;
   DisconnectReason get reason => _reason;
 
   /// Initializes event data.
-  /// [connection] extends The closed connection.
-  /// [reason] extends The reason for the disconnection.
-  DisconnectedEventArgs(this.connection, DisconnectReason reason) {
-    _reason = reason;
-  }
+  ///
+  /// [connection] : The closed connection.
+  /// [reason] : The reason for the disconnection.
+  DisconnectedEventArgs(this._connection, this._reason);
 }

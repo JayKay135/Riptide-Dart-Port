@@ -1,7 +1,7 @@
 import 'dart:io';
 import 'dart:typed_data';
 
-import '../connection.dart';
+import '../../connection.dart';
 import '../event_args.dart';
 import 'udp_peer.dart';
 import '../../utils/event_handler.dart';
