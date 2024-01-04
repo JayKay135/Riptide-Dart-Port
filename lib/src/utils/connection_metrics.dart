@@ -1,7 +1,6 @@
 import 'rolling_stat.dart';
-import '../connection.dart';
 
-// NOTE: Checked
+import '../connection.dart';
 
 /// Tracks and manages various metrics of a [Connection].
 class ConnectionMetrics {

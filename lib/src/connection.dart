@@ -13,8 +13,6 @@ import 'utils/helper.dart';
 import 'utils/riptide_logger.dart';
 import 'transports/ipeer.dart';
 
-// NOTE: Checked
-
 /// The state of a connection
 enum ConnectionState {
   /// Not connected. No connection has been established or the connection has been closed.
@@ -206,25 +204,26 @@ abstract class Connection {
   ///
   /// Returns for reliable and notify messages, the sequence ID that the message was sent with. 0 for unreliable messages.
   ///
-  ///  If you intend to continue using the message instance after calling this method, you must set [shouldRelease] to alse.
+  ///  If you intend to continue using the message instance after calling this method, you must set [shouldRelease] to false.
   /// [Message.release] can be used to manually return the message to the pool at a later time.
   int sendMessage(Message message, [bool shouldRelease = true]) {
-    int sequenceId = 0;
+    int sequenceID = 0;
+
     if (message.sendMode == MessageSendMode.notify) {
-      sequenceId = _notify.insertHeader(message);
+      sequenceID = _notify.insertHeader(message);
       int byteAmount = message.bytesInUse;
-      message.data.buffer.asUint8List().setRange(0, byteAmount, Message.byteBuffer.buffer.asUint8List());
+      Helper.blockCopyReversed(message.data, 0, Message.byteBuffer, 0, byteAmount);
       send(Message.byteBuffer.buffer.asUint8List(), byteAmount);
       _metrics.sentNotify(byteAmount);
     } else if (message.sendMode == MessageSendMode.unreliable) {
       int byteAmount = message.bytesInUse;
-      message.data.buffer.asUint8List().setRange(0, byteAmount, Message.byteBuffer.buffer.asUint8List());
+      Helper.blockCopyReversed(message.data, 0, Message.byteBuffer, 0, byteAmount);
       send(Message.byteBuffer.buffer.asUint8List(), byteAmount);
       _metrics.sentUnreliable(byteAmount);
     } else {
-      sequenceId = _reliable.nextSequenceID;
-      PendingMessage pendingMessage = PendingMessage.create(sequenceId, message, this);
-      pendingMessages[sequenceId] = pendingMessage;
+      sequenceID = _reliable.nextSequenceID;
+      PendingMessage pendingMessage = PendingMessage.create(sequenceID, message, this);
+      pendingMessages[sequenceID] = pendingMessage;
       pendingMessage.trySend();
       _metrics.reliableUniques++;
     }
@@ -233,7 +232,7 @@ abstract class Connection {
       message.release();
     }
 
-    return sequenceId;
+    return sequenceID;
   }
 
   /// Sends data.
@@ -248,11 +247,11 @@ abstract class Connection {
   /// [amount] : The number of bytes that were received.
   /// [message] : The message instance to use.
   void processNotify(Uint8List dataBuffer, int amount, Message message) {
-    _notify.updateReceivedAcks(Converter.uShortFromBits(dataBuffer, Message.headerBits), Converter.byteFromBits(dataBuffer, Message.headerBits + 16));
+    _notify.updateReceivedAcks(Converter.uShortFromByteBits(dataBuffer, Message.headerBits), Converter.byteFromByteBits(dataBuffer, Message.headerBits + 16));
 
     _metrics.receivedNotify(amount);
-    if (_notify.shouldHandle(Converter.uShortFromBits(dataBuffer, Message.headerBits + 24))) {
-      message.data.buffer.asUint8List().setRange(1, amount - 1, dataBuffer.sublist(1)); // Copy payload
+    if (_notify.shouldHandle(Converter.uShortFromByteBits(dataBuffer, Message.headerBits + 24))) {
+      Helper.blockCopy(dataBuffer, 1, message.data, 1, amount - 1); // Copy payload
       notifyReceived?.invoke(message);
     } else {
       _metrics.notifyDiscarded++;
@@ -334,20 +333,21 @@ abstract class Connection {
 
   /// Sends an ack message for the given sequence ID.
   ///
-  /// [forSeqId] : The sequence ID to acknowledge.
+  /// [forSeqID] : The sequence ID to acknowledge.
   /// [lastReceivedSeqID] : The sequence ID of the latest message we've received.
   /// [receivedSeqIDs] : Sequence IDs of previous messages that we have (or have not received).
-  void _sendAck(int forSeqId, int lastReceivedSeqID, Bitfield receivedSeqIDs) {
+  void _sendAck(int forSeqID, int lastReceivedSeqID, Bitfield receivedSeqIDs) {
     Message message = Message.createFromHeader(MessageHeader.ack);
     message.addUShort(lastReceivedSeqID);
     message.addUShort(receivedSeqIDs.first16);
 
-    if (forSeqId != lastReceivedSeqID) {
-      message.addUShort(forSeqId);
+    if (forSeqID == lastReceivedSeqID) {
+      message.addBool(false);
     } else {
       message.addBool(true);
-      message.addUShort(forSeqId);
     }
+
+    message.addUShort(forSeqID);
 
     sendMessage(message);
   }
@@ -596,7 +596,7 @@ class ReliableSequencer extends Sequencer {
   /// [connection] : The connection this sequencer belongs to.
   ReliableSequencer(Connection connection) : super(connection);
 
-  /// <remarks>Duplicate messages are filtered out while out of order messages are handled.</remarks>
+  /// Duplicate messages are filtered out while out of order messages are handled.
   @override
   bool shouldHandle(int sequenceID) {
     bool doHandle = false;
@@ -606,8 +606,9 @@ class ReliableSequencer extends Sequencer {
       // The received sequence ID is different from the previous one
       if (sequenceGap > 0) {
         // The received sequence ID is newer than the previous one
-        if (sequenceGap > 64)
+        if (sequenceGap > 64) {
           RiptideLogger.logWithLogName(LogType.warning, _connection.peer.logName, "The gap between received sequence IDs was very large ($sequenceGap)!");
+        }
 
         receivedSeqIDs.shiftBy(sequenceGap);
         lastReceivedSeqID = sequenceID;
@@ -634,15 +635,15 @@ class ReliableSequencer extends Sequencer {
 
     if (sequenceGap > 0) {
       // The latest sequence ID that the other end has received is newer than the previous one
-      (bool hasCapacity, int overflow) capacity = ackedSeqIDs.hasCapacityFor(sequenceGap);
-      if (!capacity.$1) {
-        for (int i = 0; i < capacity.$2; i++) {
+      var (bool hasCapacity, int overflow) = ackedSeqIDs.hasCapacityFor(sequenceGap);
+      if (!hasCapacity) {
+        for (int i = 0; i < overflow; i++) {
           // Resend those messages which haven't been acked and whose sequence IDs are about to be pushed out of the bitfield
-          (bool isSet, int checkedPosition) set = ackedSeqIDs.checkAndTrimLast();
-          if (!set.$1) {
-            _connection._resendMessage((lastAckedSeqID - set.$2));
+          var (bool isSet, int checkedPosition) = ackedSeqIDs.checkAndTrimLast();
+          if (!isSet) {
+            _connection._resendMessage(Helper.toUShort(lastAckedSeqID - checkedPosition));
           } else {
-            _connection.clearMessage((lastAckedSeqID - set.$2));
+            _connection.clearMessage(Helper.toUShort(lastAckedSeqID - checkedPosition));
           }
         }
       }
@@ -653,7 +654,7 @@ class ReliableSequencer extends Sequencer {
       for (int i = 0; i < 16; i++) {
         // Clear any messages that have been newly acknowledged
         if (!ackedSeqIDs.isSet(i + 1) && (remoteReceivedSeqIDs & (1 << i)) != 0) {
-          _connection.clearMessage(lastAckedSeqID - (i + 1));
+          _connection.clearMessage(Helper.toUShort(lastAckedSeqID - (i + 1)));
         }
       }
 

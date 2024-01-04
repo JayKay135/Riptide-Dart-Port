@@ -1,12 +1,12 @@
 import 'dart:io';
 import 'dart:typed_data';
 
-import '../../connection.dart';
-import '../event_args.dart';
-import 'udp_peer.dart';
-import '../../utils/event_handler.dart';
-import '../iclient.dart';
 import 'udp_connection.dart';
+import 'udp_peer.dart';
+import '../event_args.dart';
+import '../iclient.dart';
+import '../../connection.dart';
+import '../../utils/event_handler.dart';
 
 /// A client which can connect to a UdpServer.
 class UdpClient extends UdpPeer implements IClient {
@@ -28,17 +28,19 @@ class UdpClient extends UdpPeer implements IClient {
   UdpClient({int socketBufferSize = UdpPeer.defaultSocketBufferSize}) : super(socketBufferSize: socketBufferSize);
 
   @override
-  Future<(bool, Connection, String)> connect(InternetAddress hostAddress, int port) async {
-    String connectError = "";
-
-    await openSocket(listenAddress: InternetAddress.anyIPv4, port: port + 1);
+  Future<(bool connected, Connection? connection, String error)> connect(InternetAddress hostAddress, int port) async {
+    try {
+      await openSocket(listenAddress: InternetAddress.anyIPv4, port: port + 1);
+    } catch (e) {
+      return (false, null, e.toString());
+    }
 
     udpConnection = UdpConnection(hostAddress, port, this);
 
     // UDP is connectionless, so from the transport POV everything is immediately ready to send/receive data
     _onConnected();
 
-    return (true, udpConnection, connectError);
+    return (true, udpConnection, "");
   }
 
   @override

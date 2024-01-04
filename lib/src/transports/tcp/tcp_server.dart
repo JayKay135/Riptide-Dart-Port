@@ -1,13 +1,14 @@
 import 'dart:core';
 import 'dart:io';
 
-import '../../connection.dart';
-import '../event_args.dart';
-import '../../utils/event_handler.dart';
-import '../ipeer.dart';
-import '../iserver.dart';
 import 'tcp_connection.dart';
 import 'tcp_peer.dart';
+import '../event_args.dart';
+import '../ipeer.dart';
+import '../iserver.dart';
+import '../../connection.dart';
+import '../../message.dart';
+import '../../utils/event_handler.dart';
 
 /// A server which can accept connections from TcpClients.
 class TcpServer extends TcpPeer implements IServer {
@@ -34,7 +35,7 @@ class TcpServer extends TcpPeer implements IServer {
   late Map<InternetAddress, TcpConnection> _connections;
 
   /// Connections that have been closed and need to be removed from <see cref="connections"/>.
-  //List<InternetAddress> _closedConnections = [];
+  List<InternetAddress> _closedConnections = [];
 
   /// The IP address to bind the socket to.
   late InternetAddress _listenAddress;
@@ -64,21 +65,9 @@ class TcpServer extends TcpPeer implements IServer {
       _stopListening();
     }
 
-    // InternetAddress localEndPoint = new IPEndPoint(listenAddress, port);
-    // socket = Socket(SocketType.Stream, ProtocolType.Tcp)
-    // {
-    //     SendBufferSize = socketBufferSize,
-    //     ReceiveBufferSize = socketBufferSize,
-    // };
-    // socket.Bind(localEndPoint);
-    // socket.Listen(MaxPendingConnections);
-
     serverSocket = await ServerSocket.bind(_listenAddress, port);
-    serverSocket!.listen((Socket newSocket) {
-      //newSocket.setRawOption(RawSocketOption.fromBool(RawSocketOption.levelSocket, 2, true));
-      // bool optionSet = newSocket.setOption(SocketOption.tcpNoDelay, false);
-      // print("option was successfully set: $optionSet");
 
+    serverSocket!.listen((Socket newSocket) {
       InternetAddress fromEndPoint = newSocket.remoteAddress;
 
       if (!_connections.containsKey(fromEndPoint)) {
@@ -88,14 +77,6 @@ class TcpServer extends TcpPeer implements IServer {
       } else {
         newSocket.close();
       }
-
-      // // listen for send data
-      // newSocket.listen((Uint8List data) {
-      //   print("raw data: $data");
-
-      //   // _connections[newSocket.address]?.receive(data);
-      //   onDataReceived(data, data.length, _connections[fromEndPoint]!);
-      // });
     });
 
     _isRunning = true;
@@ -107,33 +88,16 @@ class TcpServer extends TcpPeer implements IServer {
       return;
     }
 
-    //_accept();
     for (TcpConnection connection in _connections.values) {
       connection.receive();
     }
 
-    // for (InternetAddress endPoint in _closedConnections) {
-    //   _connections.remove(endPoint);
-    // }
+    for (InternetAddress endPoint in _closedConnections) {
+      _connections.remove(endPoint);
+    }
 
-    // _closedConnections.clear();
+    _closedConnections.clear();
   }
-
-  // /// Accepts any pending connections.
-  // void _accept() {
-  //   if (socket.poll(0, SelectMode.SelectRead)) {
-  //       Socket acceptedSocket = socket.accept();
-  //       InternetAddress fromEndPoint = acceptedSocket.remoteAddress;
-  //       if (!_connections.containsKey(fromEndPoint))
-  //       {
-  //           TcpConnection newConnection = TcpConnection(acceptedSocket, fromEndPoint, this);
-  //           _connections[fromEndPoint] = newConnection;
-  //           onConnected(newConnection);
-  //       } else {
-  //         acceptedSocket.close();
-  //       }
-  //   }
-  // }
 
   /// Stops listening for connections.
   void _stopListening() {
@@ -149,7 +113,7 @@ class TcpServer extends TcpPeer implements IServer {
   @override
   void close(Connection connection) {
     if (connection is TcpConnection) {
-      //_closedConnections.add(connection.remoteEndPoint);
+      _closedConnections.add(connection.remoteEndPoint);
       connection.close();
     }
   }
@@ -167,33 +131,15 @@ class TcpServer extends TcpPeer implements IServer {
     connected.invoke(ConnectedEventArgs(connection));
   }
 
-  // @override
-  // void onDataReceived(int amount, TcpConnection fromConnection) {
-  //   print("received data");
-  //   if (receiveBuffer.getUint8(0) == MessageHeader.connect.index && !fromConnection.isConnecting()) {
-  //     return;
-  //   }
-
-  //   print(receiveBuffer.buffer.asUint8List());
-
-  //   dataReceived.invoke(DataReceivedEventArgs(receiveBuffer.buffer.asUint8List(), amount, fromConnection));
-  // }
-
   @override
   void onDataReceived(int amount, TcpConnection fromConnection) {
-    // if (MessageHeader.values[data[0]] == MessageHeader.connect && !fromConnection.isConnecting()) {
-    //   return;
-    // }
-
-    if (MessageHeader.values[receiveBuffer.first] == MessageHeader.connect) {
+    if (MessageHeader.values[receiveBuffer.first & Message.headerBitmask] == MessageHeader.connect) {
       if (fromConnection.didReceiveConnect) {
         return;
       }
 
       fromConnection.didReceiveConnect = true;
     }
-
-    //print("receiveBuffer: ${receiveBuffer.getRange(0, amount)}");
 
     dataReceived.invoke(DataReceivedEventArgs(receiveBuffer, amount, fromConnection));
   }

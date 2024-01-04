@@ -1,8 +1,6 @@
-import '../utils/event_handler.dart';
 import 'event_args.dart';
 import '../message.dart';
-
-// NOTE: Checked
+import '../utils/event_handler.dart';
 
 /// The header type of a [Message].
 enum MessageHeader {

@@ -3,8 +3,6 @@ import 'dart:core';
 import 'message.dart';
 import 'utils/helper.dart';
 
-// NOTE: Checked
-
 /// The exception that is thrown when a [Message] does not contain enough unread bytes to add a certain value.
 class InsufficientCapacityException implements Exception {
   late String errorMessage;

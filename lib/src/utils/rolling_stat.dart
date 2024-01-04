@@ -1,7 +1,5 @@
 import 'dart:math';
 
-// NOTE: Checked
-
 /// Represents a rolling series of numbers.
 class RollingStat {
   /// The position in the array of the latest item.

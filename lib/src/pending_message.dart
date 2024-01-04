@@ -1,17 +1,15 @@
 import 'dart:math';
 import 'dart:typed_data';
 
-import 'package:riptide/src/utils/constants.dart';
-
 import 'peer.dart';
 import 'connection.dart';
 import 'transports/ipeer.dart';
 import 'message.dart';
+import 'utils/constants.dart';
 import 'utils/converter.dart';
 import 'utils/delayed_events.dart';
+import 'utils/helper.dart';
 import 'utils/riptide_logger.dart';
-
-// NOTE: Checked
 
 /// Represents a currently pending reliably sent message whose delivery has not been acknowledged yet.
 class PendingMessage {
@@ -58,7 +56,7 @@ class PendingMessage {
 
     message.setBits(sequenceID, Constants.ushortBytes * Converter.bitsPerByte, Message.headerBits);
     pendingMessage._size = message.bytesInUse;
-    pendingMessage.data.buffer.asUint8List().setRange(0, pendingMessage._size, message.data.buffer.asUint8List());
+    Helper.blockCopyReversed(message.data, 0, pendingMessage.data, 0, pendingMessage._size);
 
     pendingMessage._sendAttempts = 0;
     pendingMessage._wasCleared = false;
@@ -101,7 +99,7 @@ class PendingMessage {
   /// Resends the message.
   void retrySend() {
     if (!_wasCleared) {
-      int time = _connection.peer!.currentTime;
+      int time = _connection.peer.currentTime;
       if (lastSendTime + (_connection.smoothRtt < 0 ? 25 : _connection.smoothRtt / 2) <= time) {
         // Avoid triggering a resend if the latest resend was less than half a RTT ago
         trySend();
@@ -114,7 +112,7 @@ class PendingMessage {
 
   /// Attempts to send the message.
   void trySend() {
-    if (_sendAttempts >= _connection.maxSendAttempts) {
+    if (_sendAttempts >= _connection.maxSendAttempts && _connection.canQualityDisconnect) {
       RiptideLogger.logWithLogName(LogType.info, _connection.peer.logName,
           "Could not guarantee delivery of a ${MessageHeader.values[data[0]]} message after $_sendAttempts attempts! Disconnecting...");
       _connection.peer.disconnectConnection(_connection, DisconnectReason.poorConnection);
@@ -128,7 +126,7 @@ class PendingMessage {
     _sendAttempts++;
 
     _connection.peer.executeLater(
-        _connection.smoothRtt < 0 ? 50 : max(10, (_connection.smoothRtt * _retryTimeMultiplier).toInt()), ResendEvent(this, _connection.peer!.currentTime));
+        _connection.smoothRtt < 0 ? 50 : max(10, (_connection.smoothRtt * _retryTimeMultiplier).toInt()), ResendEvent(this, _connection.peer.currentTime));
   }
 
   /// Clears the message.

@@ -1,7 +1,5 @@
 import 'utils/constants.dart';
 
-// NOTE: Checked
-
 /// Provides functionality for enabling/disabling automatic message relaying by message type.
 class MessageRelayFilter<T extends Enum> {
   /// The number of bits an int consists of.

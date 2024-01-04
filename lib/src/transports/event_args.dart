@@ -1,9 +1,7 @@
 import 'dart:typed_data';
 
-import '../peer.dart';
 import '../connection.dart';
-
-// NOTE: Checked
+import '../peer.dart';
 
 /// Contains event data for when a server's transport successfully establishes a connection to a client.
 class ConnectedEventArgs {

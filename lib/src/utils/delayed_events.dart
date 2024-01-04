@@ -1,9 +1,5 @@
 import '../peer.dart';
 import '../pending_message.dart';
-import '../connection.dart';
-import '../transports/iserver.dart';
-
-// NOTE: Checked
 
 /// Executes an action when invoked.
 abstract class DelayedEvent {

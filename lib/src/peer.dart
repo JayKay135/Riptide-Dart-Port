@@ -10,8 +10,7 @@ import 'utils/converter.dart';
 import 'utils/delayed_events.dart';
 import 'server.dart';
 import 'client.dart';
-
-// NOTE: Checked
+import 'utils/helper.dart';
 
 /// The reason the connection attempt was rejected.
 enum RejectReason {
@@ -86,6 +85,9 @@ abstract class Peer {
   int _currentTime = 0;
   int get currentTime => _currentTime;
 
+  /// Whether or not the peer should use the subscription based message handler system.
+  late bool useMessageHandlers;
+
   /// The default time (in milliseconds) after which to disconnect if no heartbeats are received.
   int defaultTimeout = 5000;
 
@@ -153,30 +155,30 @@ abstract class Peer {
 
   /// Handles data received by the transport
   void handleData(DataReceivedEventArgs e) {
-    (Message message, MessageHeader header) data = Message.create().initWithByte(e.dataBuffer[0], e.amount);
+    var (Message message, MessageHeader header) = Message.create().initWithByte(e.dataBuffer[0], e.amount);
 
-    if (data.$1.sendMode == MessageHeader.notify) {
+    if (message.sendMode == MessageHeader.notify) {
       if (e.amount < Message.minNotifyBytes) {
         return;
       }
 
-      e.fromConnection.processNotify(e.dataBuffer, e.amount, data.$1);
-    } else if (data.$1.sendMode == MessageSendMode.unreliable) {
+      e.fromConnection.processNotify(e.dataBuffer, e.amount, message);
+    } else if (message.sendMode == MessageSendMode.unreliable) {
       if (e.amount > Message.minUnreliableBytes) {
-        data.$1.data.setRange(1, e.amount - 1, e.dataBuffer.getRange(1, e.dataBuffer.length - 1));
+        Helper.blockCopy(e.dataBuffer, 1, message.data, 1, e.amount - 1);
       }
 
-      _messagesToHandle.add(MessageToHandle(data.$1, data.$2, e.fromConnection));
-      e.fromConnection.metrics.receivedUnreliable(e.dataBuffer.length);
+      _messagesToHandle.add(MessageToHandle(message, header, e.fromConnection));
+      e.fromConnection.metrics.receivedUnreliable(e.amount);
     } else {
       if (e.amount < Message.minReliableBytes) {
         return;
       }
 
-      e.fromConnection.metrics.receivedReliable(e.dataBuffer.length);
-      if (e.fromConnection.shouldHandle(Converter.toUShort(e.dataBuffer.buffer.asByteData(), 1))) {
-        data.$1.data.setRange(1, e.amount - 1, e.dataBuffer.getRange(1, e.dataBuffer.length - 1));
-        _messagesToHandle.add(MessageToHandle(data.$1, data.$2, e.fromConnection));
+      e.fromConnection.metrics.receivedReliable(e.amount);
+      if (e.fromConnection.shouldHandle(Converter.uShortFromByteBits(e.dataBuffer, Message.headerBits))) {
+        Helper.blockCopy(e.dataBuffer, 1, message.data, 1, e.amount - 1);
+        _messagesToHandle.add(MessageToHandle(message, header, e.fromConnection));
       } else {
         e.fromConnection.metrics.reliableDiscarded++;
       }

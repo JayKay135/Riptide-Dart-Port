@@ -1,8 +1,8 @@
 import 'dart:io';
 import 'dart:typed_data';
 
-import '../../connection.dart';
 import 'udp_peer.dart';
+import '../../connection.dart';
 
 /// Represents a connection to a UdpServer or UdpClient.
 class UdpConnection extends Connection {
@@ -29,4 +29,7 @@ class UdpConnection extends Connection {
   void send(Uint8List dataBuffer, int amount) {
     _peer.send(dataBuffer, amount, _remoteEndPoint, _port);
   }
+
+  @override
+  String toString() => remoteEndPoint.toString();
 }

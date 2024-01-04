@@ -1,13 +1,13 @@
 import 'dart:io';
 import 'dart:typed_data';
 
+import 'tcp_connection.dart';
+import '../event_args.dart';
+import '../../connection.dart';
 import '../../message.dart';
 import '../../peer.dart';
 import '../../utils/constants.dart';
 import '../../utils/event_handler.dart';
-import '../../connection.dart';
-import '../event_args.dart';
-import 'tcp_connection.dart';
 
 /// Provides base send &#38; receive functionality for <see cref="TcpServer"/> and <see cref="TcpClient"/>.
 abstract class TcpPeer extends Peer {
@@ -35,9 +35,6 @@ abstract class TcpPeer extends Peer {
   /// The minimum size that may be used for the socket's send and receive buffers.
   static const int minSocketBufferSize = 256 * 1024;
 
-  /// The main socket, either used for listening for connections or for sending and receiving data.
-  //late RawSocket rawSocket;
-
   /// Initializes the transport.
   ///
   /// [socketBufferSize] : How big the socket's send and receive buffers should be.
@@ -48,6 +45,8 @@ abstract class TcpPeer extends Peer {
 
     _socketBufferSize = socketBufferSize;
 
+    Message.initialize();
+
     // Need room for the entire message plus the message length (since this is TCP)
     receiveBuffer = Uint8List(Message.maxSize + Constants.ushortBytes);
     sendBuffer = Uint8List(Message.maxSize + Constants.ushortBytes);
@@ -57,7 +56,6 @@ abstract class TcpPeer extends Peer {
   ///
   /// [amount] : The number of bytes that were received.
   /// [fromConnection] : The connection from which the data was received.
-  // void onDataReceived(int amount, TcpConnection fromConnection);
   void onDataReceived(int amount, TcpConnection fromConnection);
 
   /// Invokes the disconnected event.

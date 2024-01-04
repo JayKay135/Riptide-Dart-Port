@@ -1,7 +1,4 @@
 import 'dart:io';
-import 'dart:typed_data';
-
-import 'package:riptide/src/utils/helper.dart';
 
 import 'message.dart';
 import 'connection.dart';
@@ -10,13 +7,11 @@ import 'transports/iclient.dart';
 import 'transports/udp/udp_client.dart';
 import 'utils/delayed_events.dart';
 import 'utils/event_handler.dart';
+import 'utils/helper.dart';
 import 'utils/riptide_logger.dart';
-
 import 'transports/ipeer.dart';
 import 'event_args.dart';
 import 'peer.dart';
-
-// NOTE: Checked
 
 /// Encapsulates a method that handles a message from a server.
 ///
@@ -93,9 +88,10 @@ class Client extends Peer {
   Message? _connectMessage;
 
   /// Handles initial setup.
+  ///
   /// [transport] : The transport to use for sending and receiving data.
   /// [logName] : The name to use when logging messages via RiptideLogger.
-  Client({IClient? transport, String logname = "CLIENT"}) : super(logName: logname) {
+  Client({IClient? transport, String logName = "CLIENT"}) : super(logName: logName) {
     _transport = transport ?? UdpClient();
   }
 
@@ -115,6 +111,9 @@ class Client extends Peer {
   /// [port] : The host port to connect to.
   /// [maxConnectionAttempts] : How many connection attempts to make before giving up.
   /// [message] : Data that should be sent to the server with the connection attempt. Use Message.create() to get an empty message instance.
+  /// [useMessageHandlers] : Whether or not the client should use the built-in message handler system.
+  ///
+  /// Setting [useMessageHandlers] to false will disable the message specific subscription system, which is beneficial if you prefer to handle messages via the [messageReceived] event.
   ///
   /// Returns true if a connection attempt will be made. False if an issue occurred and a connection attempt will not be made.
   Future<bool> connect(
@@ -122,12 +121,13 @@ class Client extends Peer {
     int port, {
     int maxConnectionAttempts = 5,
     Message? message,
+    bool useMessageHandlers = true,
   }) async {
     disconnect();
 
     _subToTransportEvents();
 
-    var (bool connected, Connection connection, String connectError) = await _transport.connect(hostAddress, port);
+    var (bool connected, Connection? connection, String connectError) = await _transport.connect(hostAddress, port);
     _connection = connection;
 
     if (!connected) {
@@ -138,8 +138,9 @@ class Client extends Peer {
 
     _maxConnectionAttempts = maxConnectionAttempts;
     _connectionAttempts = 0;
-    _connection!.peer = this;
+    _connection!.initialize(this, defaultTimeout);
     increaseActiveCount();
+    this.useMessageHandlers = useMessageHandlers;
 
     _connectMessage = Message.createFromHeader(MessageHeader.connect);
     if (message != null) {
@@ -153,7 +154,7 @@ class Client extends Peer {
 
     startTime();
     heartbeat();
-    RiptideLogger.logWithLogName(LogType.info, logName, "Connecting to $connection...");
+    RiptideLogger.logWithLogName(LogType.info, logName, "Connecting to ${connection.runtimeType}...");
     return true;
   }
 
@@ -174,7 +175,7 @@ class Client extends Peer {
   }
 
   /// Registers a callback handler for a specifc [messageID] when messages with this particular id are received.
-  void registerMessageHandler(int messageID, Function(Message) callback) {
+  void registerMessageHandler(int messageID, Function(Message message) callback) {
     _messageHandlers[messageID] = callback;
   }
 
@@ -188,7 +189,7 @@ class Client extends Peer {
     if (isConnecting) {
       // If still trying to connect, send connect messages instead of heartbeats
       if (_connectionAttempts < _maxConnectionAttempts) {
-        send(_connectMessage!);
+        send(_connectMessage!, false);
         _connectionAttempts++;
       } else {
         localDisconnect(DisconnectReason.neverConnected);
@@ -238,6 +239,8 @@ class Client extends Peer {
       case MessageHeader.reject:
         if (!isConnected) {
           // Don't disconnect if we are connected
+          // NOTE: Throws an exception if the value is out of the DisconnectReason enum range.
+          // => The original typecast in C# can handle this case without an Exception
           localDisconnect(DisconnectReason.connectionRejected, message: message, rejectReason: RejectReason.values[message.getByte()]);
         }
         break;
@@ -245,6 +248,8 @@ class Client extends Peer {
         connection.handleHeartbeatResponse(message);
         break;
       case MessageHeader.disconnect:
+        // NOTE: Throws an exception if the value is out of the DisconnectReason enum range.
+        // => The original typecast in C# can handle this case without an Exception
         localDisconnect(DisconnectReason.values[message.getByte()], message: message);
         break;
       case MessageHeader.welcome:
@@ -362,10 +367,12 @@ class Client extends Peer {
     int messageID = message.getVarULong();
     messageReceived.invoke(MessageReceivedEventArgs(_connection!, messageID, message));
 
-    if (_messageHandlers.containsKey(messageID)) {
-      _messageHandlers[messageID]!.call(message);
-    } else {
-      RiptideLogger.logWithLogName(LogType.warning, logName, "No message handler method found for message ID $messageID!");
+    if (useMessageHandlers) {
+      if (_messageHandlers.containsKey(messageID)) {
+        _messageHandlers[messageID]!.call(message);
+      } else {
+        RiptideLogger.logWithLogName(LogType.warning, logName, "No message handler method found for message ID $messageID!");
+      }
     }
   }
 

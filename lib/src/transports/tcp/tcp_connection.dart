@@ -2,10 +2,10 @@ import 'dart:collection';
 import 'dart:io';
 import 'dart:typed_data';
 
+import 'tcp_peer.dart';
+import '../../connection.dart';
 import '../../utils/constants.dart';
 import '../../utils/converter.dart';
-import '../../connection.dart';
-import 'tcp_peer.dart';
 
 class TcpConnection extends Connection {
   /// The endpoint representing the other end of the connection.
@@ -21,7 +21,7 @@ class TcpConnection extends Connection {
   late final TcpPeer _peer;
 
   /// An array to receive message size values into.
-  Uint8List _sizeBytes = Uint8List(Constants.ushortBytes);
+  Uint8List _sizeBytes = Uint8List(Constants.intBytes);
 
   Queue<int> queue = Queue<int>();
 
@@ -38,24 +38,14 @@ class TcpConnection extends Connection {
     _socket = socket;
     _peer = peer;
 
-    // Makes sure, that bytes are not buffered internally
-    //_socket.setOption(SocketOption.tcpNoDelay, true);
-
     _socket.listen((Uint8List data) {
       if (data.isNotEmpty) {
-        // builder.add(data);
         queue.addAll(data);
-        // _peer.onDataReceived(data, data.length, this);
       }
     });
-
-    // var fromByte = StreamTransformer<Uint8List, List<int>>.fromHandlers(handleData: (data, sink) {
-    //   sink.add(data.buffer.asInt64List());
-    // });
-
-    // _socket.transform(fromByte).listen((e) => e.forEach(print));
   }
 
+  /// Polls the socket and checks if any data was received.
   void receive() {
     bool tryReceiveMore = true;
 
@@ -67,15 +57,15 @@ class TcpConnection extends Connection {
         (bool canReceiveMesssage, int receivedByteCount) data = _tryReceiveMessage();
         tryReceiveMore = data.$1;
         byteCount = data.$2;
-      } else if (queue.length >= Constants.ushortBytes) {
+      } else if (queue.length >= Constants.intBytes) {
         // We have enough bytes for a complete size value
-        _sizeBytes.setAll(0, queue.take(Constants.ushortBytes));
+        _sizeBytes.setAll(0, queue.take(Constants.intBytes));
 
-        for (int i = 0; i < Constants.ushortBytes; i++) {
+        for (int i = 0; i < Constants.intBytes; i++) {
           queue.removeFirst();
         }
 
-        _nextMessageSize = Converter.toUShort(_sizeBytes.buffer.asByteData(), 0);
+        _nextMessageSize = Converter.toInt(_sizeBytes.buffer.asByteData(), 0);
 
         if (_nextMessageSize > 0) {
           (bool canReceiveMesssage, int receivedByteCount) data = _tryReceiveMessage();
@@ -92,6 +82,9 @@ class TcpConnection extends Connection {
     }
   }
 
+  /// Receives a message, if all of its data is ready to be received.
+  ///
+  /// Returns whether or not all of the message's data was ready to be received and how many bytes were received
   (bool canReceiveMesssage, int receivedByteCount) _tryReceiveMessage() {
     int receivedByteCount = 0;
 
@@ -120,101 +113,26 @@ class TcpConnection extends Connection {
     }
 
     try {
-      Converter.fromUShort(amount, _peer.sendBuffer.buffer.asByteData(), 0);
+      Converter.fromInt(amount, _peer.sendBuffer.buffer.asByteData(), 0);
 
       // TODO: consider sending length separately with an extra socket.Send call instead of copying the data an extra time
-      _peer.sendBuffer.setRange(Constants.ushortBytes, Constants.ushortBytes + amount, dataBuffer);
+      _peer.sendBuffer.setRange(Constants.intBytes, Constants.intBytes + amount, dataBuffer);
 
-      _socket.add(_peer.sendBuffer.getRange(0, amount + Constants.ushortBytes).toList());
+      List<int> sendingData = _peer.sendBuffer.getRange(0, amount + Constants.intBytes).toList();
+
+      _socket.add(sendingData);
     } on SocketException {
       // May want to consider triggering a disconnect here (perhaps depending on the type
       // of SocketException)? Timeout should catch disconnections, but disconnecting
       // explicitly might be better...
-      print("SOCKET ERROR");
     }
   }
-
-  // /// Polls the socket and checks if any data was received.
-  // Future<void> receive(Uint8List data) async {
-  //   bool tryReceiveMore = true;
-
-  //   while (tryReceiveMore) {
-  //     int byteCount = 0;
-
-  //     try {
-  //       if (_nextMessageSize > 0) {
-  //         // We already have a size value
-  //         (bool receivedData, int receivedByteCount) data2 = await _tryReceiveMessage();
-  //         tryReceiveMore = data2.$1;
-  //         byteCount = data2.$2;
-  //       } else if (data.length >= Constants.intBytes) {
-  //         // We have enough bytes for a complete size value
-  //         _sizeBytes = data;
-  //         _nextMessageSize = Converter.toInt(_sizeBytes.buffer.asByteData(), 0);
-
-  //         if (_nextMessageSize > 0) {
-  //           (bool receivedData, int receivedByteCount) data2 = await _tryReceiveMessage();
-  //           tryReceiveMore = data2.$1;
-  //         }
-  //       } else {
-  //         tryReceiveMore = false;
-  //       }
-  //     } on SocketException catch (a, ex) {
-  //       tryReceiveMore = false;
-  //       switch (a.osError) {
-  //         // case SocketError.Interrupted:
-  //         // case SocketError.NotSocket:
-  //         //     peer.OnDisconnected(this, DisconnectReason.transportError);
-  //         //     break;
-  //         // case SocketError.ConnectionReset:
-  //         //     peer.OnDisconnected(this, DisconnectReason.disconnected);
-  //         //     break;
-  //         // case SocketError.TimedOut:
-  //         //     peer.OnDisconnected(this, DisconnectReason.timedOut);
-  //         //     break;
-  //         // case SocketError.MessageSize:
-  //         //     break;
-  //         // default:
-  //         //     break;
-  //       }
-  //     }
-  //     // catch (ObjectDisposedException)
-  //     // {
-  //     //     tryReceiveMore = false;
-  //     //     peer.OnDisconnected(this, DisconnectReason.TransportError);
-  //     // }
-  //     // catch (NullReferenceException)
-  //     // {
-  //     //     tryReceiveMore = false;
-  //     //     peer.OnDisconnected(this, DisconnectReason.TransportError);
-  //     // }
-
-  //     if (byteCount > 0) {
-  //       _peer.onDataReceived(byteCount, this);
-  //     }
-  //   }
-  // }
-
-  // /// Receives a message, if all of its data is ready to be received.
-  // ///
-  // /// Returns whether or not all of the message's data was ready to be received and how many bytes were received.
-  // Future<(bool receivedData, int receivedByteCount)> _tryReceiveMessage() async {
-  //   if (await _socket.length >= _nextMessageSize) {
-  //     // We have enough bytes to read the complete message
-  //     Uint8List data = await _socket.single;
-  //     _nextMessageSize = 0;
-
-  //     return (true, data.length);
-  //   }
-
-  //   return (false, 0);
-  // }
 
   /// Closes the connection.
   void close() {
     _socket.close();
   }
 
-  // @override
-  // String toString() => remoteEndPoint.toString();
+  @override
+  String toString() => remoteEndPoint.toString();
 }

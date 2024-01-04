@@ -1,7 +1,7 @@
-import '../peer.dart';
-import 'constants.dart';
+import 'dart:typed_data';
 
-// NOTE: Checked
+import 'constants.dart';
+import '../peer.dart';
 
 /// Contains miscellaneous helper methods.
 class Helper {
@@ -49,6 +49,7 @@ class Helper {
   /// [amount] : The amount that [singular] and [plural] refer to.
   /// [singular] : The singular form.
   /// [plural] : The plural form.
+  ///
   /// Returns [singular] if [amount] is 1; otherwise [plural].
   static String correctForm(int amount, String singular, {String? plural = ""}) {
     if (plural == null || plural == "") {
@@ -62,6 +63,7 @@ class Helper {
   ///
   /// [seqId1] : The new sequence ID.
   /// [seqId2] : The previous sequence ID.
+  ///
   /// Returns the signed gap between the two given sequence IDs.
   /// A positive gap means [seqId1] is newer than [seqId2].
   /// A negative gap means [seqId1] is older than [seqId2].
@@ -79,6 +81,7 @@ class Helper {
   /// Retrieves the appropriate reason string for the given [DisconnectReason].
   ///
   /// [forReason] : The [DisconnectReason] to retrieve the string for.
+  ///
   /// Returns the appropriate reason string.
   static String getDisconnectReasonString(DisconnectReason forReason) {
     switch (forReason) {
@@ -134,5 +137,44 @@ class Helper {
   /// [value] : Int value with possible range greater than 1 byte
   static int toByte(int value) {
     return value & 0xff;
+  }
+
+  /// Copies a block of data from a [Uint8List] to a [Uint64List].
+  ///
+  /// [src] : The source list from which the data will be copied.
+  /// [srcOffset] : The starting index in the source list.
+  /// [dst] : The destination list where the data will be copied to.
+  /// [dstOffset] : The starting index in the destination list.
+  /// [count] : The number of elements to be copied.
+  static void blockCopy(Uint8List src, int srcOffset, Uint64List dst, int dstOffset, int count) {
+    // create a byte buffer from the destination Uint64List
+    var dstBuffer = dst.buffer.asUint8List();
+
+    // copy bytes from the source Uint8List to the destination buffer
+    for (var i = 0; i < count; i++) {
+      dstBuffer[dstOffset + i] = src[srcOffset + i];
+    }
+  }
+
+  /// Copies a block of data from a [Uint64List] to a [Uint8List] in reverse order.
+  ///
+  /// The data is copied from the source [Uint64List] starting at the specified [srcOffset],
+  /// and copied to the destination [Uint8List] starting at the specified [dstOffset].
+  /// The number of elements to be copied is determined by the [count] parameter.
+  ///
+  /// Note: The source and destination lists must have enough capacity to accommodate the specified offsets and count.
+  ///
+  /// Example usage:
+  /// ```dart
+  /// Uint64List source = Uint64List.fromList([1, 2, 3, 4, 5]);
+  /// Uint8List destination = Uint8List(20);
+  /// Helper.blockCopyReversed(source, 0, destination, 10, 5);
+  /// ```
+  static void blockCopyReversed(Uint64List src, int srcOffset, Uint8List dst, int dstOffset, int count) {
+    for (var i = 0; i < count; i++) {
+      var value = src[(srcOffset + i) ~/ 8];
+      var byte = (value >> ((i % 8) * 8)) & 0xFF;
+      dst[dstOffset + i] = byte;
+    }
   }
 }

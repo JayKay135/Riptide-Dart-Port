@@ -36,6 +36,12 @@ class Constants {
 
   static const double doubleDefault = 0.0;
 
+  static const double floatDefault = 0.0;
+
+  static const int longDefault = 0;
+
+  static const int ulongDefault = 0;
+
   // --- Type boundaries ---
   static const int ushortMaxVal = 65535;
   static const int ushortMinVal = 0;

@@ -3,8 +3,6 @@ import 'message.dart';
 import 'peer.dart';
 import 'utils/event_handler.dart';
 
-// NOTE: Checked
-
 /// Contains event data for when a client connects to the server.
 class ServerConnectedEventArgs extends EventArgs {
   /// The newly connected client.

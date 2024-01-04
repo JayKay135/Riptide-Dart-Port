@@ -1,24 +1,20 @@
 import 'dart:collection';
 import 'dart:typed_data';
 
-import 'package:riptide/src/utils/constants.dart';
-
 import 'message.dart';
 import 'connection.dart';
 import 'transports/event_args.dart' as event_args;
 import 'transports/ipeer.dart';
 import 'transports/iserver.dart';
 import 'transports/udp/udp_server.dart';
+import 'utils/constants.dart';
 import 'utils/delayed_events.dart';
 import 'utils/event_handler.dart';
 import 'utils/helper.dart';
 import 'utils/riptide_logger.dart';
-
 import 'event_args.dart';
 import 'message_relay_filter.dart';
 import 'peer.dart';
-
-// NOTE: Checked
 
 /// Encapsulates a method that handles a message from a client.
 ///
@@ -129,11 +125,18 @@ class Server extends Peer {
   /// [maxClientCount] : The maximum number of concurrent connections to allow.
   /// [messageHandlerGroupId] : The ID of the group of message handler methods to use when building [_messageHandlers].
   /// [useMessageHandlers] : Whether or not the server should use the built-in message handler system.
-  /// Setting [useMessageHandlers] to false will disable the automatic detection and execution of methods with the MessageHandlerAttribute, which is beneficial if you prefer to handle messages via the MessageReceived event.
-  void start(int port, int maxClientCount, {int messageHandlerGroupId = 0, bool useMessageHandlers = true}) {
+  ///
+  /// Setting [useMessageHandlers] to false will disable the message specific subscription system, which is beneficial if you prefer to handle messages via the [messageReceived] event.
+  void start(
+    int port,
+    int maxClientCount, {
+    int messageHandlerGroupId = 0,
+    bool useMessageHandlers = true,
+  }) {
     stop();
 
     increaseActiveCount();
+    this.useMessageHandlers = useMessageHandlers;
 
     _maxClientCount = maxClientCount;
     _clients.clear();
@@ -331,8 +334,9 @@ class Server extends Peer {
         _localDisconnect(connection, DisconnectReason.disconnected);
         break;
       case MessageHeader.welcome:
-        connection.handleWelcomeResponse(message);
-        onClientConnected(connection);
+        if (connection.handleWelcomeResponse(message)) {
+          onClientConnected(connection);
+        }
         break;
       default:
         RiptideLogger.logWithLogName(
@@ -508,7 +512,9 @@ class Server extends Peer {
 
   /// Initializes available client IDs.
   void _initializeClientIds() {
-    if (maxClientCount > Constants.ushortMaxVal - 1) throw new Exception("A server's max client count may not exceed ${Constants.ushortMaxVal - 1}!");
+    if (maxClientCount > Constants.ushortMaxVal - 1) {
+      throw Exception("A server's max client count may not exceed ${Constants.ushortMaxVal - 1}!");
+    }
 
     _availableClientIds = ListQueue<int>(maxClientCount);
     for (int i = 1; i <= _maxClientCount; i++) {
@@ -597,10 +603,12 @@ class Server extends Peer {
 
     messageReceived.invoke(MessageReceivedEventArgs(fromConnection, messageId, message));
 
-    if (_messageHandlers.containsKey(messageId)) {
-      _messageHandlers[messageId]!(fromConnection.id, message);
-    } else {
-      RiptideLogger.logWithLogName(LogType.warning, logName, "No message handler method found for message ID $messageId!");
+    if (useMessageHandlers) {
+      if (_messageHandlers.containsKey(messageId)) {
+        _messageHandlers[messageId]!(fromConnection.id, message);
+      } else {
+        RiptideLogger.logWithLogName(LogType.warning, logName, "No message handler method found for message ID $messageId!");
+      }
     }
   }
 

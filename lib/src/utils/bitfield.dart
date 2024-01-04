@@ -3,8 +3,6 @@ import 'dart:math';
 
 import 'constants.dart';
 
-// NOTE: Checked
-
 /// Provides functionality for managing and manipulating a collection of bits.
 class Bitfield {
   /// The first 8 bits stored in the bitfield.
@@ -32,7 +30,7 @@ class Bitfield {
   ///
   /// [isDynamicCapacity] : Whether or not the bitfield's capacity should dynamically adjust when shifting.
   Bitfield({bool isDynamicCapacity = true}) {
-    segments = List<int>.filled(4, 0, growable: false);
+    segments = List<int>.generate(4, (_) => 0);
     _capacity = segments.length * _segmentSize;
     _isDynamicCapacity = isDynamicCapacity;
   }
@@ -51,7 +49,7 @@ class Bitfield {
   ///
   /// [amount] : How much to shift by.
   void shiftBy(int amount) {
-    int segmentShift = (amount / _segmentSize).floor(); // How many WHOLE segments we have to shift by
+    int segmentShift = amount ~/ _segmentSize; // How many WHOLE segments we have to shift by
     int bitShift = amount % _segmentSize; // How many bits we have to shift by
 
     if (!_isDynamicCapacity) {
@@ -115,7 +113,7 @@ class Bitfield {
     }
 
     bit--;
-    int s = (bit / _segmentSize).floor();
+    int s = bit ~/ _segmentSize;
     int bitToSet = (1 << (bit % _segmentSize));
     if (s < segments.length) {
       segments[s] |= bitToSet;
@@ -139,7 +137,7 @@ class Bitfield {
     }
 
     bit--;
-    int s = (bit / _segmentSize).floor();
+    int s = bit ~/ _segmentSize;
     int bitToCheck = (1 << (bit % _segmentSize));
     if (s < segments.length) {
       return (segments[s] & bitToCheck) != 0;

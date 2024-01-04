@@ -1,7 +1,5 @@
 import 'package:intl/intl.dart';
 
-// NOTE: Checked
-
 /// Defines log message types.
 enum LogType {
   /// Logs that are used for investigation during development.
