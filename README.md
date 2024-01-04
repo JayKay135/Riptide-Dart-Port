@@ -1,14 +1,25 @@
 # Riptide Dart Port
 
-Dart port of [Riptide](https://github.com/RiptideNetworking/Riptide), a light weight networking library from Tom Weiland.
+Dart port of [Riptide](https://github.com/RiptideNetworking/Riptide), a lightweight networking library from Tom Weiland.
 
 This port provides functionality for establishing connections with clients and servers using the Riptide protocol. 
 
 ## Compatibility
 
-This port was last tested for functionality with Riptide [Commit a292470](https://github.com/RiptideNetworking/Riptide/commit/a29247052505cdb2f5e0c8994cb4006d6da857d4), Feb 12 2023
+This port was last tested for functionality with Riptide [Commit 933cafd](https://github.com/RiptideNetworking/Riptide/commit/933cafd6208b379eed4837f6e395e911f37a93d7), Jan 04 2024
 
-It was tested for Android and Windows devices.
+---
+
+**NOTE:** Riptide itself is not backward compatible. This library will currently only work with Riptide version ```v2.1.2```. 
+
+The older version (pub ```0.0.3```) will still work with Riptide ```v.2.0.0```, but with limited features (e.g. missing tcp support).
+
+## Important Notes
+
+The dart language differs C# in some key aspects. 
+- There is no function overloading in dart. Therefore, you have to deal with many different function names in the message class.
+If you find a cleaner solution, do not hesitate to open up a pull request.
+- There is no ulong type in dart. C#'s longs are signed 64bit values. So are the int values in dart. Longs can be represented without any issues in dart using ints. Unfortunately, there is no unsigned 64-bit type in dart. The representation of ulongs in dart is, therefore, not easily possible. Currently, ulongs will get parsed to ints. **Please note that this might result in data loss**.
 
 
 ## Compatible libraries in other languages
@@ -88,8 +99,8 @@ server.sendToAll(message);
 ```
 
 ## Multi threaded Server/ Client
-It is recommended to run the whole server/ client code execution in a seperate isolate to increase performance.
-A lightweight implementation of such an isolate is provided by this library.
+It is recommended to run the whole server/ client code execution in a separate isolate to increase performance.
+This library provides a lightweight implementation of such an isolate.
 
 Simply swap from
 ```dart
@@ -120,9 +131,17 @@ MultiThreadedClient mtClient = MultiThreadedClient();
 mtClient.connect(InternetAddress("127.0.0.1"), PORT, loggingEnabled: true);
 ```
 
-## Note
+If you want to use a different transport with the multi-threaded variants, pass it as an argument in the constructor call.
 
-If you are using android: Make sure to enable the internet permission in the AndroidManifest.xml.
+e.g.
+```dart
+MultiThreadedClient mtClient = MultiThreadedClient(transportType: MultiThreadedTransportType.tcp);
+mtClient.connect(InternetAddress("127.0.0.1"), PORT, loggingEnabled: true);
+```
+
+## Additional Note
+
+If you are using Android: Make sure to enable the internet permission in the AndroidManifest.xml.
 
 Under *android/app/src/main/AndroidManifest.xml* add 
 ```xml
@@ -132,16 +151,16 @@ Under *android/app/src/main/AndroidManifest.xml* add
     ...
 ```
 
-And if you are using an android emulator with localhost note that instead of localhost you should use the ip 10.0.2.2.
+And if you are using an Android emulator with localhost, note that instead of localhost, you should use the ip 10.0.2.2.
 
 ## Low-Level Transports supported by this library
 
-* UDP (built-in)
+* [UDP Transport](https://github.com/JayKay135/Riptide-Dart-Port/tree/master/lib/src/transports/udp) (built-in)
+* [TCP Transport](https://github.com/JayKay135/Riptide-Dart-Port/tree/master/lib/src/transports/tcp) (built-in)
 
 ## Contributions
 
-Contributions are very welcome. 
-Especially if you know about low-level udp/ tcp sockets and isolates.
+Contributions are welcome, especially if you know about low-level udp/ tcp sockets and isolates.
 
 ## License
 
