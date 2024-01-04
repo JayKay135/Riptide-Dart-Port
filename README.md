@@ -37,7 +37,7 @@ The API is mostly identical to [Riptide](https://github.com/RiptideNetworking/Ri
 In your projects pubspec.yaml file add riptide under your dependencies.
 ```yaml
 dependencies:
-    riptide: ^0.0.3
+    riptide: ^0.1.0
 ```
 or run
 ```bash
