@@ -35,7 +35,8 @@ abstract class UdpPeer extends Peer {
   /// [socketBufferSize] : How big the socket's send and receive buffers should be.
   UdpPeer({int socketBufferSize = defaultSocketBufferSize}) {
     if (socketBufferSize < minSocketBufferSize) {
-      throw RangeError("The minimum socket buffer size is $minSocketBufferSize!");
+      throw RangeError(
+          "The minimum socket buffer size is $minSocketBufferSize!");
     }
 
     _socketBufferSize = socketBufferSize;
@@ -51,12 +52,16 @@ abstract class UdpPeer extends Peer {
   ///
   /// [listenAddress] : The IP address to bind the socket to, if any.
   /// [port] : The port to bind the socket to.
-  Future<void> openSocket({InternetAddress? listenAddress, required int port, bool ipv6 = true}) async {
+  Future<void> openSocket(
+      {InternetAddress? listenAddress,
+      required int port,
+      bool ipv6 = true}) async {
     if (_isRunning) {
       closeSocket();
     }
 
-    _remoteEndPoint = listenAddress ?? (ipv6 ? InternetAddress.anyIPv6 : InternetAddress.anyIPv4);
+    _remoteEndPoint = listenAddress ??
+        (ipv6 ? InternetAddress.anyIPv6 : InternetAddress.anyIPv4);
 
     socket = await RawDatagramSocket.bind(_remoteEndPoint, port);
     socket.listen(_receive);
@@ -79,7 +84,8 @@ abstract class UdpPeer extends Peer {
   /// [data] : The array containing the data.
   /// [numBytes] : The number of bytes in the array which should be sent.
   /// [toEndPoint] : The endpoint to send the data to.
-  void send(Uint8List data, int numBytes, InternetAddress toEndPoint, int port) {
+  void send(
+      Uint8List data, int numBytes, InternetAddress toEndPoint, int port) {
     try {
       if (_isRunning) {
         socket.send(data.sublist(0, numBytes), toEndPoint, port);
@@ -112,7 +118,8 @@ abstract class UdpPeer extends Peer {
   /// [data] : A Uint8List containing the received data.
   /// [amount] : The number of bytes that were received.
   /// [fromEndPoint] : The connection from which the data was received.
-  void onDataReceived(Uint8List data, int amount, InternetAddress fromEndPoint, int port);
+  void onDataReceived(
+      Uint8List data, int amount, InternetAddress fromEndPoint, int port);
 
   /// Invokes the disconnected event.
   ///

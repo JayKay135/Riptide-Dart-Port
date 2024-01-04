@@ -29,7 +29,9 @@ enum MessageSendMode {
 
 extension MessageSendModeExtension on MessageSendMode {
   MessageHeader get messageHeader {
-    return index == 0 || index == 1 ? MessageHeader.unreliable : MessageHeader.reliable;
+    return index == 0 || index == 1
+        ? MessageHeader.unreliable
+        : MessageHeader.reliable;
   }
 }
 
@@ -62,13 +64,16 @@ class Message {
   static const int notifyHeaderBits = headerBits + 5 * _bitsPerByte;
 
   /// The minimum number of bytes contained in an unreliable message.
-  static const int minUnreliableBytes = unreliableHeaderBits ~/ _bitsPerByte + (unreliableHeaderBits % _bitsPerByte == 0 ? 0 : 1);
+  static const int minUnreliableBytes = unreliableHeaderBits ~/ _bitsPerByte +
+      (unreliableHeaderBits % _bitsPerByte == 0 ? 0 : 1);
 
   /// The minimum number of bytes contained in a reliable message.
-  static const int minReliableBytes = reliableHeaderBits ~/ _bitsPerByte + (reliableHeaderBits % _bitsPerByte == 0 ? 0 : 1);
+  static const int minReliableBytes = reliableHeaderBits ~/ _bitsPerByte +
+      (reliableHeaderBits % _bitsPerByte == 0 ? 0 : 1);
 
   /// The minimum number of bytes contained in a notify message.
-  static const int minNotifyBytes = notifyHeaderBits ~/ _bitsPerByte + (notifyHeaderBits % _bitsPerByte == 0 ? 0 : 1);
+  static const int minNotifyBytes = notifyHeaderBits ~/ _bitsPerByte +
+      (notifyHeaderBits % _bitsPerByte == 0 ? 0 : 1);
 
   /// The number of bits in a byte.
   static const int _bitsPerByte = Converter.bitsPerByte;
@@ -83,23 +88,30 @@ class Message {
   static int get maxSize => _maxSize;
 
   /// Returns the maximal payload size allowed for messages
-  int get maxPayloadSize => _maxSize - (maxHeaderSize ~/ _bitsPerByte + (maxHeaderSize % _bitsPerByte == 0 ? 0 : 1));
+  int get maxPayloadSize =>
+      _maxSize -
+      (maxHeaderSize ~/ _bitsPerByte +
+          (maxHeaderSize % _bitsPerByte == 0 ? 0 : 1));
 
   /// Sets the maximum message payload size
   ///
   /// [value] : maximal payload size
   set maxPayloadSize(int value) {
     if (Peer.activeCount > 0) {
-      throw Exception("Changing the 'maxPayloadSize' is not allowed while a Server or Client is running!");
+      throw Exception(
+          "Changing the 'maxPayloadSize' is not allowed while a Server or Client is running!");
     }
 
     if (value < 0) {
       throw RangeError("'maxPayloadSize' cannot be negative!");
     }
 
-    _maxSize = maxHeaderSize ~/ _bitsPerByte + (maxHeaderSize % _bitsPerByte == 0 ? 0 : 1) + value;
+    _maxSize = maxHeaderSize ~/ _bitsPerByte +
+        (maxHeaderSize % _bitsPerByte == 0 ? 0 : 1) +
+        value;
     _maxBitCount = _maxSize * _bitsPerByte;
-    _maxArraySize = _maxSize ~/ Constants.ulongBytes + (_maxSize % Constants.ulongBytes == 0 ? 0 : 1);
+    _maxArraySize = _maxSize ~/ Constants.ulongBytes +
+        (_maxSize % Constants.ulongBytes == 0 ? 0 : 1);
     byteBuffer = Uint8List(_maxSize);
     trimPool(); // When ActiveSocketCount is 0, this clears the pool
     PendingMessage.clearPool();
@@ -120,16 +132,20 @@ class Message {
   static int instancesPerPeer = 4;
 
   /// A pool of reusable message instances.
-  static final List<Message> _pool = List.generate(instancesPerPeer * 2, (index) => Message());
+  static final List<Message> _pool =
+      List.generate(instancesPerPeer * 2, (index) => Message());
 
   static void initialize() {
     if (_initialized) {
       return;
     }
 
-    _maxSize = maxHeaderSize ~/ _bitsPerByte + (maxHeaderSize % _bitsPerByte == 0 ? 0 : 1) + 1225;
+    _maxSize = maxHeaderSize ~/ _bitsPerByte +
+        (maxHeaderSize % _bitsPerByte == 0 ? 0 : 1) +
+        1225;
     _maxBitCount = _maxSize * _bitsPerByte;
-    _maxArraySize = _maxSize ~/ Constants.ulongBytes + (_maxSize % Constants.ulongBytes == 0 ? 0 : 1);
+    _maxArraySize = _maxSize ~/ Constants.ulongBytes +
+        (_maxSize % Constants.ulongBytes == 0 ? 0 : 1);
     byteBuffer = Uint8List(_maxSize);
 
     _initialized = true;
@@ -152,7 +168,8 @@ class Message {
   int get unwrittenBits => _maxBitCount - _writeBit;
 
   /// How many of this message's bytes are in use. Rounds up to the next byte because only whole bytes can be sent.
-  int get bytesInUse => _writeBit ~/ _bitsPerByte + (_writeBit % _bitsPerByte == 0 ? 0 : 1);
+  int get bytesInUse =>
+      _writeBit ~/ _bitsPerByte + (_writeBit % _bitsPerByte == 0 ? 0 : 1);
 
   /// The message's data.
   late Uint64List _data;
@@ -207,7 +224,9 @@ class Message {
   ///
   /// Returns a message instance ready to be sent.
   static Message createFromInt(MessageSendMode sendMode, int id) {
-    return _retrieveFromPool()._initWithHeader(sendMode.messageHeader).addUShort(id);
+    return _retrieveFromPool()
+        ._initWithHeader(sendMode.messageHeader)
+        .addUShort(id);
   }
 
   /// Gets a message instance that can be used for sending.
@@ -234,13 +253,15 @@ class Message {
     if (Peer.activeCount == 0) {
       // No Servers or Clients are running, empty the list and reset the capacity
       _pool.clear();
-      _pool.length = instancesPerPeer * 2; // x2 so there's some buffer room for extra Message instances in the event that more are needed
+      _pool.length = instancesPerPeer *
+          2; // x2 so there's some buffer room for extra Message instances in the event that more are needed
     } else {
       // Reset the pool capacity and number of Message instances in the pool to what is appropriate for how many Servers & Clients are active
       int idealInstanceAmount = Peer.activeCount * instancesPerPeer;
 
       if (_pool.length > idealInstanceAmount) {
-        _pool.removeRange(Peer.activeCount * instancesPerPeer, _pool.length - idealInstanceAmount);
+        _pool.removeRange(Peer.activeCount * instancesPerPeer,
+            _pool.length - idealInstanceAmount);
         _pool.length = idealInstanceAmount * 2;
       }
     }
@@ -285,7 +306,8 @@ class Message {
   /// [contentLength] : The number of bytes which this message will contain.
   ///
   /// Returns the message, ready to be used for handling and the message's header type.
-  (Message message, MessageHeader header) initWithByte(int firstByte, int contentLength) {
+  (Message message, MessageHeader header) initWithByte(
+      int firstByte, int contentLength) {
     data[0] = firstByte;
     MessageHeader header = MessageHeader.values[firstByte & headerBitmask];
     setHeader(header);
@@ -318,7 +340,8 @@ class Message {
   /// Returns the message that the bits were added to.
   ///
   /// This method does not move [message]'s internal read position!
-  Message addMessage(Message message) => addMessageWithBit(message, message.unreadBits, message._readBit);
+  Message addMessage(Message message) =>
+      addMessageWithBit(message, message.unreadBits, message._readBit);
 
   /// Adds a range of bits from [message] to the message.
   ///
@@ -330,7 +353,8 @@ class Message {
   /// This method does not move [message]'s internal read position!
   Message addMessageWithBit(Message message, int amount, int startBit) {
     if (unwrittenBits < amount) {
-      throw InsufficientCapacityException.withDetails(this, message.runtimeType.toString(), amount);
+      throw InsufficientCapacityException.withDetails(
+          this, message.runtimeType.toString(), amount);
     }
 
     int sourcePos = startBit ~/ _bitsPerSegment;
@@ -363,7 +387,9 @@ class Message {
       }
 
       for (int i = 1; i < destSegments; i++) {
-        data[destPos + i] = (message.data[sourcePos + i - 1] >> (_bitsPerSegment - bitOffset)) | (message.data[sourcePos + i] << bitOffset);
+        data[destPos + i] =
+            (message.data[sourcePos + i - 1] >> (_bitsPerSegment - bitOffset)) |
+                (message.data[sourcePos + i] << bitOffset);
       }
     } else {
       // Source needs to be shifted right, source bits may span more segments than dest bits
@@ -376,15 +402,18 @@ class Message {
         data[destPos] |= firstSegment;
       }
 
-      int sourceSegments = (startBit + amount) ~/ _bitsPerSegment - sourcePos + 1;
+      int sourceSegments =
+          (startBit + amount) ~/ _bitsPerSegment - sourcePos + 1;
       for (int i = 1; i < sourceSegments; i++) {
-        data[destPos + i - 1] |= message.data[sourcePos + i] << (_bitsPerSegment - bitOffset);
+        data[destPos + i - 1] |=
+            message.data[sourcePos + i] << (_bitsPerSegment - bitOffset);
         data[destPos + i] = message.data[sourcePos + i] >> bitOffset;
       }
     }
 
     _writeBit += amount;
-    data[destPos + destSegments - 1] &= (1 << (_writeBit % _bitsPerSegment)) - 1;
+    data[destPos + destSegments - 1] &=
+        (1 << (_writeBit % _bitsPerSegment)) - 1;
     return this;
   }
 
@@ -416,8 +445,8 @@ class Message {
   /// Returns the message instance.
   Message skipBits(int amount) {
     if (unreadBits < amount) {
-      RiptideLogger.log(
-          LogType.error, "Message only contains $unreadBits unread ${Helper.correctForm(unreadBits, "bit")}, which is not enough to skip $amount!");
+      RiptideLogger.log(LogType.error,
+          "Message only contains $unreadBits unread ${Helper.correctForm(unreadBits, "bit")}, which is not enough to skip $amount!");
     }
 
     _readBit += amount;
@@ -438,7 +467,8 @@ class Message {
   /// IMPORTANT: Originally takes a ulong [bitfield] aka unsigned 64 bits as parameter. Dart only has int aka 64 signed bits. This might cause problems
   Message setBits(int bitfield, int amount, int startBit) {
     if (amount > Constants.ulongBytes * _bitsPerByte) {
-      throw RangeError("Cannot set more than ${Constants.ulongBytes * _bitsPerByte} bits at a time!");
+      throw RangeError(
+          "Cannot set more than ${Constants.ulongBytes * _bitsPerByte} bits at a time!");
     }
 
     Converter.setBitsFromUlongWithUlongList(bitfield, amount, data, startBit);
@@ -455,7 +485,8 @@ class Message {
   /// This method can be used to retrieve a range of bits from anywhere in the message without moving its internal read position.
   (Message message, int bitfield) peekBitsByte(int amount, int startBit) {
     if (amount > _bitsPerByte) {
-      throw RangeError("PeekBitsByte cannot be used to peek more than $_bitsPerByte bits at a time!");
+      throw RangeError(
+          "PeekBitsByte cannot be used to peek more than $_bitsPerByte bits at a time!");
     }
 
     int bitfield = Converter.getBitsFromUlongforByte(amount, data, startBit);
@@ -472,7 +503,8 @@ class Message {
   /// This method can be used to retrieve a range of bits from anywhere in the message without moving its internal read position.
   (Message message, int bitfield) peekBitsUshort(int amount, int startBit) {
     if (amount > Constants.ushortBytes * _bitsPerByte) {
-      throw RangeError("PeekBitsUshort cannot be used to peek more than ${Constants.ushortBytes * _bitsPerByte} bits at a time!");
+      throw RangeError(
+          "PeekBitsUshort cannot be used to peek more than ${Constants.ushortBytes * _bitsPerByte} bits at a time!");
     }
 
     int bitfield = Converter.getBitsFromUlongForUshort(amount, data, startBit);
@@ -489,7 +521,8 @@ class Message {
   /// This method can be used to retrieve a range of bits from anywhere in the message without moving its internal read position.
   (Message message, int bitfield) peekBitsUint(int amount, int startBit) {
     if (amount > Constants.uintBytes * _bitsPerByte) {
-      throw RangeError("PeekBitsUint overload cannot be used to peek more than ${Constants.uintBytes * _bitsPerByte} bits at a time!");
+      throw RangeError(
+          "PeekBitsUint overload cannot be used to peek more than ${Constants.uintBytes * _bitsPerByte} bits at a time!");
     }
 
     int bitfield = Converter.getBitsFromUlongForUint(amount, data, startBit);
@@ -508,7 +541,8 @@ class Message {
   /// IMPORTANT: Originally returns a ulong [bitfield] aka unsigned 64 bits. Dart only has int aka 64 signed bits. This might cause problems
   (Message message, int bitfield) peekBitsUlong(int amount, int startBit) {
     if (amount > Constants.ulongBytes * _bitsPerByte) {
-      throw RangeError("PeekBitsUlong cannot be used to peek more than ${Constants.ulongBytes * _bitsPerByte} bits at a time!");
+      throw RangeError(
+          "PeekBitsUlong cannot be used to peek more than ${Constants.ulongBytes * _bitsPerByte} bits at a time!");
     }
 
     int bitfield = Converter.getBitsFromUlongForUlong(amount, data, startBit);
@@ -523,10 +557,12 @@ class Message {
   /// Returns the message that the bits were added to.
   Message addBitsByte(int bitfield, int amount) {
     if (amount > _bitsPerByte) {
-      throw RangeError("AddBitsByte cannot be used to add more than $_bitsPerByte bits at a time!");
+      throw RangeError(
+          "AddBitsByte cannot be used to add more than $_bitsPerByte bits at a time!");
     }
 
-    bitfield &= (1 << amount) - 1; // Discard any bits that are set beyond the ones we're setting
+    bitfield &= (1 << amount) -
+        1; // Discard any bits that are set beyond the ones we're setting
     Converter.byteToBitsFromUlongs(bitfield, data, _writeBit);
     _writeBit += amount;
     return this;
@@ -540,10 +576,12 @@ class Message {
   /// Returns the message that the bits were added to.
   Message addBitsUshort(int bitfield, int amount) {
     if (amount > Constants.ushortBytes * _bitsPerByte) {
-      throw RangeError("AddBitsUshort cannot be used to add more than ${Constants.ushortBytes * _bitsPerByte} bits at a time!");
+      throw RangeError(
+          "AddBitsUshort cannot be used to add more than ${Constants.ushortBytes * _bitsPerByte} bits at a time!");
     }
 
-    bitfield &= (1 << amount) - 1; // Discard any bits that are set beyond the ones we're adding
+    bitfield &= (1 << amount) -
+        1; // Discard any bits that are set beyond the ones we're adding
     Converter.uShortToBitsFromUlongs(bitfield, data, _writeBit);
     _writeBit += amount;
     return this;
@@ -557,10 +595,12 @@ class Message {
   /// Returns the message that the bits were added to.
   Message addBitsUint(int bitfield, int amount) {
     if (amount > Constants.uintBytes * _bitsPerByte) {
-      throw RangeError("AddBitsUint cannot be used to add more than ${Constants.uintBytes * _bitsPerByte} bits at a time!");
+      throw RangeError(
+          "AddBitsUint cannot be used to add more than ${Constants.uintBytes * _bitsPerByte} bits at a time!");
     }
 
-    bitfield &= (1 << (amount - 1) << 1) - 1; // Discard any bits that are set beyond the ones we're adding
+    bitfield &= (1 << (amount - 1) << 1) -
+        1; // Discard any bits that are set beyond the ones we're adding
     Converter.uIntToUlongBits(bitfield, data, _writeBit);
     _writeBit += amount;
     return this;
@@ -576,10 +616,12 @@ class Message {
   /// IMPORTANT: Originally takes a ulong [bitfield] aka unsigned 64 bits as parameter. Dart only has int aka 64 signed bits. This might cause problems
   Message addBitsUlong(int bitfield, int amount) {
     if (amount > Constants.ulongBytes * _bitsPerByte) {
-      throw RangeError("AddBitsUlong cannot be used to add more than ${Constants.ulongBytes * _bitsPerByte} bits at a time!");
+      throw RangeError(
+          "AddBitsUlong cannot be used to add more than ${Constants.ulongBytes * _bitsPerByte} bits at a time!");
     }
 
-    bitfield &= (1 << (amount - 1) << 1) - 1; // Discard any bits that are set beyond the ones we're adding
+    bitfield &= (1 << (amount - 1) << 1) -
+        1; // Discard any bits that are set beyond the ones we're adding
     Converter.uLongToUlongBits(bitfield, data, _writeBit);
     _writeBit += amount;
     return this;
@@ -640,7 +682,8 @@ class Message {
   /// The value is added in segments of 8 bits, 1 of which is used to indicate whether or not another segment follows. As a result, small values are
   /// added to the message using fewer bits, while large values will require a few more bits than they would if they were added via [addByte],
   /// [addUShort], [addUInt], or [addULong] (or their signed counterparts).
-  Message addVarLong(int value) => addVarULong(Converter.zigZagEncodeLong(value));
+  Message addVarLong(int value) =>
+      addVarULong(Converter.zigZagEncodeLong(value));
 
   /// Adds a positive number to the message, using fewer bits for smaller values.
   ///
@@ -707,7 +750,8 @@ class Message {
   /// Returns the message that the [byte] was added to.
   Message addByte(int value) {
     if (unwrittenBits < _bitsPerByte) {
-      throw InsufficientCapacityException.withDetails(this, byteName, _bitsPerByte);
+      throw InsufficientCapacityException.withDetails(
+          this, byteName, _bitsPerByte);
     }
 
     Converter.byteToBitsFromUlongs(value, data, _writeBit);
@@ -722,7 +766,8 @@ class Message {
   /// Returns the message that the [sbyte] was added to.
   Message addSByte(int value) {
     if (unwrittenBits < _bitsPerByte) {
-      throw InsufficientCapacityException.withDetails(this, sByteName, _bitsPerByte);
+      throw InsufficientCapacityException.withDetails(
+          this, sByteName, _bitsPerByte);
     }
 
     Converter.sByteToBitsFromUlongs(value, data, _writeBit);
@@ -735,7 +780,8 @@ class Message {
   /// Returns the [byte] that was retrieved.
   int getByte() {
     if (unreadBits < _bitsPerByte) {
-      RiptideLogger.log(LogType.error, _notEnoughBitsError(byteName, "${Constants.byteDefault}"));
+      RiptideLogger.log(LogType.error,
+          _notEnoughBitsError(byteName, "${Constants.byteDefault}"));
       return Constants.byteDefault;
     }
 
@@ -749,7 +795,8 @@ class Message {
   /// Returns the [sbyte] that was retrieved.
   int getSByte() {
     if (unreadBits < _bitsPerByte) {
-      RiptideLogger.log(LogType.error, _notEnoughBitsError(sByteName, "${Constants.sbyteDefault}"));
+      RiptideLogger.log(LogType.error,
+          _notEnoughBitsError(sByteName, "${Constants.sbyteDefault}"));
       return Constants.sbyteDefault;
     }
 
@@ -771,7 +818,8 @@ class Message {
 
     int writeAmount = array.length * _bitsPerByte;
     if (unwrittenBits < writeAmount) {
-      throw InsufficientCapacityException.withArrayDetails(this, array.length, byteName, _bitsPerByte);
+      throw InsufficientCapacityException.withArrayDetails(
+          this, array.length, byteName, _bitsPerByte);
     }
 
     if (_writeBit % _bitsPerByte == 0) {
@@ -807,7 +855,8 @@ class Message {
     }
 
     if (unwrittenBits < array.length * _bitsPerByte) {
-      throw InsufficientCapacityException.withArrayDetails(this, array.length, sByteName, _bitsPerByte);
+      throw InsufficientCapacityException.withArrayDetails(
+          this, array.length, sByteName, _bitsPerByte);
     }
 
     for (int i = 0; i < array.length; i++) {
@@ -840,7 +889,8 @@ class Message {
   /// [startIndex] : The position at which to start populating the array.
   void getBytesWithList(int amount, Uint8List intoArray, [int startIndex = 0]) {
     if (startIndex + amount > intoArray.length) {
-      throw ArgumentError(_arrayNotLongEnoughError(amount, intoArray.length, startIndex, byteName));
+      throw ArgumentError(_arrayNotLongEnoughError(
+          amount, intoArray.length, startIndex, byteName));
     }
 
     _readBytes(amount, intoArray, startIndex);
@@ -868,7 +918,8 @@ class Message {
   /// [startIndex] : The position at which to start populating [intArray].
   void getSBytesWithList(int amount, Int8List intArray, [int startIndex = 0]) {
     if (startIndex + amount > intArray.length) {
-      throw ArgumentError(_arrayNotLongEnoughError(amount, intArray.length, startIndex, sByteName));
+      throw ArgumentError(_arrayNotLongEnoughError(
+          amount, intArray.length, startIndex, sByteName));
     }
 
     _readSBytes(amount, intArray, startIndex);
@@ -886,7 +937,8 @@ class Message {
     }
 
     if (_readBit % _bitsPerByte == 0) {
-      Helper.blockCopyReversed(data, _readBit ~/ _bitsPerByte, intoArray, startIndex, amount);
+      Helper.blockCopyReversed(
+          data, _readBit ~/ _bitsPerByte, intoArray, startIndex, amount);
       _readBit += amount * _bitsPerByte;
     } else {
       for (int i = 0; i < amount; i++) {
@@ -932,7 +984,8 @@ class Message {
   /// Returns the [bool] that was retrieved.
   bool getBool() {
     if (unreadBits < 1) {
-      RiptideLogger.log(LogType.error, _notEnoughBitsError(boolName, "${Constants.boolDefault}"));
+      RiptideLogger.log(LogType.error,
+          _notEnoughBitsError(boolName, "${Constants.boolDefault}"));
       return Constants.boolDefault;
     }
 
@@ -951,7 +1004,8 @@ class Message {
     }
 
     if (unwrittenBits < array.length) {
-      throw InsufficientCapacityException.withArrayDetails(this, array.length, boolName, 1);
+      throw InsufficientCapacityException.withArrayDetails(
+          this, array.length, boolName, 1);
     }
 
     for (int i = 0; i < array.length; i++) {
@@ -984,7 +1038,8 @@ class Message {
   /// [startIndex] : The position at which to start populating the array.
   void getBoolsWithList(int amount, BoolList intoArray, [int startIndex = 0]) {
     if (startIndex + amount > intoArray.length) {
-      throw ArgumentError(_arrayNotLongEnoughError(amount, intoArray.length, startIndex, boolName));
+      throw ArgumentError(_arrayNotLongEnoughError(
+          amount, intoArray.length, startIndex, boolName));
     }
 
     _readBools(amount, intoArray, startIndex);
@@ -1002,7 +1057,8 @@ class Message {
     }
 
     for (int i = 0; i < amount; i++) {
-      intoArray[startIndex + i] = Converter.boolFromBitWithUlongs(data, _readBit++);
+      intoArray[startIndex + i] =
+          Converter.boolFromBitWithUlongs(data, _readBit++);
     }
   }
 
@@ -1013,7 +1069,8 @@ class Message {
   /// Returns the message that the [short] was added to.
   Message addShort(int value) {
     if (unwrittenBits < Constants.shortBytes * _bitsPerByte) {
-      throw InsufficientCapacityException.withDetails(this, shortName, Constants.shortBytes * _bitsPerByte);
+      throw InsufficientCapacityException.withDetails(
+          this, shortName, Constants.shortBytes * _bitsPerByte);
     }
 
     Converter.shortToBitsFromUlongs(value, data, _writeBit);
@@ -1028,7 +1085,8 @@ class Message {
   /// Returns the message that the [ushort] was added to.
   Message addUShort(int value) {
     if (unwrittenBits < Constants.ushortBytes * _bitsPerByte) {
-      throw InsufficientCapacityException.withDetails(this, uShortName, Constants.ushortBytes * _bitsPerByte);
+      throw InsufficientCapacityException.withDetails(
+          this, uShortName, Constants.ushortBytes * _bitsPerByte);
     }
 
     Converter.uShortToBitsFromUlongs(value, data, _writeBit);
@@ -1041,7 +1099,8 @@ class Message {
   /// Returns the [short] that was retrieved.
   int getShort() {
     if (unreadBits < Constants.shortBytes * _bitsPerByte) {
-      RiptideLogger.log(LogType.error, _notEnoughBitsError(shortName, "${Constants.shortDefault}"));
+      RiptideLogger.log(LogType.error,
+          _notEnoughBitsError(shortName, "${Constants.shortDefault}"));
       return Constants.shortDefault;
     }
 
@@ -1055,7 +1114,8 @@ class Message {
   /// Returns the [ushort] that was retrieved.
   int getUShort() {
     if (unreadBits < Constants.ushortBytes * _bitsPerByte) {
-      RiptideLogger.log(LogType.error, _notEnoughBitsError(uShortName, "${Constants.ushortDefault}"));
+      RiptideLogger.log(LogType.error,
+          _notEnoughBitsError(uShortName, "${Constants.ushortDefault}"));
       return Constants.ushortDefault;
     }
 
@@ -1076,7 +1136,8 @@ class Message {
     }
 
     if (unwrittenBits < array.length * Constants.shortBytes * _bitsPerByte) {
-      throw InsufficientCapacityException.withArrayDetails(this, array.length, shortName, Constants.shortBytes * _bitsPerByte);
+      throw InsufficientCapacityException.withArrayDetails(
+          this, array.length, shortName, Constants.shortBytes * _bitsPerByte);
     }
 
     for (int i = 0; i < array.length; i++) {
@@ -1099,7 +1160,8 @@ class Message {
     }
 
     if (unwrittenBits < array.length * Constants.ushortBytes * _bitsPerByte) {
-      throw InsufficientCapacityException.withArrayDetails(this, array.length, uShortName, Constants.ushortBytes * _bitsPerByte);
+      throw InsufficientCapacityException.withArrayDetails(
+          this, array.length, uShortName, Constants.ushortBytes * _bitsPerByte);
     }
 
     for (int i = 0; i < array.length; i++) {
@@ -1131,9 +1193,11 @@ class Message {
   /// [amount] : The amount of shorts to retrieve.
   /// [intoArray] : The array to populate.
   /// [startIndex] : The position at which to start populating the array.
-  void getShortsWithList(int amount, Int16List intoArray, [int startIndex = 0]) {
+  void getShortsWithList(int amount, Int16List intoArray,
+      [int startIndex = 0]) {
     if (startIndex + amount > intoArray.length) {
-      throw ArgumentError(_arrayNotLongEnoughError(amount, intoArray.length, startIndex, shortName));
+      throw ArgumentError(_arrayNotLongEnoughError(
+          amount, intoArray.length, startIndex, shortName));
     }
 
     _readShorts(amount, intoArray, startIndex);
@@ -1160,9 +1224,11 @@ class Message {
   /// [amount] : The amount of ushorts to retrieve.
   /// [intoArray] : The array to populate.
   /// [startIndex] : The position at which to start populating the array.
-  void getUShortsWithList(int amount, Uint16List intoArray, [int startIndex = 0]) {
+  void getUShortsWithList(int amount, Uint16List intoArray,
+      [int startIndex = 0]) {
     if (startIndex + amount > intoArray.length) {
-      throw ArgumentError(_arrayNotLongEnoughError(amount, intoArray.length, startIndex, uShortName));
+      throw ArgumentError(_arrayNotLongEnoughError(
+          amount, intoArray.length, startIndex, uShortName));
     }
 
     _readUShorts(amount, intoArray, startIndex);
@@ -1192,7 +1258,8 @@ class Message {
   /// [startIndex] : The position at which to start writing into the array.
   void _readUShorts(int amount, Uint16List intoArray, [int startIndex = 0]) {
     if (unreadBits < amount * Constants.ushortBytes * _bitsPerByte) {
-      RiptideLogger.log(LogType.error, _notEnoughBitsError2(amount, uShortName));
+      RiptideLogger.log(
+          LogType.error, _notEnoughBitsError2(amount, uShortName));
       amount = unreadBits ~/ (Constants.ushortBytes * _bitsPerByte);
     }
 
@@ -1208,7 +1275,8 @@ class Message {
   /// Returns the message that the [int] was added to.
   Message addInt(int value) {
     if (unwrittenBits < Constants.intBytes * _bitsPerByte) {
-      throw InsufficientCapacityException.withDetails(this, intName, Constants.intBytes * _bitsPerByte);
+      throw InsufficientCapacityException.withDetails(
+          this, intName, Constants.intBytes * _bitsPerByte);
     }
 
     Converter.intToBitsFromUlong(value, data, _writeBit);
@@ -1222,7 +1290,8 @@ class Message {
   /// Returns the message that the [uint] was added to.
   Message addUInt(int value) {
     if (unwrittenBits < Constants.uintBytes * _bitsPerByte) {
-      throw InsufficientCapacityException.withDetails(this, uIntName, Constants.uintBytes * _bitsPerByte);
+      throw InsufficientCapacityException.withDetails(
+          this, uIntName, Constants.uintBytes * _bitsPerByte);
     }
 
     Converter.uIntToUlongBits(value, data, _writeBit);
@@ -1235,7 +1304,8 @@ class Message {
   /// Returns the [int] that was retrieved.
   int getInt() {
     if (unreadBits < Constants.intBytes * _bitsPerByte) {
-      RiptideLogger.log(LogType.error, _notEnoughBitsError(intName, "${Constants.intDefault}"));
+      RiptideLogger.log(LogType.error,
+          _notEnoughBitsError(intName, "${Constants.intDefault}"));
       return Constants.intDefault;
     }
 
@@ -1249,7 +1319,8 @@ class Message {
   /// Returns the [uint] that was retrieved.
   int getUInt() {
     if (unreadBits < Constants.uintBytes * _bitsPerByte) {
-      RiptideLogger.log(LogType.error, _notEnoughBitsError(uIntName, "${Constants.uintBytes}"));
+      RiptideLogger.log(LogType.error,
+          _notEnoughBitsError(uIntName, "${Constants.uintBytes}"));
       return Constants.uintBytes;
     }
 
@@ -1269,7 +1340,8 @@ class Message {
     }
 
     if (unwrittenBits < array.length * Constants.intBytes * _bitsPerByte) {
-      throw InsufficientCapacityException.withArrayDetails(this, array.length, intName, Constants.intBytes * _bitsPerByte);
+      throw InsufficientCapacityException.withArrayDetails(
+          this, array.length, intName, Constants.intBytes * _bitsPerByte);
     }
 
     for (int i = 0; i < array.length; i++) {
@@ -1291,7 +1363,8 @@ class Message {
     }
 
     if (unwrittenBits < array.length * Constants.uintBytes * _bitsPerByte) {
-      throw InsufficientCapacityException.withArrayDetails(this, array.length, uIntName, Constants.uintBytes * _bitsPerByte);
+      throw InsufficientCapacityException.withArrayDetails(
+          this, array.length, uIntName, Constants.uintBytes * _bitsPerByte);
     }
 
     for (int i = 0; i < array.length; i++) {
@@ -1324,7 +1397,8 @@ class Message {
   /// [startIndex] : The position at which to start populating the array.
   void getIntsWithList(int amount, Int32List intoArray, [int startIndex = 0]) {
     if (startIndex + amount > intoArray.length) {
-      throw ArgumentError(_arrayNotLongEnoughError(amount, intoArray.length, startIndex, intName));
+      throw ArgumentError(_arrayNotLongEnoughError(
+          amount, intoArray.length, startIndex, intName));
     }
 
     _readInts(amount, intoArray, startIndex);
@@ -1350,9 +1424,11 @@ class Message {
   /// [amount] : The amount of uints to retrieve.
   /// [intoArray] : The array to populate.
   /// [startIndex] : The position at which to start populating the array.
-  void getUIntsWithList(int amount, Uint32List intoArray, [int startIndex = 0]) {
+  void getUIntsWithList(int amount, Uint32List intoArray,
+      [int startIndex = 0]) {
     if (startIndex + amount > intoArray.length) {
-      throw ArgumentError(_arrayNotLongEnoughError(amount, intoArray.length, startIndex, uIntName));
+      throw ArgumentError(_arrayNotLongEnoughError(
+          amount, intoArray.length, startIndex, uIntName));
     }
 
     _readUInts(amount, intoArray, startIndex);
@@ -1398,7 +1474,9 @@ class Message {
   ///
   /// Returns the message that the [long] was added to.
   Message addLong(int value) {
-    if (unwrittenBits < Constants.longBytes * _bitsPerByte) throw InsufficientCapacityException.withDetails(this, longName, Constants.longBytes * _bitsPerByte);
+    if (unwrittenBits < Constants.longBytes * _bitsPerByte)
+      throw InsufficientCapacityException.withDetails(
+          this, longName, Constants.longBytes * _bitsPerByte);
 
     Converter.longToUlongBits(value, data, _writeBit);
     _writeBit += Constants.longBytes * _bitsPerByte;
@@ -1414,7 +1492,8 @@ class Message {
   /// IMPORTANT: Originally takes a ulong aka unsigned 64 bits. Dart only has int aka 64 signed bits. This might cause problems
   Message addULong(int value) {
     if (unwrittenBits < Constants.ulongBytes * _bitsPerByte) {
-      throw InsufficientCapacityException.withDetails(this, uLongName, Constants.ulongBytes * _bitsPerByte);
+      throw InsufficientCapacityException.withDetails(
+          this, uLongName, Constants.ulongBytes * _bitsPerByte);
     }
 
     Converter.uLongToUlongBits(value, data, _writeBit);
@@ -1427,7 +1506,8 @@ class Message {
   /// Returns the [long] that was retrieved.
   int getLong() {
     if (unreadBits < Constants.longBytes * _bitsPerByte) {
-      RiptideLogger.log(LogType.error, _notEnoughBitsError(longName, "${Constants.longDefault}"));
+      RiptideLogger.log(LogType.error,
+          _notEnoughBitsError(longName, "${Constants.longDefault}"));
       return Constants.longDefault;
     }
 
@@ -1443,7 +1523,8 @@ class Message {
   /// IMPORTANT: Originally returns a ulong aka unsigned 64 bits. Dart only has int aka 64 signed bits. This might cause problems
   int getULong() {
     if (unreadBits < Constants.ulongBytes * _bitsPerByte) {
-      RiptideLogger.log(LogType.error, _notEnoughBitsError(uLongName, "${Constants.ulongDefault}"));
+      RiptideLogger.log(LogType.error,
+          _notEnoughBitsError(uLongName, "${Constants.ulongDefault}"));
       return Constants.ulongDefault;
     }
 
@@ -1462,7 +1543,8 @@ class Message {
     if (includeLength) addVarULong(array.length);
 
     if (unwrittenBits < array.length * Constants.longBytes * _bitsPerByte) {
-      throw InsufficientCapacityException.withArrayDetails(this, array.length, longName, Constants.longBytes * _bitsPerByte);
+      throw InsufficientCapacityException.withArrayDetails(
+          this, array.length, longName, Constants.longBytes * _bitsPerByte);
     }
 
     for (int i = 0; i < array.length; i++) {
@@ -1485,7 +1567,8 @@ class Message {
     }
 
     if (unwrittenBits < array.length * Constants.ulongBytes * _bitsPerByte) {
-      throw InsufficientCapacityException.withArrayDetails(this, array.length, uLongName, Constants.ulongBytes * _bitsPerByte);
+      throw InsufficientCapacityException.withArrayDetails(
+          this, array.length, uLongName, Constants.ulongBytes * _bitsPerByte);
     }
 
     for (int i = 0; i < array.length; i++) {
@@ -1516,15 +1599,19 @@ class Message {
   ///
   /// [intoArray] : The array to populate.
   /// [startIndex] : The position at which to start populating the array.
-  void getLongsWithList(Int64List intoArray, [int startIndex = 0]) => getLongsWithListAndAmount(getVarULong(), intoArray, startIndex);
+  void getLongsWithList(Int64List intoArray, [int startIndex = 0]) =>
+      getLongsWithListAndAmount(getVarULong(), intoArray, startIndex);
 
   /// Populates a [Int64List] with longs retrieved from the message.
   ///
   /// [amount] : The amount of longs to retrieve.
   /// [intoArray] : The array to populate.
   /// [startIndex] : The position at which to start populating the array.
-  void getLongsWithListAndAmount(int amount, Int64List intoArray, [int startIndex = 0]) {
-    if (startIndex + amount > intoArray.length) throw ArgumentError(_arrayNotLongEnoughError(amount, intoArray.length, startIndex, longName));
+  void getLongsWithListAndAmount(int amount, Int64List intoArray,
+      [int startIndex = 0]) {
+    if (startIndex + amount > intoArray.length)
+      throw ArgumentError(_arrayNotLongEnoughError(
+          amount, intoArray.length, startIndex, longName));
 
     _readLongs(amount, intoArray, startIndex);
   }
@@ -1549,15 +1636,19 @@ class Message {
   ///
   /// [intoArray] : The array to populate.
   /// [startIndex] : The position at which to start populating the array.
-  void getULongsWithList(Uint64List intoArray, [int startIndex = 0]) => getULongsWithListAndAmount(getVarULong(), intoArray, startIndex);
+  void getULongsWithList(Uint64List intoArray, [int startIndex = 0]) =>
+      getULongsWithListAndAmount(getVarULong(), intoArray, startIndex);
 
   /// Populates a [Uint64List] with ulongs retrieved from the message.
   ///
   /// [amount] : The amount of ulongs to retrieve.
   /// [intoArray] : The array to populate.
   /// [startIndex] : The position at which to start populating the array.
-  void getULongsWithListAndAmount(int amount, Uint64List intoArray, [int startIndex = 0]) {
-    if (startIndex + amount > intoArray.length) throw ArgumentError(_arrayNotLongEnoughError(amount, intoArray.length, startIndex, uLongName));
+  void getULongsWithListAndAmount(int amount, Uint64List intoArray,
+      [int startIndex = 0]) {
+    if (startIndex + amount > intoArray.length)
+      throw ArgumentError(_arrayNotLongEnoughError(
+          amount, intoArray.length, startIndex, uLongName));
 
     _readULongs(amount, intoArray, startIndex);
   }
@@ -1602,7 +1693,8 @@ class Message {
   /// Returns the message that the [float] was added to.
   Message addFloat(double value) {
     if (unwrittenBits < Constants.floatBytes * _bitsPerByte) {
-      throw InsufficientCapacityException.withDetails(this, floatName, Constants.floatBytes * _bitsPerByte);
+      throw InsufficientCapacityException.withDetails(
+          this, floatName, Constants.floatBytes * _bitsPerByte);
     }
 
     Converter.floatToUlongBits(value, data, _writeBit);
@@ -1615,7 +1707,8 @@ class Message {
   /// Returns the [float] that was retrieved.
   double getFloat() {
     if (unreadBits < Constants.floatBytes * _bitsPerByte) {
-      RiptideLogger.log(LogType.error, _notEnoughBitsError(floatName, "${Constants.floatDefault}"));
+      RiptideLogger.log(LogType.error,
+          _notEnoughBitsError(floatName, "${Constants.floatDefault}"));
       return Constants.floatDefault;
     }
 
@@ -1636,7 +1729,8 @@ class Message {
     }
 
     if (unwrittenBits < array.length * Constants.floatBytes * _bitsPerByte) {
-      throw InsufficientCapacityException.withArrayDetails(this, array.length, floatName, Constants.floatBytes * _bitsPerByte);
+      throw InsufficientCapacityException.withArrayDetails(
+          this, array.length, floatName, Constants.floatBytes * _bitsPerByte);
     }
 
     for (int i = 0; i < array.length; i++) {
@@ -1667,15 +1761,19 @@ class Message {
   ///
   /// [intoArray] : The array to populate.
   /// [startIndex] : The position at which to start populating the array.
-  void getFloatsWithList(Float32List intoArray, [int startIndex = 0]) => getFloatsWithListAndAmount(getVarULong(), intoArray, startIndex);
+  void getFloatsWithList(Float32List intoArray, [int startIndex = 0]) =>
+      getFloatsWithListAndAmount(getVarULong(), intoArray, startIndex);
 
   /// Populates a [Float32List] with floats retrieved from the message.
   ///
   /// [amount] : The amount of floats to retrieve.
   /// [intoArray] : The array to populate.
   /// [startIndex] : The position at which to start populating the array.
-  void getFloatsWithListAndAmount(int amount, Float32List intoArray, [int startIndex = 0]) {
-    if (startIndex + amount > intoArray.length) throw ArgumentError(_arrayNotLongEnoughError(amount, intoArray.length, startIndex, floatName));
+  void getFloatsWithListAndAmount(int amount, Float32List intoArray,
+      [int startIndex = 0]) {
+    if (startIndex + amount > intoArray.length)
+      throw ArgumentError(_arrayNotLongEnoughError(
+          amount, intoArray.length, startIndex, floatName));
 
     _readFloats(amount, intoArray, startIndex);
   }
@@ -1703,7 +1801,8 @@ class Message {
   /// Returns the message that the [double] was added to.
   Message addDouble(double value) {
     if (unwrittenBits < Constants.doubleBytes * _bitsPerByte) {
-      throw InsufficientCapacityException.withDetails(this, doubleName, Constants.doubleBytes * _bitsPerByte);
+      throw InsufficientCapacityException.withDetails(
+          this, doubleName, Constants.doubleBytes * _bitsPerByte);
     }
 
     Converter.doubleToUlongBits(value, data, _writeBit);
@@ -1716,7 +1815,8 @@ class Message {
   /// Returns the [double] that was retrieved.
   double getDouble() {
     if (unreadBits < Constants.doubleBytes * _bitsPerByte) {
-      RiptideLogger.log(LogType.error, _notEnoughBitsError(doubleName, "${Constants.doubleDefault}"));
+      RiptideLogger.log(LogType.error,
+          _notEnoughBitsError(doubleName, "${Constants.doubleDefault}"));
       return Constants.doubleDefault;
     }
 
@@ -1736,7 +1836,8 @@ class Message {
     }
 
     if (unwrittenBits < array.length * Constants.doubleBytes * _bitsPerByte) {
-      throw InsufficientCapacityException.withArrayDetails(this, array.length, doubleName, Constants.doubleBytes * _bitsPerByte);
+      throw InsufficientCapacityException.withArrayDetails(
+          this, array.length, doubleName, Constants.doubleBytes * _bitsPerByte);
     }
 
     for (int i = 0; i < array.length; i++) {
@@ -1767,9 +1868,11 @@ class Message {
   /// [amount] : The amount of doubles to retrieve.
   /// [intoArray] : The array to populate.
   /// [startIndex] : The position at which to start populating the array.
-  void getDoublesWithList(int amount, Float64List intoArray, [int startIndex = 0]) {
+  void getDoublesWithList(int amount, Float64List intoArray,
+      [int startIndex = 0]) {
     if (startIndex + amount > intoArray.length) {
-      throw ArgumentError(_arrayNotLongEnoughError(amount, intoArray.length, startIndex, doubleName));
+      throw ArgumentError(_arrayNotLongEnoughError(
+          amount, intoArray.length, startIndex, doubleName));
     }
 
     _readDoubles(amount, intoArray, startIndex);
@@ -1782,7 +1885,8 @@ class Message {
   /// [startIndex] : The position at which to start writing into the array.
   void _readDoubles(int amount, Float64List intoArray, [int startIndex = 0]) {
     if (unreadBits < amount * Constants.doubleBytes * _bitsPerByte) {
-      RiptideLogger.log(LogType.error, _notEnoughBitsError2(amount, doubleName));
+      RiptideLogger.log(
+          LogType.error, _notEnoughBitsError2(amount, doubleName));
       amount = unreadBits ~/ (Constants.doubleBytes * _bitsPerByte);
     }
 
@@ -1806,9 +1910,11 @@ class Message {
   ///
   /// Returns the [String] that was retrieved.
   String getString() {
-    int length = getVarULong(); // Get the length of the string (in bytes, NOT characters)
+    int length =
+        getVarULong(); // Get the length of the string (in bytes, NOT characters)
     if (unreadBits < length * _bitsPerByte) {
-      RiptideLogger.log(LogType.error, _notEnoughBitsError(stringName, "shortened string"));
+      RiptideLogger.log(
+          LogType.error, _notEnoughBitsError(stringName, "shortened string"));
       length = unreadBits ~/ _bitsPerByte;
     }
 
@@ -1864,9 +1970,11 @@ class Message {
   /// [amount] : The amount of strings to retrieve.
   /// [intoArray] : The array to populate.
   /// [startIndex] : The position at which to start populating the array.
-  void getStringsWithList(int amount, List<String> intoArray, [int startIndex = 0]) {
+  void getStringsWithList(int amount, List<String> intoArray,
+      [int startIndex = 0]) {
     if (startIndex + amount > intoArray.length) {
-      throw ArgumentError(_arrayNotLongEnoughError(amount, intoArray.length, startIndex, stringName));
+      throw ArgumentError(_arrayNotLongEnoughError(
+          amount, intoArray.length, startIndex, stringName));
     }
 
     for (int i = 0; i < amount; i++) {
@@ -1942,7 +2050,9 @@ class Message {
   /// [pluralValueName] : The name of the value type in plural form. If left empty, this will be set to valueName with an 's' appended to it.
   ///
   /// Returns the error message.
-  String _arrayNotLongEnoughError(int amount, int arrayLength, int startIndex, String valueName, {String pluralValueName = ""}) {
+  String _arrayNotLongEnoughError(
+      int amount, int arrayLength, int startIndex, String valueName,
+      {String pluralValueName = ""}) {
     if (pluralValueName == "") {
       pluralValueName = "${valueName}s";
     }

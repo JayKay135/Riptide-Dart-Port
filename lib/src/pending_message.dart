@@ -50,13 +50,16 @@ class PendingMessage {
   /// [sequenceID] : The sequence ID of the message.
   /// [message] : The message that is being sent reliably.
   /// [connection] : The Connection to use to send (and resend) the pending message.
-  static PendingMessage create(int sequenceID, Message message, Connection connection) {
+  static PendingMessage create(
+      int sequenceID, Message message, Connection connection) {
     PendingMessage pendingMessage = _retrieveFromPool();
     pendingMessage._connection = connection;
 
-    message.setBits(sequenceID, Constants.ushortBytes * Converter.bitsPerByte, Message.headerBits);
+    message.setBits(sequenceID, Constants.ushortBytes * Converter.bitsPerByte,
+        Message.headerBits);
     pendingMessage._size = message.bytesInUse;
-    Helper.blockCopyReversed(message.data, 0, pendingMessage.data, 0, pendingMessage._size);
+    Helper.blockCopyReversed(
+        message.data, 0, pendingMessage.data, 0, pendingMessage._size);
 
     pendingMessage._sendAttempts = 0;
     pendingMessage._wasCleared = false;
@@ -100,22 +103,30 @@ class PendingMessage {
   void retrySend() {
     if (!_wasCleared) {
       int time = _connection.peer.currentTime;
-      if (lastSendTime + (_connection.smoothRtt < 0 ? 25 : _connection.smoothRtt / 2) <= time) {
+      if (lastSendTime +
+              (_connection.smoothRtt < 0 ? 25 : _connection.smoothRtt / 2) <=
+          time) {
         // Avoid triggering a resend if the latest resend was less than half a RTT ago
         trySend();
       } else {
-        _connection.peer
-            .executeLater(_connection.smoothRtt < 0 ? 50 : max(10, (_connection.smoothRtt * _retryTimeMultiplier).toInt()), ResendEvent(this, time));
+        _connection.peer.executeLater(
+            _connection.smoothRtt < 0
+                ? 50
+                : max(
+                    10, (_connection.smoothRtt * _retryTimeMultiplier).toInt()),
+            ResendEvent(this, time));
       }
     }
   }
 
   /// Attempts to send the message.
   void trySend() {
-    if (_sendAttempts >= _connection.maxSendAttempts && _connection.canQualityDisconnect) {
+    if (_sendAttempts >= _connection.maxSendAttempts &&
+        _connection.canQualityDisconnect) {
       RiptideLogger.logWithLogName(LogType.info, _connection.peer.logName,
           "Could not guarantee delivery of a ${MessageHeader.values[data[0]]} message after $_sendAttempts attempts! Disconnecting...");
-      _connection.peer.disconnectConnection(_connection, DisconnectReason.poorConnection);
+      _connection.peer
+          .disconnectConnection(_connection, DisconnectReason.poorConnection);
       return;
     }
 
@@ -126,7 +137,10 @@ class PendingMessage {
     _sendAttempts++;
 
     _connection.peer.executeLater(
-        _connection.smoothRtt < 0 ? 50 : max(10, (_connection.smoothRtt * _retryTimeMultiplier).toInt()), ResendEvent(this, _connection.peer.currentTime));
+        _connection.smoothRtt < 0
+            ? 50
+            : max(10, (_connection.smoothRtt * _retryTimeMultiplier).toInt()),
+        ResendEvent(this, _connection.peer.currentTime));
   }
 
   /// Clears the message.

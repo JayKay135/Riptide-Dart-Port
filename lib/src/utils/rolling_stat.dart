@@ -22,7 +22,8 @@ class RollingStat {
   List<double> get array => _array;
 
   /// The variance of the stat's values.
-  double get variance => _slotsFilled > 1 ? _sumOfSquares / (_slotsFilled - 1) : 0;
+  double get variance =>
+      _slotsFilled > 1 ? _sumOfSquares / (_slotsFilled - 1) : 0;
 
   /// The standard deviation of the stat's values.
   double get standardDev {

@@ -100,7 +100,8 @@ abstract class Peer {
   Queue<MessageToHandle> get messageToHandle => _messagesToHandle;
 
   /// A queue of events to execute, ordered by how soon they need to be executed.
-  final PriorityQueue<(DelayedEvent, int)> _eventQueue = PriorityQueue<(DelayedEvent, int)>((a, b) => b.$2.compareTo(a.$2));
+  final PriorityQueue<(DelayedEvent, int)> _eventQueue =
+      PriorityQueue<(DelayedEvent, int)>((a, b) => b.$2.compareTo(a.$2));
   PriorityQueue<(DelayedEvent, int)> get eventQueue => _eventQueue;
 
   /// Initializes the peer.
@@ -155,7 +156,8 @@ abstract class Peer {
 
   /// Handles data received by the transport
   void handleData(DataReceivedEventArgs e) {
-    var (Message message, MessageHeader header) = Message.create().initWithByte(e.dataBuffer[0], e.amount);
+    var (Message message, MessageHeader header) =
+        Message.create().initWithByte(e.dataBuffer[0], e.amount);
 
     if (message.sendMode == MessageSendMode.notify) {
       if (e.amount < Message.minNotifyBytes) {
@@ -176,9 +178,11 @@ abstract class Peer {
       }
 
       e.fromConnection.metrics.receivedReliable(e.amount);
-      if (e.fromConnection.shouldHandle(Converter.uShortFromByteBits(e.dataBuffer, Message.headerBits))) {
+      if (e.fromConnection.shouldHandle(
+          Converter.uShortFromByteBits(e.dataBuffer, Message.headerBits))) {
         Helper.blockCopy(e.dataBuffer, 1, message.data, 1, e.amount - 1);
-        _messagesToHandle.add(MessageToHandle(message, header, e.fromConnection));
+        _messagesToHandle
+            .add(MessageToHandle(message, header, e.fromConnection));
       } else {
         e.fromConnection.metrics.reliableDiscarded++;
       }
@@ -236,7 +240,8 @@ class MessageToHandle {
   /// [message] : The message that needs to be handled.
   /// [header] : The message's header type.
   /// [fromConnection] : The connection on which the message was received.
-  MessageToHandle(Message message, MessageHeader header, Connection fromConnection) {
+  MessageToHandle(
+      Message message, MessageHeader header, Connection fromConnection) {
     _message = message;
     _header = header;
     _fromConnection = fromConnection;

@@ -53,7 +53,8 @@ class TcpConnection extends Connection {
 
       if (_nextMessageSize > 0) {
         // We already have a size value for the message size
-        (bool canReceiveMesssage, int receivedByteCount) data = _tryReceiveMessage();
+        (bool canReceiveMesssage, int receivedByteCount) data =
+            _tryReceiveMessage();
         tryReceiveMore = data.$1;
         byteCount = data.$2;
       } else if (queue.length >= Constants.intBytes) {
@@ -67,7 +68,8 @@ class TcpConnection extends Connection {
         _nextMessageSize = Converter.toInt(_sizeBytes.buffer.asByteData(), 0);
 
         if (_nextMessageSize > 0) {
-          (bool canReceiveMesssage, int receivedByteCount) data = _tryReceiveMessage();
+          (bool canReceiveMesssage, int receivedByteCount) data =
+              _tryReceiveMessage();
           tryReceiveMore = data.$1;
           byteCount = data.$2;
         }
@@ -115,9 +117,11 @@ class TcpConnection extends Connection {
       Converter.fromInt(amount, _peer.sendBuffer.buffer.asByteData(), 0);
 
       // TODO: consider sending length separately with an extra socket.Send call instead of copying the data an extra time
-      _peer.sendBuffer.setRange(Constants.intBytes, Constants.intBytes + amount, dataBuffer);
+      _peer.sendBuffer.setRange(
+          Constants.intBytes, Constants.intBytes + amount, dataBuffer);
 
-      List<int> sendingData = _peer.sendBuffer.getRange(0, amount + Constants.intBytes).toList();
+      List<int> sendingData =
+          _peer.sendBuffer.getRange(0, amount + Constants.intBytes).toList();
 
       _socket.add(sendingData);
     } on SocketException {

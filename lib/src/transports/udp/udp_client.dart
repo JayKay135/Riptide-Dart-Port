@@ -30,7 +30,8 @@ class UdpClient extends UdpPeer implements IClient {
   UdpClient({super.socketBufferSize});
 
   @override
-  Future<(bool connected, Connection? connection, String error)> connect(InternetAddress hostAddress, int port) async {
+  Future<(bool connected, Connection? connection, String error)> connect(
+      InternetAddress hostAddress, int port) async {
     try {
       await openSocket(listenAddress: InternetAddress.anyIPv4, port: port + 1);
     } catch (e) {
@@ -61,8 +62,10 @@ class UdpClient extends UdpPeer implements IClient {
   }
 
   @override
-  void onDataReceived(Uint8List data, int amount, InternetAddress fromEndPoint, int port) {
-    if (udpConnection.remoteEndPoint == fromEndPoint && !udpConnection.isNotConnected) {
+  void onDataReceived(
+      Uint8List data, int amount, InternetAddress fromEndPoint, int port) {
+    if (udpConnection.remoteEndPoint == fromEndPoint &&
+        !udpConnection.isNotConnected) {
       dataReceived.invoke(DataReceivedEventArgs(data, amount, udpConnection));
     }
   }

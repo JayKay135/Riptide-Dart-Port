@@ -23,19 +23,23 @@ typedef LogMethod<String> = void Function(String log);
 /// Provides functionality for logging messages.
 class RiptideLogger {
   /// Whether or not LogType.debug messages will be logged.
-  static bool get isDebugLoggingEnabled => logMethods.containsKey(LogType.debug);
+  static bool get isDebugLoggingEnabled =>
+      logMethods.containsKey(LogType.debug);
 
   /// Whether or not LogType.info messages will be logged.
   static bool get isInfoLoggingEnabled => logMethods.containsKey(LogType.info);
 
   /// Whether or not LogType.warning messages will be logged.
-  static bool get isWarningLoggingEnabled => logMethods.containsKey(LogType.warning);
+  static bool get isWarningLoggingEnabled =>
+      logMethods.containsKey(LogType.warning);
 
   /// Whether or not LogType.error messages will be logged.
-  static bool get isErrorLoggingEnabled => logMethods.containsKey(LogType.error);
+  static bool get isErrorLoggingEnabled =>
+      logMethods.containsKey(LogType.error);
 
   /// Log methods, accessible by their LogType
-  static final Map<LogType, LogMethod<String>> _logMethods = <LogType, LogMethod<String>>{};
+  static final Map<LogType, LogMethod<String>> _logMethods =
+      <LogType, LogMethod<String>>{};
   static Map<LogType, LogMethod<String>> get logMethods => _logMethods;
 
   /// Whether or not to include timestamps when logging messages.
@@ -49,8 +53,11 @@ class RiptideLogger {
   /// [logMethod] : The method to use when logging all types of messages.
   /// [includeTimestamps] : Whether or not to include timestamps when logging messages.
   /// [timestampFormat] : The format to use for timestamps.
-  static void initialize(LogMethod<String> logMethod, bool includeTimestamps, {String timestampFormat = "HH:mm:ss"}) {
-    initializeExtended(logMethod, logMethod, logMethod, logMethod, includeTimestamps, timestampFormat: timestampFormat);
+  static void initialize(LogMethod<String> logMethod, bool includeTimestamps,
+      {String timestampFormat = "HH:mm:ss"}) {
+    initializeExtended(
+        logMethod, logMethod, logMethod, logMethod, includeTimestamps,
+        timestampFormat: timestampFormat);
   }
 
   /// Initializes RiptideLogger with the supplied log methods.
@@ -62,7 +69,11 @@ class RiptideLogger {
   /// [includeTimestamps] : Whether or not to include timestamps when logging messages.
   /// [timestampFormat] : The format to use for timestamps.
   static void initializeExtended(
-      LogMethod<String>? debugMethod, LogMethod<String>? infoMethod, LogMethod<String>? warningMethod, LogMethod<String>? errorMethod, bool includeTimestamps,
+      LogMethod<String>? debugMethod,
+      LogMethod<String>? infoMethod,
+      LogMethod<String>? warningMethod,
+      LogMethod<String>? errorMethod,
+      bool includeTimestamps,
       {String timestampFormat = "HH:mm:ss"}) {
     logMethods.clear();
 

@@ -51,7 +51,8 @@ class Helper {
   /// [plural] : The plural form.
   ///
   /// Returns [singular] if [amount] is 1; otherwise [plural].
-  static String correctForm(int amount, String singular, {String? plural = ""}) {
+  static String correctForm(int amount, String singular,
+      {String? plural = ""}) {
     if (plural == null || plural == "") {
       plural = "${singular}s";
     }
@@ -74,7 +75,8 @@ class Helper {
       return gap;
     } else {
       // Difference is big, meaning sequence IDs are far apart
-      return (seqId1 <= 32768 ? Constants.ushortMaxVal + 1 + seqId1 : seqId1) - (seqId2 <= 32768 ? Constants.ushortMaxVal + 1 + seqId2 : seqId2);
+      return (seqId1 <= 32768 ? Constants.ushortMaxVal + 1 + seqId1 : seqId1) -
+          (seqId2 <= 32768 ? Constants.ushortMaxVal + 1 + seqId2 : seqId2);
     }
   }
 
@@ -146,7 +148,8 @@ class Helper {
   /// [dst] : The destination list where the data will be copied to.
   /// [dstOffset] : The starting index in the destination list.
   /// [count] : The number of elements to be copied.
-  static void blockCopy(Uint8List src, int srcOffset, Uint64List dst, int dstOffset, int count) {
+  static void blockCopy(
+      Uint8List src, int srcOffset, Uint64List dst, int dstOffset, int count) {
     // create a byte buffer from the destination Uint64List
     var dstBuffer = dst.buffer.asUint8List();
 
@@ -170,7 +173,8 @@ class Helper {
   /// Uint8List destination = Uint8List(20);
   /// Helper.blockCopyReversed(source, 0, destination, 10, 5);
   /// ```
-  static void blockCopyReversed(Uint64List src, int srcOffset, Uint8List dst, int dstOffset, int count) {
+  static void blockCopyReversed(
+      Uint64List src, int srcOffset, Uint8List dst, int dstOffset, int count) {
     for (var i = 0; i < count; i++) {
       var value = src[(srcOffset + i) ~/ 8];
       var byte = (value >> ((i % 8) * 8)) & 0xFF;

@@ -71,7 +71,8 @@ class TcpServer extends TcpPeer implements IServer {
       InternetAddress fromEndPoint = newSocket.remoteAddress;
 
       if (!_connections.containsKey(fromEndPoint)) {
-        TcpConnection newConnection = TcpConnection(newSocket, fromEndPoint, this);
+        TcpConnection newConnection =
+            TcpConnection(newSocket, fromEndPoint, this);
         _connections[fromEndPoint] = newConnection;
         onConnected(newConnection);
       } else {
@@ -133,7 +134,8 @@ class TcpServer extends TcpPeer implements IServer {
 
   @override
   void onDataReceived(int amount, TcpConnection fromConnection) {
-    if (MessageHeader.values[receiveBuffer.first & Message.headerBitmask] == MessageHeader.connect) {
+    if (MessageHeader.values[receiveBuffer.first & Message.headerBitmask] ==
+        MessageHeader.connect) {
       if (fromConnection.didReceiveConnect) {
         return;
       }
@@ -141,6 +143,7 @@ class TcpServer extends TcpPeer implements IServer {
       fromConnection.didReceiveConnect = true;
     }
 
-    dataReceived.invoke(DataReceivedEventArgs(receiveBuffer, amount, fromConnection));
+    dataReceived
+        .invoke(DataReceivedEventArgs(receiveBuffer, amount, fromConnection));
   }
 }

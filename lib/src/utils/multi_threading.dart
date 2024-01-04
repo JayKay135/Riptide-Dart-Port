@@ -20,10 +20,12 @@ class MultiThreadedServer {
   final Map<int, server_ref.MessageHandler> _messageHandlers = {};
 
   /// Invoked when a client connects.
-  Event<MultiThreadedServerConnectedEventArgs> clientConnected = Event<MultiThreadedServerConnectedEventArgs>();
+  Event<MultiThreadedServerConnectedEventArgs> clientConnected =
+      Event<MultiThreadedServerConnectedEventArgs>();
 
   /// Invoked when a client disconnects.
-  Event<MultiThreadedServerDisconnectedEventArgs> clientDisconnected = Event<MultiThreadedServerDisconnectedEventArgs>();
+  Event<MultiThreadedServerDisconnectedEventArgs> clientDisconnected =
+      Event<MultiThreadedServerDisconnectedEventArgs>();
 
   /// The underlying transport's server that is used for sending and receiving data.
   late MultiThreadedTransportType _transportType;
@@ -35,7 +37,9 @@ class MultiThreadedServer {
   ///
   /// [transportType] : The [MultiThreadedTransportType] to use for sending and receiving data.
   /// [logName] : The name to use when logging messages via RiptideLogger.
-  MultiThreadedServer({MultiThreadedTransportType? transportType, this.logName = "MULTI_THREADED_SERVER"}) {
+  MultiThreadedServer(
+      {MultiThreadedTransportType? transportType,
+      this.logName = "MULTI_THREADED_SERVER"}) {
     // NOTE: The transportType enum is used by design, as later on it has to be parsed to a string and passed to the isolate.
     // Using the IServer class wouldn't allow for easy String parsing.
     _transportType = transportType ?? MultiThreadedTransportType.udp;
@@ -46,8 +50,10 @@ class MultiThreadedServer {
   /// [port] : The local port on which to start the server.
   /// [maxClientCount] : The maximum number of concurrent connections to allow.
   /// [loggingEnabled] : If true the Riptider logger is initialized on the isolate.
-  Future<void> start(int port, int maxClientCount, {bool loggingEnabled = false}) async {
-    _sendPort = await _multiThreadedServer(_transportType, port, maxClientCount, loggingEnabled);
+  Future<void> start(int port, int maxClientCount,
+      {bool loggingEnabled = false}) async {
+    _sendPort = await _multiThreadedServer(
+        _transportType, port, maxClientCount, loggingEnabled);
   }
 
   /// Stops the multi threaded server.
@@ -71,7 +77,8 @@ class MultiThreadedServer {
   }
 
   /// Registers a callback handler for a specifc [messageID] when messages with this particular id are received.
-  void registerMessageHandler(int messageID, Function(int messageID, Message message) callback) {
+  void registerMessageHandler(
+      int messageID, Function(int messageID, Message message) callback) {
     _messageHandlers[messageID] = callback;
   }
 
@@ -81,7 +88,11 @@ class MultiThreadedServer {
   }
 
   /// Internal function to start the riptide server isolate in a different thread.
-  Future<SendPort> _multiThreadedServer(MultiThreadedTransportType transportType, int port, int maxClientCount, bool loggingEnabled) async {
+  Future<SendPort> _multiThreadedServer(
+      MultiThreadedTransportType transportType,
+      int port,
+      int maxClientCount,
+      bool loggingEnabled) async {
     Completer<SendPort> completer = Completer<SendPort>();
     ReceivePort receivePort = ReceivePort();
 
@@ -101,12 +112,16 @@ class MultiThreadedServer {
         );
       }
 
-      MultiThreadedTransportType transportType = MultiThreadedTransportType.values[map['transportType'] as int];
+      MultiThreadedTransportType transportType =
+          MultiThreadedTransportType.values[map['transportType'] as int];
 
       // actual riptide code
-      IServer transport = transportType == MultiThreadedTransportType.udp ? UdpServer() : TcpServer();
+      IServer transport = transportType == MultiThreadedTransportType.udp
+          ? UdpServer()
+          : TcpServer();
       Server server = Server(transport: transport);
-      server.start(map['port'] as int, map['maxClientCount'] as int, useMessageHandlers: false);
+      server.start(map['port'] as int, map['maxClientCount'] as int,
+          useMessageHandlers: false);
 
       // received command or message data
       receiver.listen((data) {
@@ -139,12 +154,17 @@ class MultiThreadedServer {
       });
 
       server.clientDisconnected.subscribe((ServerDisconnectedEventArgs? args) {
-        sendPort.send({'clientDisconnected': args!.client.id, 'reason': args.reason});
+        sendPort.send(
+            {'clientDisconnected': args!.client.id, 'reason': args.reason});
       });
 
       // listen for received messages and forward them through the sendPort
       server.messageReceived.subscribe((MessageReceivedEventArgs? args) {
-        sendPort.send({'messageId': args!.messageID, 'connectionId': args.fromConnection.id, 'message': args.message});
+        sendPort.send({
+          'messageId': args!.messageID,
+          'connectionId': args.fromConnection.id,
+          'message': args.message
+        });
       });
 
       Timer.periodic(const Duration(milliseconds: 20), (timer) {
@@ -167,23 +187,31 @@ class MultiThreadedServer {
 
         // distinguish between certain events from the isolate
         if (map.containsKey('clientConnected')) {
-          return clientConnected.invoke(MultiThreadedServerConnectedEventArgs(map['clientConnected'] as int));
+          return clientConnected.invoke(MultiThreadedServerConnectedEventArgs(
+              map['clientConnected'] as int));
         }
         if (map.containsKey('clientDisconnected')) {
-          return clientDisconnected.invoke(MultiThreadedServerDisconnectedEventArgs(map['clientDisconnected'] as int, map['reason'] as DisconnectReason));
+          return clientDisconnected.invoke(
+              MultiThreadedServerDisconnectedEventArgs(
+                  map['clientDisconnected'] as int,
+                  map['reason'] as DisconnectReason));
         }
 
         if (map.containsKey('debug')) {
-          return RiptideLogger.logWithLogName(LogType.debug, logName, map['debug'] as String);
+          return RiptideLogger.logWithLogName(
+              LogType.debug, logName, map['debug'] as String);
         }
         if (map.containsKey('info')) {
-          return RiptideLogger.logWithLogName(LogType.info, logName, map['info'] as String);
+          return RiptideLogger.logWithLogName(
+              LogType.info, logName, map['info'] as String);
         }
         if (map.containsKey('warning')) {
-          return RiptideLogger.logWithLogName(LogType.warning, logName, map['warning'] as String);
+          return RiptideLogger.logWithLogName(
+              LogType.warning, logName, map['warning'] as String);
         }
         if (map.containsKey('error')) {
-          return RiptideLogger.logWithLogName(LogType.error, logName, map['error'] as String);
+          return RiptideLogger.logWithLogName(
+              LogType.error, logName, map['error'] as String);
         }
 
         // received message data
@@ -194,7 +222,8 @@ class MultiThreadedServer {
         if (_messageHandlers.containsKey(messageId)) {
           _messageHandlers[messageId]!(connectionId, message);
         } else {
-          RiptideLogger.logWithLogName(LogType.warning, logName, "No message handler method found for message ID $messageId!");
+          RiptideLogger.logWithLogName(LogType.warning, logName,
+              "No message handler method found for message ID $messageId!");
         }
       }
     });
@@ -222,10 +251,12 @@ class MultiThreadedClient {
   Event<DisconnectedEventArgs> disconnected = Event<DisconnectedEventArgs>();
 
   /// Invoked when another non-localclient connects.
-  Event<ClientConnectedEventArgs> clientConnected = Event<ClientConnectedEventArgs>();
+  Event<ClientConnectedEventArgs> clientConnected =
+      Event<ClientConnectedEventArgs>();
 
   /// Invoked when another non-local client disconnects.
-  Event<ClientDisconnectedEventArgs> clientDisconnected = Event<ClientDisconnectedEventArgs>();
+  Event<ClientDisconnectedEventArgs> clientDisconnected =
+      Event<ClientDisconnectedEventArgs>();
 
   /// The underlying transport's client that is used for sending and receiving data.
   late MultiThreadedTransportType _transportType;
@@ -237,7 +268,9 @@ class MultiThreadedClient {
   ///
   /// [transportType] : The [MultiThreadedTransportType] to use for sending and receiving data.
   /// [logName] : The name to use when logging messages via RiptideLogger.
-  MultiThreadedClient({MultiThreadedTransportType? transportType, this.logName = "MULTI_THREADED_CLIENT"}) {
+  MultiThreadedClient(
+      {MultiThreadedTransportType? transportType,
+      this.logName = "MULTI_THREADED_CLIENT"}) {
     // NOTE: The transportType enum is used by design, as later on it has to be parsed to a string and passed to the isolate.
     // Using the IClient class wouldn't allow for easy String parsing.
     _transportType = transportType ?? MultiThreadedTransportType.udp;
@@ -251,8 +284,10 @@ class MultiThreadedClient {
   /// [loggingEnabled] : If true the Riptider logger is initialized on the isolate.
   ///
   /// Returns true if a connection attempt will be made. False if an issue occurred and a connection attempt will not be made.
-  Future<void> connect(InternetAddress hostAddress, int port, {int maxConnectionAttempts = 5, bool loggingEnabled = false}) async {
-    _sendPort = await _multiThreadedClient(_transportType, hostAddress, port, maxConnectionAttempts, loggingEnabled);
+  Future<void> connect(InternetAddress hostAddress, int port,
+      {int maxConnectionAttempts = 5, bool loggingEnabled = false}) async {
+    _sendPort = await _multiThreadedClient(_transportType, hostAddress, port,
+        maxConnectionAttempts, loggingEnabled);
   }
 
   /// Disconnects from the client from the server and directly closes the isolate.
@@ -268,7 +303,8 @@ class MultiThreadedClient {
   }
 
   /// Registers a callback handler for a specifc [messageID] when messages with this particular id are received.
-  void registerMessageHandler(int messageID, Function(Message message) callback) {
+  void registerMessageHandler(
+      int messageID, Function(Message message) callback) {
     _messageHandlers[messageID] = callback;
   }
 
@@ -279,7 +315,11 @@ class MultiThreadedClient {
 
   /// Internal function to start the riptide client isolate in a different thread.
   Future<SendPort> _multiThreadedClient(
-      MultiThreadedTransportType transportType, InternetAddress hostAddress, int port, int maxConnectionAttempts, bool loggingEnabled) async {
+      MultiThreadedTransportType transportType,
+      InternetAddress hostAddress,
+      int port,
+      int maxConnectionAttempts,
+      bool loggingEnabled) async {
     Completer<SendPort> completer = Completer<SendPort>();
     ReceivePort receivePort = ReceivePort();
 
@@ -299,13 +339,17 @@ class MultiThreadedClient {
         );
       }
 
-      MultiThreadedTransportType transportType = MultiThreadedTransportType.values[map['transportType'] as int];
+      MultiThreadedTransportType transportType =
+          MultiThreadedTransportType.values[map['transportType'] as int];
 
       // actual riptide code
-      IClient transport = transportType == MultiThreadedTransportType.udp ? UdpClient() : TcpClient();
+      IClient transport = transportType == MultiThreadedTransportType.udp
+          ? UdpClient()
+          : TcpClient();
       Client client = Client(transport: transport);
       client.connect(map['hostAddress'] as InternetAddress, map['port'] as int,
-          maxConnectionAttempts: map['maxConnectionAttempts'] as int, useMessageHandlers: false);
+          maxConnectionAttempts: map['maxConnectionAttempts'] as int,
+          useMessageHandlers: false);
 
       // received command or message data
       receiver.listen((data) {
@@ -330,7 +374,8 @@ class MultiThreadedClient {
 
       client.connected.subscribe((_) => sendPort.send({'connected': null}));
 
-      client.connectionFailed.subscribe((_) => sendPort.send({'connectionFailed': null}));
+      client.connectionFailed
+          .subscribe((_) => sendPort.send({'connectionFailed': null}));
 
       client.disconnected.subscribe((DisconnectedEventArgs? args) {
         sendPort.send({'disconnected': args!.message, 'reason': args.reason});
@@ -376,26 +421,34 @@ class MultiThreadedClient {
           return connectionFailed.invoke(null);
         }
         if (map.containsKey('disconnected')) {
-          return disconnected.invoke(DisconnectedEventArgs(map['reason'] as DisconnectReason, map['disconnected'] as Message?));
+          return disconnected.invoke(DisconnectedEventArgs(
+              map['reason'] as DisconnectReason,
+              map['disconnected'] as Message?));
         }
         if (map.containsKey('clientConnected')) {
-          return clientConnected.invoke(ClientConnectedEventArgs(map['clientConnected'] as int));
+          return clientConnected
+              .invoke(ClientConnectedEventArgs(map['clientConnected'] as int));
         }
         if (map.containsKey('clientDisconnected')) {
-          return clientDisconnected.invoke(ClientDisconnectedEventArgs(map['clientDisconnected'] as int));
+          return clientDisconnected.invoke(
+              ClientDisconnectedEventArgs(map['clientDisconnected'] as int));
         }
 
         if (map.containsKey('debug')) {
-          return RiptideLogger.logWithLogName(LogType.debug, logName, map['debug'] as String);
+          return RiptideLogger.logWithLogName(
+              LogType.debug, logName, map['debug'] as String);
         }
         if (map.containsKey('info')) {
-          return RiptideLogger.logWithLogName(LogType.info, logName, map['info'] as String);
+          return RiptideLogger.logWithLogName(
+              LogType.info, logName, map['info'] as String);
         }
         if (map.containsKey('warning')) {
-          return RiptideLogger.logWithLogName(LogType.warning, logName, map['warning'] as String);
+          return RiptideLogger.logWithLogName(
+              LogType.warning, logName, map['warning'] as String);
         }
         if (map.containsKey('error')) {
-          return RiptideLogger.logWithLogName(LogType.error, logName, map['error'] as String);
+          return RiptideLogger.logWithLogName(
+              LogType.error, logName, map['error'] as String);
         }
 
         // received message data
@@ -405,7 +458,8 @@ class MultiThreadedClient {
         if (_messageHandlers.containsKey(messageId)) {
           _messageHandlers[messageId]!(message);
         } else {
-          RiptideLogger.logWithLogName(LogType.warning, logName, "No message handler method found for message ID $messageId!");
+          RiptideLogger.logWithLogName(LogType.warning, logName,
+              "No message handler method found for message ID $messageId!");
         }
       }
     });

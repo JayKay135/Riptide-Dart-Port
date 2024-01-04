@@ -49,7 +49,8 @@ class Bitfield {
   ///
   /// [amount] : How much to shift by.
   void shiftBy(int amount) {
-    int segmentShift = amount ~/ _segmentSize; // How many WHOLE segments we have to shift by
+    int segmentShift =
+        amount ~/ _segmentSize; // How many WHOLE segments we have to shift by
     int bitShift = amount % _segmentSize; // How many bits we have to shift by
 
     if (!_isDynamicCapacity) {

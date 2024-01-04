@@ -34,7 +34,8 @@ class InsufficientCapacityException implements Exception {
   ///
   /// [riptideMessage] : The message with insufficient remaining capacity.
   /// [reserveBits] : The number of bits which were attempted to be reserved.
-  InsufficientCapacityException.withReservedBits(this._riptideMessage, int reserveBits) {
+  InsufficientCapacityException.withReservedBits(
+      this._riptideMessage, int reserveBits) {
     errorMessage = _getErrorMessage(_riptideMessage!, reserveBits);
     _typeName = "reservation";
     _requiredBits = reserveBits;
@@ -45,8 +46,10 @@ class InsufficientCapacityException implements Exception {
   /// [errorMessage] : The message with insufficient remaining capacity.
   /// [typeName] : The name of the type which could not be added to the message.
   /// [requiredBits] : The number of available bytes required for the type to be added successfully.
-  InsufficientCapacityException.withDetails(this._riptideMessage, this._typeName, this._requiredBits) {
-    errorMessage = _getErrorMessage2(_riptideMessage!, _typeName!, _requiredBits!);
+  InsufficientCapacityException.withDetails(
+      this._riptideMessage, this._typeName, this._requiredBits) {
+    errorMessage =
+        _getErrorMessage2(_riptideMessage!, _typeName!, _requiredBits!);
   }
 
   /// Initializes a new [InsufficientCapacityException] instance and constructs an error message from the given information.
@@ -56,11 +59,16 @@ class InsufficientCapacityException implements Exception {
   /// [typeName] : The name of the array's type.
   /// [requiredBytes] : The number of available bytes required for a single element of the array to be added successfully.
   /// [totalRequiredBytes] : The number of available bytes required for the entire array to be added successfully. If left as -1, this will be set to [arrayLength] * [requiredBytes].
-  InsufficientCapacityException.withArrayDetails(this._riptideMessage, int arrayLength, String typeName, int requiredBytes, [int totalRequiredBytes = -1]) {
-    _requiredBits = totalRequiredBytes == -1 ? arrayLength * requiredBytes : totalRequiredBytes;
+  InsufficientCapacityException.withArrayDetails(
+      this._riptideMessage, int arrayLength, String typeName, int requiredBytes,
+      [int totalRequiredBytes = -1]) {
+    _requiredBits = totalRequiredBytes == -1
+        ? arrayLength * requiredBytes
+        : totalRequiredBytes;
     _typeName = "$typeName[]";
 
-    errorMessage = _getErrorMessage3(_riptideMessage!, arrayLength, _typeName!, _requiredBits!, totalRequiredBytes);
+    errorMessage = _getErrorMessage3(_riptideMessage!, arrayLength, _typeName!,
+        _requiredBits!, totalRequiredBytes);
   }
 
   /// Constructs the error message from the given information.
@@ -73,14 +81,16 @@ class InsufficientCapacityException implements Exception {
   /// Constructs the error message from the given information.
   ///
   /// Return the error message.
-  static String _getErrorMessage2(Message message, String typeName, int requiredBytes) {
+  static String _getErrorMessage2(
+      Message message, String typeName, int requiredBytes) {
     return "Cannot add a value of type '$typeName' (requires $requiredBytes ${Helper.correctForm(requiredBytes, "byte")}) to a message with ${message.unwrittenBits} ${Helper.correctForm(message.unwrittenBits, "bit")} of remaining capacity!";
   }
 
   /// Constructs the error message from the given information.
   ///
   /// Returns the error message.
-  static String _getErrorMessage3(Message message, int arrayLength, String typeName, int requiredBytes, int totalRequiredBytes) {
+  static String _getErrorMessage3(Message message, int arrayLength,
+      String typeName, int requiredBytes, int totalRequiredBytes) {
     if (totalRequiredBytes == -1) {
       totalRequiredBytes = arrayLength * requiredBytes;
     }
@@ -120,7 +130,8 @@ class NonStaticHandlerException implements Exception {
   ///
   /// [declaringType] : The type containing the handler method.
   /// [handlerMethodName] : The name of the handler method.
-  NonStaticHandlerException.withDetails(this._declaringType, this._handlerMethodName) {
+  NonStaticHandlerException.withDetails(
+      this._declaringType, this._handlerMethodName) {
     errorMessage = _getErrorMessage(_declaringType!, _handlerMethodName!);
   }
 
@@ -158,13 +169,15 @@ class InvalidHandlerSignatureException implements Exception {
   ///
   /// [errorMessage] : The error message that explains the reason for the exception.
   /// [inner] : The exception that is the cause of the current exception. If [inner] is not a null reference, the current exception is raised in a catch block that handles the inner exception.
-  InvalidHandlerSignatureException.withInner(this.errorMessage, Exception inner);
+  InvalidHandlerSignatureException.withInner(
+      this.errorMessage, Exception inner);
 
   /// Initializes a new [InvalidHandlerSignatureException] instance and constructs an error message from the given information.
   ///
   /// [declaringType] : The type containing the handler method.
   /// [handlerMethodName] : The name of the handler method.
-  InvalidHandlerSignatureException.withDetails(this._declaringType, this._handlerMethodName) {
+  InvalidHandlerSignatureException.withDetails(
+      this._declaringType, this._handlerMethodName) {
     errorMessage = _getErrorMessage(_declaringType!, _handlerMethodName!);
   }
 

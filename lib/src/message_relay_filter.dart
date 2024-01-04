@@ -75,7 +75,8 @@ class MessageRelayFilter<T extends Enum> {
   ///
   /// [size] : How big to make the filter.
   void _set(int size) {
-    _filter = List<int>.filled((size / _bitsPerInt + (size % _bitsPerInt > 0 ? 1 : 0)).toInt(), 0);
+    _filter = List<int>.filled(
+        (size / _bitsPerInt + (size % _bitsPerInt > 0 ? 1 : 0)).toInt(), 0);
   }
 
   /// Enables auto relaying for the given message ID.
@@ -85,22 +86,27 @@ class MessageRelayFilter<T extends Enum> {
     _filter[forMessageID ~/ _bitsPerInt] |= 1 << (forMessageID % _bitsPerInt);
   }
 
-  void enableRelayFromEnum(Enum forMessageID) => enableRelay(forMessageID.index);
+  void enableRelayFromEnum(Enum forMessageID) =>
+      enableRelay(forMessageID.index);
 
   /// Disables auto relaying for the given message ID.
   ///
   /// [forMessageID] : The message ID to enable relaying for.
   void disableRelay(int forMessageID) {
-    _filter[forMessageID ~/ _bitsPerInt] &= ~(1 << (forMessageID % _bitsPerInt));
+    _filter[forMessageID ~/ _bitsPerInt] &=
+        ~(1 << (forMessageID % _bitsPerInt));
   }
 
-  void disableRelayFromEnum(Enum forMessageID) => disableRelay(forMessageID.index);
+  void disableRelayFromEnum(Enum forMessageID) =>
+      disableRelay(forMessageID.index);
 
   /// Checks whether or not messages with the given ID should be relayed.
   ///
   /// [forMessageID] : The message ID to check.
   /// Returns whether or not messages with the given ID should be relayed.
   bool shouldRelay(int forMessageID) {
-    return (_filter[forMessageID ~/ _bitsPerInt] & (1 << (forMessageID % _bitsPerInt))) != 0;
+    return (_filter[forMessageID ~/ _bitsPerInt] &
+            (1 << (forMessageID % _bitsPerInt))) !=
+        0;
   }
 }

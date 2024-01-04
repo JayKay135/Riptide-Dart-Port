@@ -1,3 +1,7 @@
+## 0.1.3
+
+* Improvements for higher pub score
+
 ## 0.1.2
 
 * Improvements for higher pub score
