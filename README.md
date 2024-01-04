@@ -1,5 +1,7 @@
 # Riptide Dart Port
 
+[![pub package](https://img.shields.io/pub/v/riptide.svg)](https://pub.dev/packages/riptide)
+
 Dart port of [Riptide](https://github.com/RiptideNetworking/Riptide), a lightweight networking library from Tom Weiland.
 
 This port provides functionality for establishing connections with clients and servers using the Riptide protocol. 
@@ -12,7 +14,7 @@ This port was last tested for functionality with Riptide [Commit 933cafd](https:
 
 **NOTE:** Riptide itself is not backward compatible. This library will currently only work with Riptide version ```v2.1.2```. 
 
-The older version (pub ```0.0.3```) will still work with Riptide ```v.2.0.0```, but with limited features (e.g. missing tcp support).
+The older version (pub ```0.0.3```) will still work with Riptide ```v2.0.0```, but with limited features (e.g. missing tcp support).
 
 ## Important Notes
 
@@ -130,6 +132,8 @@ to
 MultiThreadedClient mtClient = MultiThreadedClient();
 mtClient.connect(InternetAddress("127.0.0.1"), PORT, loggingEnabled: true);
 ```
+
+---
 
 If you want to use a different transport with the multi-threaded variants, pass it as an argument in the constructor call.
 
