@@ -1474,9 +1474,10 @@ class Message {
   ///
   /// Returns the message that the [long] was added to.
   Message addLong(int value) {
-    if (unwrittenBits < Constants.longBytes * _bitsPerByte)
+    if (unwrittenBits < Constants.longBytes * _bitsPerByte) {
       throw InsufficientCapacityException.withDetails(
           this, longName, Constants.longBytes * _bitsPerByte);
+    }
 
     Converter.longToUlongBits(value, data, _writeBit);
     _writeBit += Constants.longBytes * _bitsPerByte;
@@ -1609,9 +1610,10 @@ class Message {
   /// [startIndex] : The position at which to start populating the array.
   void getLongsWithListAndAmount(int amount, Int64List intoArray,
       [int startIndex = 0]) {
-    if (startIndex + amount > intoArray.length)
+    if (startIndex + amount > intoArray.length) {
       throw ArgumentError(_arrayNotLongEnoughError(
           amount, intoArray.length, startIndex, longName));
+    }
 
     _readLongs(amount, intoArray, startIndex);
   }
@@ -1646,9 +1648,10 @@ class Message {
   /// [startIndex] : The position at which to start populating the array.
   void getULongsWithListAndAmount(int amount, Uint64List intoArray,
       [int startIndex = 0]) {
-    if (startIndex + amount > intoArray.length)
+    if (startIndex + amount > intoArray.length) {
       throw ArgumentError(_arrayNotLongEnoughError(
           amount, intoArray.length, startIndex, uLongName));
+    }
 
     _readULongs(amount, intoArray, startIndex);
   }
@@ -1771,9 +1774,10 @@ class Message {
   /// [startIndex] : The position at which to start populating the array.
   void getFloatsWithListAndAmount(int amount, Float32List intoArray,
       [int startIndex = 0]) {
-    if (startIndex + amount > intoArray.length)
+    if (startIndex + amount > intoArray.length) {
       throw ArgumentError(_arrayNotLongEnoughError(
           amount, intoArray.length, startIndex, floatName));
+    }
 
     _readFloats(amount, intoArray, startIndex);
   }

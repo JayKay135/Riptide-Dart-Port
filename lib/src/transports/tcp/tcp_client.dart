@@ -28,6 +28,9 @@ class TcpClient extends TcpPeer implements IClient {
   /// The connection to the server.
   TcpConnection? tcpConnection;
 
+  /// Client socket for sending and receiving data.
+  Socket? socket;
+
   @override
   Future<(bool connected, Connection? connection, String error)> connect(
       InternetAddress hostAddress, int port) async {

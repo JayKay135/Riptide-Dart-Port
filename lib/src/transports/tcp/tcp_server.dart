@@ -41,6 +41,9 @@ class TcpServer extends TcpPeer implements IServer {
   late InternetAddress _listenAddress;
   InternetAddress get listenAddress => _listenAddress;
 
+  /// Server socket for listening for connections or for sending and receiving data.
+  ServerSocket? serverSocket;
+
   /// Initializes the transport, binding the socket to a specific IP address.
   ///
   /// [listenAddress] : The IP address to bind the socket to.
@@ -108,7 +111,6 @@ class TcpServer extends TcpPeer implements IServer {
 
     _isRunning = false;
     serverSocket?.close();
-    socket?.close();
   }
 
   @override

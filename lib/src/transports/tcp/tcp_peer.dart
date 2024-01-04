@@ -29,9 +29,6 @@ abstract class TcpPeer extends Peer {
   /// Server socket for listening for connections or for sending and receiving data.
   ServerSocket? serverSocket;
 
-  /// Client socket for sending and receiving data.
-  Socket? socket;
-
   /// The minimum size that may be used for the socket's send and receive buffers.
   static const int minSocketBufferSize = 256 * 1024;
 
