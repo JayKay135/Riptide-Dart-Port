@@ -25,7 +25,7 @@ class TcpServer extends TcpPeer implements IServer {
   late int port;
 
   /// The maximum number of pending connections to allow at any given time.
-  int _maxPendingConnections = 5;
+  final int _maxPendingConnections = 5;
   int get maxPendingConnections => _maxPendingConnections;
 
   /// Whether or not the server is running.
@@ -35,7 +35,7 @@ class TcpServer extends TcpPeer implements IServer {
   late Map<InternetAddress, TcpConnection> _connections;
 
   /// Connections that have been closed and need to be removed from <see cref="connections"/>.
-  List<InternetAddress> _closedConnections = [];
+  final List<InternetAddress> _closedConnections = [];
 
   /// The IP address to bind the socket to.
   late InternetAddress _listenAddress;
@@ -45,7 +45,7 @@ class TcpServer extends TcpPeer implements IServer {
   ///
   /// [listenAddress] : The IP address to bind the socket to.
   /// [socketBufferSize] : How big the socket's send and receive buffers should be.
-  TcpServer({InternetAddress? listenAddress, int socketBufferSize = TcpPeer.defaultSocketBufferSize}) : super(socketBufferSize: socketBufferSize) {
+  TcpServer({InternetAddress? listenAddress, super.socketBufferSize}) {
     _listenAddress = listenAddress ?? InternetAddress.anyIPv4;
   }
 

@@ -109,7 +109,7 @@ class Bitfield {
   /// Throws a [RangeError] if [bit] is less than 1.
   void set(int bit) {
     if (bit < 1) {
-      throw RangeError("'${bit}' must be greater than zero!");
+      throw RangeError("'$bit' must be greater than zero!");
     }
 
     bit--;
@@ -133,7 +133,7 @@ class Bitfield {
     }
 
     if (bit < 1) {
-      throw RangeError("'${bit}' must be greater than zero!");
+      throw RangeError("'$bit' must be greater than zero!");
     }
 
     bit--;

@@ -17,7 +17,7 @@ class MultiThreadedServer {
   late SendPort _sendPort;
 
   /// Methods used to handle messages, accessible by their corresponding message IDs.
-  Map<int, server_ref.MessageHandler> _messageHandlers = {};
+  final Map<int, server_ref.MessageHandler> _messageHandlers = {};
 
   /// Invoked when a client connects.
   Event<MultiThreadedServerConnectedEventArgs> clientConnected = Event<MultiThreadedServerConnectedEventArgs>();
@@ -208,7 +208,7 @@ class MultiThreadedClient {
   late SendPort _sendPort;
 
   /// Methods used to handle messages, accessible by their corresponding message IDs.
-  Map<int, client_ref.MessageHandler> _messageHandlers = {};
+  final Map<int, client_ref.MessageHandler> _messageHandlers = {};
 
   /// Invoked when a connection to the server is established.
   // ignore: strict_raw_type

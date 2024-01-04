@@ -27,7 +27,7 @@ class UdpClient extends UdpPeer implements IClient {
   /// The connection to the server.
   late UdpConnection udpConnection;
 
-  UdpClient({int socketBufferSize = UdpPeer.defaultSocketBufferSize}) : super(socketBufferSize: socketBufferSize);
+  UdpClient({super.socketBufferSize});
 
   @override
   Future<(bool connected, Connection? connection, String error)> connect(InternetAddress hostAddress, int port) async {

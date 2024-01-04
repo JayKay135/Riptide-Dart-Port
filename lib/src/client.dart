@@ -80,7 +80,7 @@ class Client extends Peer {
   /// How many connection attempts to make before giving up.
   late int _maxConnectionAttempts;
 
-  Map<int, MessageHandler> _messageHandlers = {};
+  final Map<int, MessageHandler> _messageHandlers = {};
 
   /// The underlying transport's client that is used for sending and receiving data.
   late IClient _transport;
@@ -92,7 +92,7 @@ class Client extends Peer {
   ///
   /// [transport] : The transport to use for sending and receiving data.
   /// [logName] : The name to use when logging messages via RiptideLogger.
-  Client({IClient? transport, String logName = "CLIENT"}) : super(logName: logName) {
+  Client({IClient? transport, super.logName = "CLIENT"}) {
     _transport = transport ?? UdpClient();
   }
 

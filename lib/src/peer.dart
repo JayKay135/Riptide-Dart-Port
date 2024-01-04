@@ -96,11 +96,11 @@ abstract class Peer {
   Stopwatch get time => _time;
 
   /// Received messages which need to be handled.
-  Queue<MessageToHandle> _messagesToHandle = Queue<MessageToHandle>();
+  final Queue<MessageToHandle> _messagesToHandle = Queue<MessageToHandle>();
   Queue<MessageToHandle> get messageToHandle => _messagesToHandle;
 
   /// A queue of events to execute, ordered by how soon they need to be executed.
-  PriorityQueue<(DelayedEvent, int)> _eventQueue = PriorityQueue<(DelayedEvent, int)>((a, b) => b.$2.compareTo(a.$2));
+  final PriorityQueue<(DelayedEvent, int)> _eventQueue = PriorityQueue<(DelayedEvent, int)>((a, b) => b.$2.compareTo(a.$2));
   PriorityQueue<(DelayedEvent, int)> get eventQueue => _eventQueue;
 
   /// Initializes the peer.

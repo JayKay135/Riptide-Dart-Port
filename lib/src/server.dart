@@ -90,7 +90,7 @@ class Server extends Peer {
   late final List<Connection> _timedOutClients;
 
   /// Methods used to handle messages, accessible by their corresponding message IDs.
-  Map<int, MessageHandler> _messageHandlers = {};
+  final Map<int, MessageHandler> _messageHandlers = {};
 
   /// The underlying transport's server that is used for sending and receiving data.
   late IServer _transport;
@@ -102,7 +102,7 @@ class Server extends Peer {
   ///
   /// [transport] : The transport to use for sending and receiving data.
   /// [logName] : The name to use when logging messages via RiptideLogger.
-  Server({IServer? transport, String logName = "SERVER"}) : super(logName: logName) {
+  Server({IServer? transport, super.logName = "SERVER"}) {
     _transport = transport ?? UdpServer();
     _pendingConnections = [];
     _clients = {};

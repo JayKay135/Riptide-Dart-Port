@@ -35,7 +35,7 @@ class RiptideLogger {
   static bool get isErrorLoggingEnabled => logMethods.containsKey(LogType.error);
 
   /// Log methods, accessible by their LogType
-  static Map<LogType, LogMethod<String>> _logMethods = <LogType, LogMethod<String>>{};
+  static final Map<LogType, LogMethod<String>> _logMethods = <LogType, LogMethod<String>>{};
   static Map<LogType, LogMethod<String>> get logMethods => _logMethods;
 
   /// Whether or not to include timestamps when logging messages.

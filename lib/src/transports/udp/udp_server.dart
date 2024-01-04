@@ -34,7 +34,7 @@ class UdpServer extends UdpPeer implements IServer {
   ///
   /// [listenAddress] : The IP address to bind the socket to.
   /// [socketBufferSize] : How big the socket's send and receive buffers should be.
-  UdpServer({InternetAddress? listenAddress, int socketBufferSize = UdpPeer.defaultSocketBufferSize}) : super(socketBufferSize: socketBufferSize) {
+  UdpServer({InternetAddress? listenAddress, super.socketBufferSize}) {
     _listenAddress = listenAddress ?? InternetAddress.anyIPv4;
   }
 
@@ -84,7 +84,9 @@ class UdpServer extends UdpPeer implements IServer {
 
   @override
   void onDataReceived(Uint8List data, int amount, InternetAddress fromEndPoint, int port) {
-    if (MessageHeader.values[data.first] == MessageHeader.connect && !_handleConnectionAttempt(fromEndPoint, port)) {
+    if (data.first < MessageHeader.values.length &&
+        MessageHeader.values[data.first] == MessageHeader.connect &&
+        !_handleConnectionAttempt(fromEndPoint, port)) {
       return;
     }
 

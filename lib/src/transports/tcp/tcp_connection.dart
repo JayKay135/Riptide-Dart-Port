@@ -21,7 +21,7 @@ class TcpConnection extends Connection {
   late final TcpPeer _peer;
 
   /// An array to receive message size values into.
-  Uint8List _sizeBytes = Uint8List(Constants.intBytes);
+  final Uint8List _sizeBytes = Uint8List(Constants.intBytes);
 
   Queue<int> queue = Queue<int>();
 
@@ -33,8 +33,7 @@ class TcpConnection extends Connection {
   /// [socket] : The socket to use for sending and receiving.
   /// [remoteEndPoint] : The endpoint representing the other end of the connection.
   /// [peer] : The local peer this connection is associated with.
-  TcpConnection(Socket socket, InternetAddress remoteEndPoint, TcpPeer peer) {
-    this.remoteEndPoint = remoteEndPoint;
+  TcpConnection(Socket socket, this.remoteEndPoint, TcpPeer peer) {
     _socket = socket;
     _peer = peer;
 

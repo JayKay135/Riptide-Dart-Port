@@ -5,7 +5,7 @@ import '../peer.dart';
 
 /// Contains event data for when a server's transport successfully establishes a connection to a client.
 class ConnectedEventArgs {
-  late Connection _connection;
+  late final Connection _connection;
 
   /// The newly established connection.
   Connection get connection => _connection;
@@ -18,17 +18,17 @@ class ConnectedEventArgs {
 
 /// Contains event data for when a server's or client's transport receives data.
 class DataReceivedEventArgs {
-  late Uint8List _dataBuffer;
+  late final Uint8List _dataBuffer;
 
   /// An array containing the received data.
   Uint8List get dataBuffer => _dataBuffer;
 
-  late int _amount;
+  late final int _amount;
 
   /// The number of bytes that were received.
   int get amount => _amount;
 
-  late Connection _fromConnection;
+  late final Connection _fromConnection;
 
   /// The connection which the data was received from.
   Connection get fromConnection => _fromConnection;
@@ -48,7 +48,7 @@ class DisconnectedEventArgs {
   /// The closed connection.
   Connection get connection => _connection;
 
-  late DisconnectReason _reason;
+  late final DisconnectReason _reason;
 
   /// The reason for the disconnection.
   DisconnectReason get reason => _reason;

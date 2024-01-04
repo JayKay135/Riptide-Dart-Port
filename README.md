@@ -34,17 +34,6 @@ If you find a cleaner solution, do not hesitate to open up a pull request.
 
 The API is mostly identical to [Riptide](https://github.com/RiptideNetworking/Riptide).
 
-### Installation
-In your projects pubspec.yaml file add riptide under your dependencies.
-```yaml
-dependencies:
-    riptide: ^0.1.1
-```
-or run
-```bash
-dart pub add riptide
-```
-
 ## Usage
 
 ### Enable Logging
@@ -169,8 +158,8 @@ Contributions are welcome, especially if you know about low-level udp/ tcp socke
 
 ## License
 
-Distributed under the MIT license. See LICENSE.md for more information. Copyright © 2023 [VISUS](https://www.visus.uni-stuttgart.de/en/), [University of Stuttgart](https://www.uni-stuttgart.de/)
+Distributed under the MIT license. See LICENSE.md for more information. Copyright © 2024 [VISUS](https://www.visus.uni-stuttgart.de/en/), [University of Stuttgart](https://www.uni-stuttgart.de/)
 
-This project is supported by [VISUS](https://www.visus.uni-stuttgart.de/en/), University of Stuttgart
+This project is supported by [VISUS](https://www.visus.uni-stuttgart.de/en/), [University of Stuttgart](https://www.uni-stuttgart.de/)
 
 

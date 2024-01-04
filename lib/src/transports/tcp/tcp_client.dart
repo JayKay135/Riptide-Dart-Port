@@ -66,7 +66,7 @@ class TcpClient extends TcpPeer implements IClient {
     );
   }
 
-  /// <inheritdoc/>
+  @override
   void onDataReceived(int amount, TcpConnection fromConnection) {
     dataReceived.invoke(DataReceivedEventArgs(receiveBuffer, amount, fromConnection));
   }

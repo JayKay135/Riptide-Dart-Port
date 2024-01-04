@@ -21,7 +21,7 @@ class PendingMessage {
   final double _retryTimeMultiplier = 1.2;
 
   /// A pool of reusable PendingMessage instances.
-  static List<PendingMessage> _pool = [];
+  static final List<PendingMessage> _pool = [];
   List<PendingMessage> get pool => _pool;
 
   /// The [Connection] to use to send (and resend) the pending message.

@@ -120,7 +120,7 @@ class Message {
   static int instancesPerPeer = 4;
 
   /// A pool of reusable message instances.
-  static List<Message> _pool = List.generate(instancesPerPeer * 2, (index) => Message()); //, growable: false);
+  static final List<Message> _pool = List.generate(instancesPerPeer * 2, (index) => Message());
 
   static void initialize() {
     if (_initialized) {

@@ -521,7 +521,7 @@ class NotifySequencer extends Sequencer {
   /// Initializes the sequencer.
   ///
   /// [connection] : The connection this sequencer belongs to.
-  NotifySequencer(Connection connection) : super(connection);
+  NotifySequencer(super.connection);
 
   /// Inserts the notify header into the given message.
   ///
@@ -594,7 +594,7 @@ class ReliableSequencer extends Sequencer {
   /// Initializes the sequencer.
   ///
   /// [connection] : The connection this sequencer belongs to.
-  ReliableSequencer(Connection connection) : super(connection);
+  ReliableSequencer(super.connection);
 
   /// Duplicate messages are filtered out while out of order messages are handled.
   @override
