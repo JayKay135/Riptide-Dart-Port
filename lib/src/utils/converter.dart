@@ -349,9 +349,9 @@ class Converter {
   static void byteToBitsFromBytes(int value, Uint8List array, int startBit) {
     int pos = startBit ~/ bitsPerByte;
     int bit = startBit % bitsPerByte;
-    if (bit == 0)
+    if (bit == 0) {
       array[pos] = value;
-    else {
+    } else {
       array[pos] |= value << bit;
       array[pos + 1] = value >> (8 - bit);
     }
@@ -649,7 +649,7 @@ class Converter {
   /// [value] : The [long] to convert.
   /// [array] : The array to write the bytes into.
   /// [startIndex] : The position in the array at which to write the bytes.
-  static void FromLong(int value, Uint8List array, int startIndex) => fromULong(value, array, startIndex);
+  static void fromLong(int value, Uint8List array, int startIndex) => fromULong(value, array, startIndex);
 
   /// Converts a given [ulong] to bytes and writes them into the given array.
   ///
@@ -747,9 +747,9 @@ class Converter {
   static void uLongToUlongBits(int value, Uint64List array, int startBit) {
     int pos = startBit ~/ bitsPerULong;
     int bit = startBit % bitsPerULong;
-    if (bit == 0)
+    if (bit == 0) {
       array[pos] = value;
-    else {
+    } else {
       array[pos] |= value << bit;
       array[pos + 1] = value >> (bitsPerULong - bit);
     }
@@ -763,7 +763,7 @@ class Converter {
   static int longFromByteBits(Uint8List array, int startBit) => uLongFromByteBits(array, startBit);
 
   /// <inheritdoc cref="LongFromBits(byte[], int)"/>
-  static int LongFromUlongBits(Uint64List array, int startBit) => uLongFromUlongBits(array, startBit);
+  static int longFromUlongBits(Uint64List array, int startBit) => uLongFromUlongBits(array, startBit);
 
   /// Converts the 64 bits at [startBit] in [array] to a [ulong].
   ///

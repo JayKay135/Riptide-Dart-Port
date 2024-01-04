@@ -62,6 +62,7 @@ class MessageRelayFilter<T extends Enum> {
   /// [idEnum] : The enum type.
   ///
   /// Returns the appropriate filter size.
+  // ignore: avoid_shadowing_type_parameters
   int _getSizeFromEnum<T>(Type idEnum) {
     if (idEnum is! Enum) {
       throw ArgumentError("Parameter '($idEnum)' must be an enum type!");

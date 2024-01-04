@@ -15,9 +15,11 @@ class TcpClient extends TcpPeer implements IClient {
   Event<DisconnectedEventArgs> disconnected = Event<DisconnectedEventArgs>();
 
   @override
+  // ignore: strict_raw_type
   Event connected = Event();
 
   @override
+  // ignore: strict_raw_type
   Event connectionFailed = Event();
 
   @override

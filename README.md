@@ -1,6 +1,7 @@
 # Riptide Dart Port
 
 [![pub package](https://img.shields.io/pub/v/riptide.svg)](https://pub.dev/packages/riptide)
+[![package publisher](https://img.shields.io/pub/publisher/riptide.svg)](https://pub.dev/packages/riptide/publisher)
 
 Dart port of [Riptide](https://github.com/RiptideNetworking/Riptide), a lightweight networking library from Tom Weiland.
 
@@ -37,7 +38,7 @@ The API is mostly identical to [Riptide](https://github.com/RiptideNetworking/Ri
 In your projects pubspec.yaml file add riptide under your dependencies.
 ```yaml
 dependencies:
-    riptide: ^0.1.0
+    riptide: ^0.1.1
 ```
 or run
 ```bash

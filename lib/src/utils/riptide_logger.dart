@@ -35,8 +35,8 @@ class RiptideLogger {
   static bool get isErrorLoggingEnabled => logMethods.containsKey(LogType.error);
 
   /// Log methods, accessible by their LogType
-  static Map<LogType, LogMethod> _logMethods = <LogType, LogMethod>{};
-  static Map<LogType, LogMethod> get logMethods => _logMethods;
+  static Map<LogType, LogMethod<String>> _logMethods = <LogType, LogMethod<String>>{};
+  static Map<LogType, LogMethod<String>> get logMethods => _logMethods;
 
   /// Whether or not to include timestamps when logging messages.
   static late bool includeTimestamps;
@@ -49,7 +49,7 @@ class RiptideLogger {
   /// [logMethod] : The method to use when logging all types of messages.
   /// [includeTimestamps] : Whether or not to include timestamps when logging messages.
   /// [timestampFormat] : The format to use for timestamps.
-  static void initialize(LogMethod logMethod, bool includeTimestamps, {String timestampFormat = "HH:mm:ss"}) {
+  static void initialize(LogMethod<String> logMethod, bool includeTimestamps, {String timestampFormat = "HH:mm:ss"}) {
     initializeExtended(logMethod, logMethod, logMethod, logMethod, includeTimestamps, timestampFormat: timestampFormat);
   }
 
@@ -61,7 +61,8 @@ class RiptideLogger {
   /// [errorMethod] : The method to use when logging error messages. Set to null to disable error logs.
   /// [includeTimestamps] : Whether or not to include timestamps when logging messages.
   /// [timestampFormat] : The format to use for timestamps.
-  static void initializeExtended(LogMethod? debugMethod, LogMethod? infoMethod, LogMethod? warningMethod, LogMethod? errorMethod, bool includeTimestamps,
+  static void initializeExtended(
+      LogMethod<String>? debugMethod, LogMethod<String>? infoMethod, LogMethod<String>? warningMethod, LogMethod<String>? errorMethod, bool includeTimestamps,
       {String timestampFormat = "HH:mm:ss"}) {
     logMethods.clear();
 
@@ -86,7 +87,7 @@ class RiptideLogger {
   ///
   /// [logType] : The type of message to enable logging for.
   /// [logMethod] : The method to use when logging this type of message.
-  static void enableLoggingFor(LogType logType, LogMethod logMethod) {
+  static void enableLoggingFor(LogType logType, LogMethod<String> logMethod) {
     if (logMethods.containsKey(logType)) {
       logMethods[logType] = logMethod;
     } else {
@@ -105,7 +106,7 @@ class RiptideLogger {
   /// [message] : The message to log.
   static void log(LogType logType, String message) {
     if (logMethods.containsKey(logType)) {
-      LogMethod logMethod = logMethods[logType]!;
+      LogMethod<String> logMethod = logMethods[logType]!;
 
       if (includeTimestamps) {
         logMethod("[${_getTimestamp(DateTime.now())}]: $message");
@@ -122,7 +123,7 @@ class RiptideLogger {
   /// [message] : The message to log.
   static void logWithLogName(LogType logType, String logName, String message) {
     if (logMethods.containsKey(logType)) {
-      LogMethod logMethod = logMethods[logType]!;
+      LogMethod<String> logMethod = logMethods[logType]!;
 
       if (includeTimestamps) {
         logMethod("[${_getTimestamp(DateTime.now())}] ($logName): $message");

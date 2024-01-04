@@ -1,3 +1,7 @@
+## 0.1.1
+
+* Improvements for higher pub score
+
 ## 0.1.0
 
 * Update to Riptide version ```v2.1.2``` + added tcp support

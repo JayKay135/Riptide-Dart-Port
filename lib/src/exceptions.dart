@@ -58,7 +58,7 @@ class InsufficientCapacityException implements Exception {
   /// [totalRequiredBytes] : The number of available bytes required for the entire array to be added successfully. If left as -1, this will be set to [arrayLength] * [requiredBytes].
   InsufficientCapacityException.withArrayDetails(this._riptideMessage, int arrayLength, String typeName, int requiredBytes, [int totalRequiredBytes = -1]) {
     _requiredBits = totalRequiredBytes == -1 ? arrayLength * requiredBytes : totalRequiredBytes;
-    _typeName = "${typeName}[]";
+    _typeName = "$typeName[]";
 
     errorMessage = _getErrorMessage3(_riptideMessage!, arrayLength, _typeName!, _requiredBits!, totalRequiredBytes);
   }
@@ -180,7 +180,7 @@ class InvalidHandlerSignatureException implements Exception {
   }
 }
 
-/// The exception that is thrown when multiple methods with [MessageHandlerAttribute]s are set to handle messages with the same ID <i>and</i> have the same method signature.
+/// The exception that is thrown when multiple methods with MessageHandlerAttributes are set to handle messages with the same ID and have the same method signature.
 class DuplicateHandlerException implements Exception {
   late String errorMessage;
 

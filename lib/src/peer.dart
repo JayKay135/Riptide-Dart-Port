@@ -157,7 +157,7 @@ abstract class Peer {
   void handleData(DataReceivedEventArgs e) {
     var (Message message, MessageHeader header) = Message.create().initWithByte(e.dataBuffer[0], e.amount);
 
-    if (message.sendMode == MessageHeader.notify) {
+    if (message.sendMode == MessageSendMode.notify) {
       if (e.amount < Message.minNotifyBytes) {
         return;
       }

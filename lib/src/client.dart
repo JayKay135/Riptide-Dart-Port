@@ -21,6 +21,7 @@ typedef MessageHandler = void Function(Message message);
 /// A client that can connect to a Server.
 class Client extends Peer {
   /// Invoked when a connection to the server is established.
+  // ignore: strict_raw_type
   Event connected = Event();
 
   /// Invoked when a connection to the server fails to be established.

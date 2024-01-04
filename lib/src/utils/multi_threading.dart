@@ -88,10 +88,10 @@ class MultiThreadedServer {
     Isolate.spawn((Map<String, dynamic> map) {
       ReceivePort receiver = ReceivePort();
 
-      final SendPort sendPort = map['sendPort'];
+      final SendPort sendPort = map['sendPort'] as SendPort;
       sendPort.send(receiver.sendPort);
 
-      if (map['loggingEnabled']) {
+      if (map['loggingEnabled'] as bool) {
         RiptideLogger.initializeExtended(
           (debugMessage) => sendPort.send({'debug': debugMessage}),
           (infoMessage) => sendPort.send({'info': infoMessage}),
@@ -101,23 +101,23 @@ class MultiThreadedServer {
         );
       }
 
-      MultiThreadedTransportType transportType = MultiThreadedTransportType.values[map['transportType']];
+      MultiThreadedTransportType transportType = MultiThreadedTransportType.values[map['transportType'] as int];
 
       // actual riptide code
       IServer transport = transportType == MultiThreadedTransportType.udp ? UdpServer() : TcpServer();
       Server server = Server(transport: transport);
-      server.start(map['port'], map['maxClientCount'], useMessageHandlers: false);
+      server.start(map['port'] as int, map['maxClientCount'] as int, useMessageHandlers: false);
 
       // received command or message data
       receiver.listen((data) {
         // NOTE: Isolates only allow for a few data types to be passed through ports.
         // The nicest way is to use maps to send multiple objects at once.
         // Downside is that the whole api infrastructure from the Server class has to be encoded and decoded through maps.
-        Map<String, dynamic> map = data;
+        Map<String, dynamic> map = data as Map<String, dynamic>;
 
-        bool? stop = map['stop'];
-        int? id = map['id'];
-        Message? message = map['message'];
+        bool? stop = map['stop'] as bool?;
+        int? id = map['id'] as int?;
+        Message? message = map['message'] as Message?;
 
         // execute different server function based on given map content
 
@@ -163,33 +163,33 @@ class MultiThreadedServer {
       if (data is SendPort) {
         completer.complete(data);
       } else {
-        Map<String, dynamic> map = data;
+        Map<String, dynamic> map = data as Map<String, dynamic>;
 
         // distinguish between certain events from the isolate
         if (map.containsKey('clientConnected')) {
-          return clientConnected.invoke(MultiThreadedServerConnectedEventArgs(map['clientConnected']));
+          return clientConnected.invoke(MultiThreadedServerConnectedEventArgs(map['clientConnected'] as int));
         }
         if (map.containsKey('clientDisconnected')) {
-          return clientDisconnected.invoke(MultiThreadedServerDisconnectedEventArgs(map['clientDisconnected'], map['reason']));
+          return clientDisconnected.invoke(MultiThreadedServerDisconnectedEventArgs(map['clientDisconnected'] as int, map['reason'] as DisconnectReason));
         }
 
         if (map.containsKey('debug')) {
-          return RiptideLogger.logWithLogName(LogType.debug, logName, map['debug']);
+          return RiptideLogger.logWithLogName(LogType.debug, logName, map['debug'] as String);
         }
         if (map.containsKey('info')) {
-          return RiptideLogger.logWithLogName(LogType.info, logName, map['info']);
+          return RiptideLogger.logWithLogName(LogType.info, logName, map['info'] as String);
         }
         if (map.containsKey('warning')) {
-          return RiptideLogger.logWithLogName(LogType.warning, logName, map['warning']);
+          return RiptideLogger.logWithLogName(LogType.warning, logName, map['warning'] as String);
         }
         if (map.containsKey('error')) {
-          return RiptideLogger.logWithLogName(LogType.error, logName, map['error']);
+          return RiptideLogger.logWithLogName(LogType.error, logName, map['error'] as String);
         }
 
         // received message data
-        int messageId = map['messageId'];
-        int connectionId = map['connectionId'];
-        Message message = map['message'];
+        int messageId = map['messageId'] as int;
+        int connectionId = map['connectionId'] as int;
+        Message message = map['message'] as Message;
 
         if (_messageHandlers.containsKey(messageId)) {
           _messageHandlers[messageId]!(connectionId, message);
@@ -211,9 +211,11 @@ class MultiThreadedClient {
   Map<int, client_ref.MessageHandler> _messageHandlers = {};
 
   /// Invoked when a connection to the server is established.
+  // ignore: strict_raw_type
   Event connected = Event();
 
   /// Invoked when a connection to the server fails to be established.
+  // ignore: strict_raw_type
   Event connectionFailed = Event();
 
   /// Invoked when disconnected from the server.
@@ -249,7 +251,7 @@ class MultiThreadedClient {
   /// [loggingEnabled] : If true the Riptider logger is initialized on the isolate.
   ///
   /// Returns true if a connection attempt will be made. False if an issue occurred and a connection attempt will not be made.
-  Future<void> connect(InternetAddress hostAddress, int port, {int maxConnectionAttempts = 5, loggingEnabled = false}) async {
+  Future<void> connect(InternetAddress hostAddress, int port, {int maxConnectionAttempts = 5, bool loggingEnabled = false}) async {
     _sendPort = await _multiThreadedClient(_transportType, hostAddress, port, maxConnectionAttempts, loggingEnabled);
   }
 
@@ -284,10 +286,10 @@ class MultiThreadedClient {
     Isolate.spawn((Map<String, dynamic> map) {
       ReceivePort receiver = ReceivePort();
 
-      final SendPort sendPort = map['sendPort'];
+      final SendPort sendPort = map['sendPort'] as SendPort;
       sendPort.send(receiver.sendPort);
 
-      if (map['loggingEnabled']) {
+      if (map['loggingEnabled'] as bool) {
         RiptideLogger.initializeExtended(
           (debugMessage) => sendPort.send({'debug': debugMessage}),
           (infoMessage) => sendPort.send({'info': infoMessage}),
@@ -297,22 +299,23 @@ class MultiThreadedClient {
         );
       }
 
-      MultiThreadedTransportType transportType = MultiThreadedTransportType.values[map['transportType']];
+      MultiThreadedTransportType transportType = MultiThreadedTransportType.values[map['transportType'] as int];
 
       // actual riptide code
       IClient transport = transportType == MultiThreadedTransportType.udp ? UdpClient() : TcpClient();
       Client client = Client(transport: transport);
-      client.connect(map['hostAddress'], map['port'], maxConnectionAttempts: map['maxConnectionAttempts'], useMessageHandlers: false);
+      client.connect(map['hostAddress'] as InternetAddress, map['port'] as int,
+          maxConnectionAttempts: map['maxConnectionAttempts'] as int, useMessageHandlers: false);
 
       // received command or message data
       receiver.listen((data) {
         // NOTE: Isolates only allow for a few data types to be passed through ports.
         // The nicest way is to use maps to send multiple objects at once.
         // Downside is that the whole api infrastructure from the Client class has to be encoded and decoded through maps.
-        Map<String, dynamic> map = data;
+        Map<String, dynamic> map = data as Map<String, dynamic>;
 
-        bool? disconnect = map['disconnect'];
-        Message? message = map['message'];
+        bool? disconnect = map['disconnect'] as bool?;
+        Message? message = map['message'] as Message?;
 
         // execute different server function based on given map content
 
@@ -363,7 +366,7 @@ class MultiThreadedClient {
       if (data is SendPort) {
         completer.complete(data);
       } else {
-        Map<String, dynamic> map = data;
+        Map<String, dynamic> map = data as Map<String, dynamic>;
 
         // distinguish between certain events from the isolate
         if (map.containsKey('connected')) {
@@ -373,31 +376,31 @@ class MultiThreadedClient {
           return connectionFailed.invoke(null);
         }
         if (map.containsKey('disconnected')) {
-          return disconnected.invoke(DisconnectedEventArgs(map['reason'], map['disconnected']));
+          return disconnected.invoke(DisconnectedEventArgs(map['reason'] as DisconnectReason, map['disconnected'] as Message?));
         }
         if (map.containsKey('clientConnected')) {
-          return clientConnected.invoke(ClientConnectedEventArgs(map['clientConnected']));
+          return clientConnected.invoke(ClientConnectedEventArgs(map['clientConnected'] as int));
         }
         if (map.containsKey('clientDisconnected')) {
-          return clientDisconnected.invoke(ClientDisconnectedEventArgs(map['clientDisconnected']));
+          return clientDisconnected.invoke(ClientDisconnectedEventArgs(map['clientDisconnected'] as int));
         }
 
         if (map.containsKey('debug')) {
-          return RiptideLogger.logWithLogName(LogType.debug, logName, map['debug']);
+          return RiptideLogger.logWithLogName(LogType.debug, logName, map['debug'] as String);
         }
         if (map.containsKey('info')) {
-          return RiptideLogger.logWithLogName(LogType.info, logName, map['info']);
+          return RiptideLogger.logWithLogName(LogType.info, logName, map['info'] as String);
         }
         if (map.containsKey('warning')) {
-          return RiptideLogger.logWithLogName(LogType.warning, logName, map['warning']);
+          return RiptideLogger.logWithLogName(LogType.warning, logName, map['warning'] as String);
         }
         if (map.containsKey('error')) {
-          return RiptideLogger.logWithLogName(LogType.error, logName, map['error']);
+          return RiptideLogger.logWithLogName(LogType.error, logName, map['error'] as String);
         }
 
         // received message data
-        int messageId = map['messageId'];
-        Message message = map['message'];
+        int messageId = map['messageId'] as int;
+        Message message = map['message'] as Message;
 
         if (_messageHandlers.containsKey(messageId)) {
           _messageHandlers[messageId]!(message);

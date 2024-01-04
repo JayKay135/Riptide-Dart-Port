@@ -219,13 +219,15 @@ class Server extends Peer {
   /// [connection] : The connection to reject.
   /// [message] : Data that should be sent to the client being rejected. Use [Message.create] to get an empty message instance.
   void reject(Connection connection, {Message? message}) {
-    if (message != null && message.readBits != 0)
+    if (message != null && message.readBits != 0) {
       RiptideLogger.logWithLogName(LogType.error, logName, "Use the parameterless 'Message.create()' function when setting rejection data!");
+    }
 
-    if (_pendingConnections.remove(connection))
+    if (_pendingConnections.remove(connection)) {
       _reject(connection, message == null ? RejectReason.rejected : RejectReason.custom, message);
-    else
+    } else {
       RiptideLogger.logWithLogName(LogType.warning, logName, "Couldn't reject connection from $connection because no such connection was pending!");
+    }
   }
 
   /// Accepts the given pending connection.
