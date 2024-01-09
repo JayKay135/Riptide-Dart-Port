@@ -1,6 +1,6 @@
 import 'dart:typed_data';
 
-import 'package:flutter_test/flutter_test.dart';
+import 'package:test/test.dart';
 import 'package:riptide/src/utils/converter.dart';
 
 void converterTests() {
@@ -40,13 +40,11 @@ void converterTests() {
     });
 
     test('Test large positive number', () {
-      expect(Converter.zigZagEncodeLong(1234567890123456789),
-          equals(2469135780246913578));
+      expect(Converter.zigZagEncodeLong(1234567890123456789), equals(2469135780246913578));
     });
 
     test('Test large negative number', () {
-      expect(Converter.zigZagEncodeLong(-1234567890123456789),
-          equals(2469135780246913577));
+      expect(Converter.zigZagEncodeLong(-1234567890123456789), equals(2469135780246913577));
     });
   });
 
@@ -235,8 +233,7 @@ void converterTests() {
   group('setBitsFromUlongWithUlongList', () {
     test('Test with 64 bits', () {
       Uint64List array = Uint64List(1);
-      Converter.setBitsFromUlongWithUlongList(
-          9223372036854775807, 64, array, 0);
+      Converter.setBitsFromUlongWithUlongList(9223372036854775807, 64, array, 0);
       expect(array[0], equals(9223372036854775807));
     });
 
@@ -304,15 +301,13 @@ void converterTests() {
 
   group('getBitsForUlong', () {
     test('Test with 32 bits', () {
-      Uint8List array = Uint8List.fromList(
-          [255, 255, 255, 255, 255, 255, 255, 255, 0, 0, 0, 0, 0, 0, 0, 0]);
+      Uint8List array = Uint8List.fromList([255, 255, 255, 255, 255, 255, 255, 255, 0, 0, 0, 0, 0, 0, 0, 0]);
       int result = Converter.getBitsForUlong(32, array, 0);
       expect(result, equals(4294967295));
     });
 
     test('Test with 64 bits', () {
-      Uint8List array = Uint8List.fromList(
-          [255, 255, 255, 255, 255, 255, 255, 255, 0, 0, 0, 0, 0, 0, 0, 0]);
+      Uint8List array = Uint8List.fromList([255, 255, 255, 255, 255, 255, 255, 255, 0, 0, 0, 0, 0, 0, 0, 0]);
       int result = Converter.getBitsForUlong(64, array, 0);
       expect(result, equals(9223372036854775807));
     });
