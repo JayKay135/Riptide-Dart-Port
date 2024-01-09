@@ -1,6 +1,7 @@
 # Riptide Dart Port
 
 [![pub package](https://img.shields.io/pub/v/riptide.svg)](https://pub.dev/packages/riptide)
+[![pub points](https://img.shields.io/pub/points/riptide.svg)](https://pub.dev/packages/riptide)
 [![package publisher](https://img.shields.io/pub/publisher/riptide.svg)](https://pub.dev/packages/riptide/publisher)
 
 Dart port of [Riptide](https://github.com/RiptideNetworking/Riptide), a lightweight networking library from Tom Weiland.
