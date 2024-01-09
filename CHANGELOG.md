@@ -1,3 +1,7 @@
+## 0.1.7
+
+* Updated package dependencies
+
 ## 0.1.6
 
 * Switched from flutter to dart package
