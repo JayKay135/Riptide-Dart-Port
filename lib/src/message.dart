@@ -308,6 +308,7 @@ class Message {
   /// Returns the message, ready to be used for handling and the message's header type.
   (Message message, MessageHeader header) initWithByte(
       int firstByte, int contentLength) {
+    data[contentLength ~/ Constants.ulongBytes] = 0;
     data[0] = firstByte;
     MessageHeader header = MessageHeader.values[firstByte & headerBitmask];
     setHeader(header);

@@ -355,9 +355,8 @@ abstract class Connection {
       message.addBool(false);
     } else {
       message.addBool(true);
+      message.addUShort(forSeqID);
     }
-
-    message.addUShort(forSeqID);
 
     sendMessage(message);
   }

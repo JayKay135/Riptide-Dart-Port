@@ -1,3 +1,7 @@
+## 0.1.5
+
+* Implemented smaller riptide fixes
+
 ## 0.1.4
 
 * Improvements for higher pub score

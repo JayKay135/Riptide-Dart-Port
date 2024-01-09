@@ -10,6 +10,7 @@ import '../client.dart';
 import '../server.dart' as server_ref;
 import '../client.dart' as client_ref;
 
+/// The transport type for multi threaded server and clients
 enum MultiThreadedTransportType { tcp, udp }
 
 /// Intended multi threaded copy of the Server class

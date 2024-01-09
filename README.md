@@ -9,7 +9,7 @@ This port provides functionality for establishing connections with clients and s
 
 ## Compatibility
 
-This port was last tested for functionality with Riptide [Commit 933cafd](https://github.com/RiptideNetworking/Riptide/commit/933cafd6208b379eed4837f6e395e911f37a93d7), Jan 04 2024
+This port was last tested for functionality with Riptide [Commit 54ac329](https://github.com/RiptideNetworking/Riptide/commit/54ac3292a9306615e935bb87ce8831140b419c99), Jan 09 2024
 
 ---
 
