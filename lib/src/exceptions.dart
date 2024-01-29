@@ -2,6 +2,8 @@ import 'dart:core';
 
 import 'message.dart';
 import 'utils/helper.dart';
+import 'server.dart';
+import 'client.dart';
 
 /// The exception that is thrown when a [Message] does not contain enough unread bytes to add a certain value.
 class InsufficientCapacityException implements Exception {
@@ -148,7 +150,7 @@ class NonStaticHandlerException implements Exception {
   }
 }
 
-/// The exception that is thrown when a method with a [MessageHandlerAttribute] does not have an acceptable message handler method signature (either [Server.MessageHandler] or [Client.MessageHandler]).
+/// The exception that is thrown when a method with a [MessageHandlerAttribute] does not have an acceptable message handler method signature (either [Server._messageHandlers] or [Client._messageHandlers]).
 class InvalidHandlerSignatureException implements Exception {
   late String errorMessage;
 

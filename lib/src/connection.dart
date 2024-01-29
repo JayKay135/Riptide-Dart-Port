@@ -112,7 +112,7 @@ abstract class Connection {
   late ConnectionMetrics _metrics;
   ConnectionMetrics get metrics => _metrics;
 
-  /// The maximum acceptable average number of send attempts it takes to deliver a reliable message. The connection will be closed if this is exceeded more than [AvgSendAttemptsResilience] times in a row.
+  /// The maximum acceptable average number of send attempts it takes to deliver a reliable message. The connection will be closed if this is exceeded more than [avgSendAttemptsResilience] times in a row.
   late int maxAvgSendAttempts;
 
   /// How many consecutive times [maxAvgSendAttempts] can be exceeded before triggering a disconnect.
@@ -153,10 +153,10 @@ abstract class Connection {
   /// The number of consecutive times that the [maxAvgSendAttempts] threshold was exceeded.
   int _sendAttemptsViolations = 0;
 
-  ///The number of consecutive times that the [maxNotifyLoss] threshold was exceeded.
+  /// The number of consecutive times that the [maxNotifyLoss] threshold was exceeded.
   int _lossRateViolations = 0;
 
-  // late DateTime _lastHeartbeat;
+  /// The time at which the last heartbeat was received from the other end
   int _lastHeartbeat = 0;
 
   /// The ID of the last ping that was sent.
