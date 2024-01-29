@@ -10,13 +10,14 @@ This port provides functionality for establishing connections with clients and s
 
 ## Compatibility
 
-This port was last tested for functionality with Riptide [Commit 54ac329](https://github.com/RiptideNetworking/Riptide/commit/54ac3292a9306615e935bb87ce8831140b419c99), Jan 09 2024
+This port was last tested for functionality with Riptide [Commit 945e4a0](https://github.com/RiptideNetworking/Riptide/commit/945e4a045100b3e05f34cc04313cf215dd410ee9), Jan 29 2024
 
 ---
 
-**NOTE:** Riptide itself is not backward compatible. This library will currently only work with Riptide version ```v2.1.2```. 
+**NOTE:** Riptide itself is not backward compatible. This library will currently only work with Riptide version ```v2.1.2``` or ```v2.2.0```. 
 
 The older version (pub ```0.0.3```) will still work with Riptide ```v2.0.0```, but with limited features (e.g. missing tcp support).
+For more details about which pub versions correspond to what Riptide version take a look at the [changelog](CHANGELOG.md).
 
 ## Important Notes
 

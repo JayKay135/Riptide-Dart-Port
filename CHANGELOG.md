@@ -1,3 +1,7 @@
+## 0.2.0
+
+* Updated code to Riptide v2.2.0
+
 ## 0.1.7
 
 * Updated package dependencies
@@ -9,6 +13,10 @@
 ## 0.1.5
 
 * Implemented smaller riptide fixes
+
+#### :arrow_up_small: Riptide version ```v2.2.0```
+
+#### :arrow_down_small: Riptide version ```v2.1.2```
 
 ## 0.1.4
 
