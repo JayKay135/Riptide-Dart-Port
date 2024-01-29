@@ -844,6 +844,58 @@ class Message {
     return this;
   }
 
+  /// Adds a [Uint8List] to the message.
+  ///
+  /// [array] : The array to add.
+  /// [startIndex] : The position at which to start adding from the array.
+  /// [amount] : The amount of bytes to add from the startIndex of the array.
+  /// [includeLength] : Whether or not to include the [amount] in the message.
+  ///
+  /// Returns the message that the array was added to.
+  Message addBytesWithAmount(Uint8List array, int startIndex, int amount,
+      [bool includeLength = true]) {
+    if (startIndex < 0 || startIndex >= array.length) {
+      throw RangeError("$startIndex out of range of [0, ${array.length})");
+    }
+
+    if (startIndex + amount > array.length) {
+      throw ArgumentError(amount,
+          "The source array is not long enough to read $amount ${Helper.correctForm(amount, byteName)} starting at $startIndex!");
+    }
+
+    if (includeLength) {
+      addVarULong(amount);
+    }
+
+    int writeAmount = amount * _bitsPerByte;
+    if (unwrittenBits < writeAmount) {
+      throw InsufficientCapacityException.withArrayDetails(
+          this, amount, byteName, _bitsPerByte);
+    }
+
+    if (_writeBit % _bitsPerByte == 0) {
+      int bit = _writeBit % _bitsPerSegment;
+      if (bit + writeAmount > _bitsPerSegment) {
+        // Range reaches into subsequent segment(s)
+        data[(_writeBit + writeAmount) ~/ _bitsPerSegment] = 0;
+      } else if (bit == 0) {
+        // Range doesn't fill the current segment, but begins the segment
+        data[_writeBit ~/ _bitsPerSegment] = 0;
+      }
+
+      Helper.blockCopy(
+          array, startIndex, data, _writeBit ~/ _bitsPerByte, amount);
+      _writeBit += writeAmount;
+    } else {
+      for (int i = startIndex; i < startIndex + amount; i++) {
+        Converter.byteToBitsFromUlongs(array[i], data, _writeBit);
+        _writeBit += _bitsPerByte;
+      }
+    }
+
+    return this;
+  }
+
   /// Adds an [Int8List] to the message.
   ///
   /// [array] : The array to add.
