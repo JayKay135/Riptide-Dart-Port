@@ -32,8 +32,10 @@ class UdpClient extends UdpPeer implements IClient {
   @override
   Future<(bool connected, Connection? connection, String error)> connect(InternetAddress hostAddress, int port) async {
     try {
-      await openSocket(listenAddress: InternetAddress.anyIPv4, port: port + 1);
-    } catch (e) {
+      // NOTE: Like in C#, the socket is bound to an ephemeral port. As Dart has no dual mode sockets, its address family
+      // has to match that of the host address.
+      await openSocket(ipv6: hostAddress.type == InternetAddressType.IPv6);
+    } on SocketException catch (e) {
       return (false, null, e.toString());
     }
 
@@ -62,7 +64,7 @@ class UdpClient extends UdpPeer implements IClient {
 
   @override
   void onDataReceived(Uint8List data, int amount, InternetAddress fromEndPoint, int port) {
-    if (udpConnection.remoteEndPoint == fromEndPoint && !udpConnection.isNotConnected) {
+    if (udpConnection.remoteEndPoint == fromEndPoint && udpConnection.port == port && !udpConnection.isNotConnected) {
       dataReceived.invoke(DataReceivedEventArgs(data, amount, udpConnection));
     }
   }
