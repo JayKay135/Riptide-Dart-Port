@@ -8,7 +8,7 @@ import '../../peer.dart';
 import '../../utils/constants.dart';
 import '../../utils/event_handler.dart';
 
-/// Provides base send &#38; receive functionality for <see cref="TcpServer"/> and <see cref="TcpClient"/>.
+/// Provides base send &#38; receive functionality for TcpServer and TcpClient.
 abstract class TcpPeer {
   abstract Event<DisconnectedEventArgs> disconnected;
 
@@ -40,9 +40,9 @@ abstract class TcpPeer {
 
     Message.initialize();
 
-    // Need room for the entire message plus the message length (since this is TCP)
-    receiveBuffer = Uint8List(Message.maxSize + Constants.ushortBytes);
-    sendBuffer = Uint8List(Message.maxSize + Constants.ushortBytes);
+    receiveBuffer = Uint8List(Message.maxSize);
+    sendBuffer = Uint8List(Message.maxSize +
+        Constants.intBytes); // Need room for the entire message plus the message length (since this is TCP)
   }
 
   /// Handles received data.

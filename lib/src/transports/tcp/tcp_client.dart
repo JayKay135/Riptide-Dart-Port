@@ -33,14 +33,16 @@ class TcpClient extends TcpPeer implements IClient {
 
   @override
   Future<(bool connected, Connection? connection, String error)> connect(InternetAddress hostAddress, int port) async {
+    // NOTE: Unlike in C#, connecting happens asynchronously, so a failed connection attempt can be reported right away
+    // instead of letting Riptide detect that no connection was established
     try {
       socket = await Socket.connect(hostAddress, port);
-    } catch (e) {
+      socket!.setOption(SocketOption.tcpNoDelay, true);
+    } on SocketException catch (e) {
       return (false, null, e.toString());
     }
 
-    InternetAddress fromEndPoint = socket!.address;
-    TcpConnection connection = tcpConnection = TcpConnection(socket!, fromEndPoint, this);
+    TcpConnection connection = tcpConnection = TcpConnection(socket!, socket!.remoteAddress, this);
     onConnected();
 
     return (true, connection, "");
@@ -53,7 +55,7 @@ class TcpClient extends TcpPeer implements IClient {
 
   @override
   void disconnect() {
-    socket?.close();
+    tcpConnection?.close();
     tcpConnection = null;
   }
 

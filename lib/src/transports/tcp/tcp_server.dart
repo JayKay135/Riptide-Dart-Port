@@ -46,6 +46,9 @@ class TcpServer extends TcpPeer implements IServer {
   /// Server socket for listening for connections or for sending and receiving data.
   ServerSocket? serverSocket;
 
+  /// Incremented whenever the server starts or stops listening, so that pending binds can detect that they're outdated.
+  int _listenGeneration = 0;
+
   /// Initializes the transport, binding the socket to a specific IP address.
   ///
   /// [listenAddress] : The IP address to bind the socket to.
@@ -70,21 +73,39 @@ class TcpServer extends TcpPeer implements IServer {
       _stopListening();
     }
 
-    serverSocket = await ServerSocket.bind(_listenAddress, port);
+    int generation = ++_listenGeneration;
+    ServerSocket socket = await ServerSocket.bind(_listenAddress, port);
+    if (generation != _listenGeneration) {
+      socket.close(); // The server was stopped or restarted while binding
+      return;
+    }
 
-    serverSocket!.listen((Socket newSocket) {
-      (InternetAddress, int) fromEndPoint = (newSocket.remoteAddress, newSocket.remotePort);
-
-      if (!_connections.containsKey(fromEndPoint)) {
-        TcpConnection newConnection = TcpConnection(newSocket, fromEndPoint.$1, this);
-        _connections[fromEndPoint] = newConnection;
-        onConnected(newConnection);
-      } else {
-        newSocket.close();
-      }
-    });
-
+    serverSocket = socket;
+    // NOTE: Dart accepts connections asynchronously instead of in poll()
+    socket.listen(_accept, onError: (Object _) {}); // Failing to accept a connection doesn't affect other connections
     _isRunning = true;
+  }
+
+  /// Accepts a new connection.
+  ///
+  /// [acceptedSocket] : The socket of the new connection.
+  void _accept(Socket acceptedSocket) {
+    (InternetAddress, int) fromEndPoint;
+    try {
+      acceptedSocket.setOption(SocketOption.tcpNoDelay, true);
+      fromEndPoint = (acceptedSocket.remoteAddress, acceptedSocket.remotePort);
+    } on SocketException {
+      acceptedSocket.destroy(); // The connection was closed already
+      return;
+    }
+
+    if (!_connections.containsKey(fromEndPoint)) {
+      TcpConnection newConnection = TcpConnection(acceptedSocket, fromEndPoint.$1, this);
+      _connections[fromEndPoint] = newConnection;
+      onConnected(newConnection);
+    } else {
+      acceptedSocket.destroy();
+    }
   }
 
   @override
@@ -106,6 +127,8 @@ class TcpServer extends TcpPeer implements IServer {
 
   /// Stops listening for connections.
   void _stopListening() {
+    _listenGeneration++; // Also cancels binds which are still in progress
+
     if (!_isRunning) {
       return;
     }
@@ -125,6 +148,12 @@ class TcpServer extends TcpPeer implements IServer {
   @override
   void shutdown() {
     _stopListening();
+
+    // NOTE: Unlike in C#, open sockets aren't cleaned up automatically (and would keep the process alive)
+    for (TcpConnection connection in _connections.values) {
+      connection.close();
+    }
+
     _connections.clear();
   }
 
