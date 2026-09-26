@@ -469,8 +469,8 @@ class Server extends Peer {
   }
 
   @override
-  void disconnectConnection(Connection connection, DisconnectReason reason) {
-    if (connection.isConnected && connection.canQualityDisconnect) {
+  void disconnectConnection(Connection connection, DisconnectReason reason, [bool isMandatory = false]) {
+    if (isMandatory || (connection.isConnected && connection.canQualityDisconnect)) {
       _localDisconnect(connection, reason);
     }
   }

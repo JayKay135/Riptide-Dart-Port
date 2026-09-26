@@ -218,7 +218,8 @@ abstract class Peer {
   ///
   /// [connection] : The connection to disconnect.
   /// [reason] : The reason why the connection is being disconnected.
-  void disconnectConnection(Connection connection, DisconnectReason reason) {
+  /// [isMandatory] : Whether or not [Connection.canQualityDisconnect] should be able to prevent the disconnection.
+  void disconnectConnection(Connection connection, DisconnectReason reason, [bool isMandatory = false]) {
     // NOTE: Not implemented here
   }
 

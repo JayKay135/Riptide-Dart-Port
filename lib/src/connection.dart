@@ -622,7 +622,15 @@ class ReliableSequencer extends Sequencer {
               "The gap between received sequence IDs was very large ($sequenceGap)!");
         }
 
-        receivedSeqIDs.shiftBy(sequenceGap);
+        // Once bits have been discarded, messages which were never received can no longer be told apart from
+        // duplicates, so any that do arrive later would be acknowledged and then silently dropped. Reliable
+        // delivery can't be guaranteed anymore, so this disconnect isn't optional
+        if (receivedSeqIDs.shiftBy(sequenceGap)) {
+          RiptideLogger.logWithLogName(LogType.info, _connection.peer.logName,
+              "Sequence IDs received from $_connection are too far apart to guarantee reliable delivery! Disconnecting...");
+          _connection.peer.disconnectConnection(_connection, DisconnectReason.poorConnection, true);
+        }
+
         lastReceivedSeqID = sequenceID;
       } else {
         // The received sequence ID is older than the previous one (out of order message)

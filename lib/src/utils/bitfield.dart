@@ -3,6 +3,9 @@ import 'dart:math';
 
 import 'constants.dart';
 
+// ignore: unused_import
+import '../connection.dart'; // Referenced by the documentation
+
 /// Provides functionality for managing and manipulating a collection of bits.
 class Bitfield {
   /// The first 8 bits stored in the bitfield.
@@ -13,6 +16,12 @@ class Bitfield {
 
   /// The number of bits which fit into a single segment.
   final int _segmentSize = Constants.uintBytes * 8;
+
+  /// The maximum number of segments a dynamic capacity bitfield may grow to.
+  ///
+  /// This determines how far back duplicates can be filtered out, so it must comfortably exceed the number of messages
+  /// which may be sent in the time it takes a reliable message to be resent [Connection.maxSendAttempts] times.
+  static const int _maxSegments = 32;
 
   /// A mask which only keeps the bits that fit into a single segment.
   ///
@@ -54,7 +63,10 @@ class Bitfield {
   /// Shifts the bitfield by the given amount.
   ///
   /// [amount] : How much to shift by.
-  void shiftBy(int amount) {
+  ///
+  /// Returns whether or not any untrimmed bits were discarded because the bitfield is at its maximum capacity.
+  bool shiftBy(int amount) {
+    bool discardedBits = false;
     int segmentShift = amount ~/ _segmentSize; // How many WHOLE segments we have to shift by
     int bitShift = amount % _segmentSize; // How many bits we have to shift by
 
@@ -65,12 +77,18 @@ class Bitfield {
       _count += amount;
 
       if (_count > _capacity) {
-        int increaseBy = segmentShift + 1;
+        int increaseBy = min(segmentShift + 1, _maxSegments - segments.length);
         for (int i = 0; i < increaseBy; i++) {
           segments.add(0);
         }
 
         _capacity = segments.length * _segmentSize;
+        if (_count > _capacity) {
+          // Trimming stops at the oldest bit which is still unset, so anything pushed out past the maximum
+          // capacity includes at least one message that was never received
+          _count = _capacity;
+          discardedBits = true;
+        }
       }
     } else {
       _count += amount;
@@ -87,6 +105,8 @@ class Bitfield {
 
       segments[s] = shiftedBits;
     }
+
+    return discardedBits;
   }
 
   /// Checks the last bit in the bitfield, and trims it if it is set to 1.

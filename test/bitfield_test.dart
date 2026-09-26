@@ -91,6 +91,22 @@ void main() {
       expect(bitfield.segments[0], equals(0xFFFF));
     });
 
+    test('dynamic bitfields stop growing at their maximum size', () {
+      Bitfield bitfield = Bitfield();
+      bitfield.shiftBy(1); // Unset bits can't be trimmed
+      expect(bitfield.shiftBy(500), isFalse);
+      expect(bitfield.shiftBy(2000), isTrue);
+      expect(bitfield.segments.length, equals(32));
+
+      // Bits of received sequence IDs can be trimmed, so consecutively received IDs never discard any bits
+      Bitfield consecutive = Bitfield();
+      for (int i = 0; i < 5000; i++) {
+        expect(consecutive.shiftBy(1), isFalse);
+        consecutive.set(1);
+      }
+      expect(consecutive.segments.length, equals(1));
+    });
+
     test('checkAndTrimLast checks the segment containing the last bit', () {
       Bitfield bitfield = Bitfield();
       bitfield.shiftBy(40); // Grows the bitfield to 3 segments
