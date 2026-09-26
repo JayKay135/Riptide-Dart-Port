@@ -33,8 +33,7 @@ abstract class TcpPeer extends Peer {
   /// [socketBufferSize] : How big the socket's send and receive buffers should be.
   TcpPeer({int socketBufferSize = defaultSocketBufferSize}) {
     if (socketBufferSize < minSocketBufferSize) {
-      throw RangeError(
-          "The minimum socket buffer size is $minSocketBufferSize!");
+      throw RangeError("The minimum socket buffer size is $minSocketBufferSize!");
     }
 
     _socketBufferSize = socketBufferSize;

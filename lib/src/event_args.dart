@@ -73,8 +73,7 @@ class MultiThreadedServerDisconnectedEventArgs extends EventArgs {
   /// Initializes event data.
   ///
   /// [clientID] : The newly connected clients ID.
-  MultiThreadedServerDisconnectedEventArgs(
-      this.clientID, this.disconnectReason);
+  MultiThreadedServerDisconnectedEventArgs(this.clientID, this.disconnectReason);
 }
 
 /// Contains event data for when a message is received.
@@ -96,8 +95,7 @@ class MessageReceivedEventArgs extends EventArgs {
   /// [fromConnection] : The connection from which the message was received.
   /// [messageID] : The ID of the message.
   /// [message] : The received message.
-  MessageReceivedEventArgs(
-      Connection fromConnection, int messageID, Message message) {
+  MessageReceivedEventArgs(Connection fromConnection, int messageID, Message message) {
     _fromConnection = fromConnection;
     _messageID = messageID;
     _message = message;

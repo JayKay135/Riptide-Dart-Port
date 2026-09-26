@@ -83,8 +83,7 @@ class UdpServer extends UdpPeer implements IServer {
   }
 
   @override
-  void onDataReceived(
-      Uint8List data, int amount, InternetAddress fromEndPoint, int port) {
+  void onDataReceived(Uint8List data, int amount, InternetAddress fromEndPoint, int port) {
     if (data.first < MessageHeader.values.length &&
         MessageHeader.values[data.first] == MessageHeader.connect &&
         !_handleConnectionAttempt(fromEndPoint, port)) {

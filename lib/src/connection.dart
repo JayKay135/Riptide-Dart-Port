@@ -69,8 +69,7 @@ abstract class Connection {
   ///
   /// -1 if not calculated yet.
   set rtt(int value) {
-    _smoothRtt =
-        _rtt < 0 ? value : max(1, (_smoothRtt * .7 + value * .3).toInt());
+    _smoothRtt = _rtt < 0 ? value : max(1, (_smoothRtt * .7 + value * .3).toInt());
     _rtt = value;
   }
 
@@ -131,12 +130,10 @@ abstract class Connection {
   late Peer peer;
 
   /// Whether or not the connection has timed out.
-  bool get hasTimedOut =>
-      _canTimeout && peer.currentTime - _lastHeartbeat > timeoutTime;
+  bool get hasTimedOut => _canTimeout && peer.currentTime - _lastHeartbeat > timeoutTime;
 
   /// Whether or not the connection attempt has timed out. Uses a multiple of timeoutTime and ignores the value of canTimeout.
-  bool get hasConnectAttemptTimedOut =>
-      peer.currentTime - _lastHeartbeat > peer.connectTimeoutTime;
+  bool get hasConnectAttemptTimedOut => peer.currentTime - _lastHeartbeat > peer.connectTimeoutTime;
 
   /// The sequencer for notify messages.
   late NotifySequencer _notify;
@@ -215,20 +212,17 @@ abstract class Connection {
     if (message.sendMode == MessageSendMode.notify) {
       sequenceID = _notify.insertHeader(message);
       int byteAmount = message.bytesInUse;
-      Helper.blockCopyReversed(
-          message.data, 0, Message.byteBuffer, 0, byteAmount);
+      Helper.blockCopyReversed(message.data, 0, Message.byteBuffer, 0, byteAmount);
       send(Message.byteBuffer.buffer.asUint8List(), byteAmount);
       _metrics.sentNotify(byteAmount);
     } else if (message.sendMode == MessageSendMode.unreliable) {
       int byteAmount = message.bytesInUse;
-      Helper.blockCopyReversed(
-          message.data, 0, Message.byteBuffer, 0, byteAmount);
+      Helper.blockCopyReversed(message.data, 0, Message.byteBuffer, 0, byteAmount);
       send(Message.byteBuffer.buffer.asUint8List(), byteAmount);
       _metrics.sentUnreliable(byteAmount);
     } else {
       sequenceID = _reliable.nextSequenceID;
-      PendingMessage pendingMessage =
-          PendingMessage.create(sequenceID, message, this);
+      PendingMessage pendingMessage = PendingMessage.create(sequenceID, message, this);
       pendingMessages[sequenceID] = pendingMessage;
       pendingMessage.trySend();
       _metrics.reliableUniques++;
@@ -253,15 +247,12 @@ abstract class Connection {
   /// [amount] : The number of bytes that were received.
   /// [message] : The message instance to use.
   void processNotify(Uint8List dataBuffer, int amount, Message message) {
-    _notify.updateReceivedAcks(
-        Converter.uShortFromByteBits(dataBuffer, Message.headerBits),
+    _notify.updateReceivedAcks(Converter.uShortFromByteBits(dataBuffer, Message.headerBits),
         Converter.byteFromByteBits(dataBuffer, Message.headerBits + 16));
 
     _metrics.receivedNotify(amount);
-    if (_notify.shouldHandle(
-        Converter.uShortFromByteBits(dataBuffer, Message.headerBits + 24))) {
-      Helper.blockCopy(
-          dataBuffer, 1, message.data, 1, amount - 1); // Copy payload
+    if (_notify.shouldHandle(Converter.uShortFromByteBits(dataBuffer, Message.headerBits + 24))) {
+      Helper.blockCopy(dataBuffer, 1, message.data, 1, amount - 1); // Copy payload
       notifyReceived?.invoke(message);
     } else {
       _metrics.notifyDiscarded++;
@@ -367,8 +358,7 @@ abstract class Connection {
   void handleAck(Message message) {
     int remoteLastReceivedSeqID = message.getUShort();
     int remoteAcksBitField = message.getUShort();
-    int ackedSeqID =
-        message.getBool() ? message.getUShort() : remoteLastReceivedSeqID;
+    int ackedSeqID = message.getBool() ? message.getUShort() : remoteLastReceivedSeqID;
 
     clearMessage(ackedSeqID);
     _reliable.updateReceivedAcks(remoteLastReceivedSeqID, remoteAcksBitField);
@@ -392,8 +382,7 @@ abstract class Connection {
 
     int id = message.getUShort();
     if (this.id != id) {
-      RiptideLogger.logWithLogName(LogType.error, peer.logName,
-          "client has assumed ID $id instead of ${this.id}!");
+      RiptideLogger.logWithLogName(LogType.error, peer.logName, "client has assumed ID $id instead of ${this.id}!");
     }
 
     _state = ConnectionState.connected;
@@ -524,8 +513,7 @@ abstract class Sequencer {
   ///
   /// [remoteLastReceivedSeqID] : The latest sequence ID that the other end has received.
   /// [remoteReceivedSeqIDs] : Sequence IDs which the other end has (or has not) received.
-  void updateReceivedAcks(
-      int remoteLastReceivedSeqID, int remoteReceivedSeqIDs);
+  void updateReceivedAcks(int remoteLastReceivedSeqID, int remoteReceivedSeqIDs);
 }
 
 /// Provides functionality for filtering out duplicate messages and determining delivery/loss status.
@@ -570,10 +558,8 @@ class NotifySequencer extends Sequencer {
   }
 
   @override
-  void updateReceivedAcks(
-      int remoteLastReceivedSeqID, int remoteReceivedSeqIDs) {
-    int sequenceGap =
-        Helper.getSequenceGap(remoteLastReceivedSeqID, lastAckedSeqID);
+  void updateReceivedAcks(int remoteLastReceivedSeqID, int remoteReceivedSeqIDs) {
+    int sequenceGap = Helper.getSequenceGap(remoteLastReceivedSeqID, lastAckedSeqID);
 
     if (sequenceGap > 0) {
       if (sequenceGap > 1) {
@@ -623,9 +609,7 @@ class ReliableSequencer extends Sequencer {
       if (sequenceGap > 0) {
         // The received sequence ID is newer than the previous one
         if (sequenceGap > 64) {
-          RiptideLogger.logWithLogName(
-              LogType.warning,
-              _connection.peer.logName,
+          RiptideLogger.logWithLogName(LogType.warning, _connection.peer.logName,
               "The gap between received sequence IDs was very large ($sequenceGap)!");
         }
 
@@ -649,26 +633,20 @@ class ReliableSequencer extends Sequencer {
   /// [remoteLastReceivedSeqID] : The latest sequence ID that the other end has received.
   /// [remoteReceivedSeqIDs] : Sequence IDs which the other end has (or has not) received.
   @override
-  void updateReceivedAcks(
-      int remoteLastReceivedSeqID, int remoteReceivedSeqIDs) {
-    int sequenceGap =
-        Helper.getSequenceGap(remoteLastReceivedSeqID, lastAckedSeqID);
+  void updateReceivedAcks(int remoteLastReceivedSeqID, int remoteReceivedSeqIDs) {
+    int sequenceGap = Helper.getSequenceGap(remoteLastReceivedSeqID, lastAckedSeqID);
 
     if (sequenceGap > 0) {
       // The latest sequence ID that the other end has received is newer than the previous one
-      var (bool hasCapacity, int overflow) =
-          ackedSeqIDs.hasCapacityFor(sequenceGap);
+      var (bool hasCapacity, int overflow) = ackedSeqIDs.hasCapacityFor(sequenceGap);
       if (!hasCapacity) {
         for (int i = 0; i < overflow; i++) {
           // Resend those messages which haven't been acked and whose sequence IDs are about to be pushed out of the bitfield
-          var (bool isSet, int checkedPosition) =
-              ackedSeqIDs.checkAndTrimLast();
+          var (bool isSet, int checkedPosition) = ackedSeqIDs.checkAndTrimLast();
           if (!isSet) {
-            _connection._resendMessage(
-                Helper.toUShort(lastAckedSeqID - checkedPosition));
+            _connection._resendMessage(Helper.toUShort(lastAckedSeqID - checkedPosition));
           } else {
-            _connection.clearMessage(
-                Helper.toUShort(lastAckedSeqID - checkedPosition));
+            _connection.clearMessage(Helper.toUShort(lastAckedSeqID - checkedPosition));
           }
         }
       }
@@ -678,15 +656,13 @@ class ReliableSequencer extends Sequencer {
 
       for (int i = 0; i < 16; i++) {
         // Clear any messages that have been newly acknowledged
-        if (!ackedSeqIDs.isSet(i + 1) &&
-            (remoteReceivedSeqIDs & (1 << i)) != 0) {
+        if (!ackedSeqIDs.isSet(i + 1) && (remoteReceivedSeqIDs & (1 << i)) != 0) {
           _connection.clearMessage(Helper.toUShort(lastAckedSeqID - (i + 1)));
         }
       }
 
       ackedSeqIDs.combine(remoteReceivedSeqIDs);
-      ackedSeqIDs.set(
-          sequenceGap); // Ensure that the bit corresponding to the previous ack is set
+      ackedSeqIDs.set(sequenceGap); // Ensure that the bit corresponding to the previous ack is set
       _connection.clearMessage(remoteLastReceivedSeqID);
     } else if (sequenceGap < 0) {
       // The latest sequence ID that the other end has received is older than the previous one (out of order ack)

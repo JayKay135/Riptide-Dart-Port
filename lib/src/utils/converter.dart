@@ -57,11 +57,9 @@ class Converter {
   /// [amount] : The number of bits to write.
   /// [array] : The array to write the bits into.
   /// [startBit] : The bit position in the array at which to start writing.
-  static void setBitsFromByte(
-      int bitfield, int amount, Uint8List array, int startBit) {
+  static void setBitsFromByte(int bitfield, int amount, Uint8List array, int startBit) {
     int mask = ((1 << amount) - 1);
-    bitfield &=
-        mask; // Discard any bits that are set beyond the ones we're setting
+    bitfield &= mask; // Discard any bits that are set beyond the ones we're setting
     int inverseMask = ~mask;
     int pos = startBit ~/ bitsPerByte;
     int bit = startBit % bitsPerByte;
@@ -69,8 +67,7 @@ class Converter {
       array[pos] = bitfield | (array[pos] & inverseMask);
     } else {
       array[pos] = (bitfield << bit) | (array[pos] & ~(mask << bit));
-      array[pos + 1] = (bitfield >> (8 - bit)) |
-          (array[pos + 1] & (inverseMask >> (8 - bit)));
+      array[pos + 1] = (bitfield >> (8 - bit)) | (array[pos + 1] & (inverseMask >> (8 - bit)));
     }
     // int startByte = startBit ~/ 8;
     // int offset = startBit % 8;
@@ -85,11 +82,9 @@ class Converter {
   /// [amount] : The number of bits to write.
   /// [array] : The array to write the bits into.
   /// [startBit] : The bit position in the array at which to start writing.
-  static void setBitsFromUshort(
-      int bitfield, int amount, Uint8List array, int startBit) {
+  static void setBitsFromUshort(int bitfield, int amount, Uint8List array, int startBit) {
     int mask = ((1 << amount) - 1);
-    bitfield &=
-        mask; // Discard any bits that are set beyond the ones we're setting
+    bitfield &= mask; // Discard any bits that are set beyond the ones we're setting
     int inverseMask = ~mask;
     int pos = startBit ~/ bitsPerByte;
     int bit = startBit % bitsPerByte;
@@ -123,35 +118,27 @@ class Converter {
   /// [amount] : The number of bits to write.
   /// [array] : The array to write the bits into.
   /// [startBit] : The bit position in the array at which to start writing.
-  static void setBitsFromUint(
-      int bitfield, int amount, Uint8List array, int startBit) {
-    int mask = (1 << (amount - 1) << 1) -
-        1; // Perform 2 shifts, doing it in 1 doesn't cause the value to wrap properly
-    bitfield &=
-        mask; // Discard any bits that are set beyond the ones we're setting
+  static void setBitsFromUint(int bitfield, int amount, Uint8List array, int startBit) {
+    int mask = (1 << (amount - 1) << 1) - 1; // Perform 2 shifts, doing it in 1 doesn't cause the value to wrap properly
+    bitfield &= mask; // Discard any bits that are set beyond the ones we're setting
     int inverseMask = ~mask;
     int pos = startBit ~/ bitsPerByte;
     int bit = startBit % bitsPerByte;
     if (bit == 0) {
       array[pos] = bitfield | (array[pos] & inverseMask);
       array[pos + 1] = (bitfield >> 8) | (array[pos + 1] & (inverseMask >> 8));
-      array[pos + 2] =
-          (bitfield >> 16) | (array[pos + 2] & (inverseMask >> 16));
-      array[pos + 3] =
-          (bitfield >> 24) | (array[pos + 3] & (inverseMask >> 24));
+      array[pos + 2] = (bitfield >> 16) | (array[pos + 2] & (inverseMask >> 16));
+      array[pos + 3] = (bitfield >> 24) | (array[pos + 3] & (inverseMask >> 24));
     } else {
       array[pos] = (bitfield << bit) | (array[pos] & ~(mask << bit));
       bitfield >>= 8 - bit;
       inverseMask >>= 8 - bit;
       array[pos + 1] = bitfield | (array[pos + 1] & inverseMask);
       array[pos + 2] = (bitfield >> 8) | (array[pos + 2] & (inverseMask >> 8));
-      array[pos + 3] =
-          (bitfield >> 16) | (array[pos + 3] & (inverseMask >> 16));
+      array[pos + 3] = (bitfield >> 16) | (array[pos + 3] & (inverseMask >> 16));
       array[pos + 4] = (bitfield >> 24) |
           (array[pos + 4] &
-              ~(mask >>
-                  (32 -
-                      bit))); // This one can't use inverseMask because it would have incorrectly zeroed bits
+              ~(mask >> (32 - bit))); // This one can't use inverseMask because it would have incorrectly zeroed bits
     }
     // int startByte = startBit ~/ 8;
     // int offset = startBit % 8;
@@ -175,51 +162,35 @@ class Converter {
   /// [amount] : The number of bits to write.
   /// [array] : The array to write the bits into.
   /// [startBit] : The bit position in the array at which to start writing.
-  static void setBitsFromUlongWithByteList(
-      int bitfield, int amount, Uint8List array, int startBit) {
-    int mask = (1 << (amount - 1) << 1) -
-        1; // Perform 2 shifts, doing it in 1 doesn't cause the value to wrap properly
-    bitfield &=
-        mask; // Discard any bits that are set beyond the ones we're setting
+  static void setBitsFromUlongWithByteList(int bitfield, int amount, Uint8List array, int startBit) {
+    int mask = (1 << (amount - 1) << 1) - 1; // Perform 2 shifts, doing it in 1 doesn't cause the value to wrap properly
+    bitfield &= mask; // Discard any bits that are set beyond the ones we're setting
     int inverseMask = ~mask;
     int pos = startBit ~/ bitsPerByte;
     int bit = startBit % bitsPerByte;
     if (bit == 0) {
       array[pos] = bitfield | (array[pos] & inverseMask);
       array[pos + 1] = (bitfield >> 8) | (array[pos + 1] & (inverseMask >> 8));
-      array[pos + 2] =
-          (bitfield >> 16) | (array[pos + 2] & (inverseMask >> 16));
-      array[pos + 3] =
-          (bitfield >> 24) | (array[pos + 3] & (inverseMask >> 24));
-      array[pos + 4] =
-          (bitfield >> 32) | (array[pos + 4] & (inverseMask >> 32));
-      array[pos + 5] =
-          (bitfield >> 40) | (array[pos + 5] & (inverseMask >> 40));
-      array[pos + 6] =
-          (bitfield >> 48) | (array[pos + 6] & (inverseMask >> 48));
-      array[pos + 7] =
-          (bitfield >> 56) | (array[pos + 7] & (inverseMask >> 56));
+      array[pos + 2] = (bitfield >> 16) | (array[pos + 2] & (inverseMask >> 16));
+      array[pos + 3] = (bitfield >> 24) | (array[pos + 3] & (inverseMask >> 24));
+      array[pos + 4] = (bitfield >> 32) | (array[pos + 4] & (inverseMask >> 32));
+      array[pos + 5] = (bitfield >> 40) | (array[pos + 5] & (inverseMask >> 40));
+      array[pos + 6] = (bitfield >> 48) | (array[pos + 6] & (inverseMask >> 48));
+      array[pos + 7] = (bitfield >> 56) | (array[pos + 7] & (inverseMask >> 56));
     } else {
       array[pos] = (bitfield << bit) | (array[pos] & ~(mask << bit));
       bitfield >>= 8 - bit;
       inverseMask >>= 8 - bit;
       array[pos + 1] = bitfield | (array[pos + 1] & inverseMask);
       array[pos + 2] = (bitfield >> 8) | (array[pos + 2] & (inverseMask >> 8));
-      array[pos + 3] =
-          (bitfield >> 16) | (array[pos + 3] & (inverseMask >> 16));
-      array[pos + 4] =
-          (bitfield >> 24) | (array[pos + 4] & (inverseMask >> 24));
-      array[pos + 5] =
-          (bitfield >> 32) | (array[pos + 5] & (inverseMask >> 32));
-      array[pos + 6] =
-          (bitfield >> 40) | (array[pos + 6] & (inverseMask >> 40));
-      array[pos + 7] =
-          (bitfield >> 48) | (array[pos + 7] & (inverseMask >> 48));
+      array[pos + 3] = (bitfield >> 16) | (array[pos + 3] & (inverseMask >> 16));
+      array[pos + 4] = (bitfield >> 24) | (array[pos + 4] & (inverseMask >> 24));
+      array[pos + 5] = (bitfield >> 32) | (array[pos + 5] & (inverseMask >> 32));
+      array[pos + 6] = (bitfield >> 40) | (array[pos + 6] & (inverseMask >> 40));
+      array[pos + 7] = (bitfield >> 48) | (array[pos + 7] & (inverseMask >> 48));
       array[pos + 8] = (bitfield >> 56) |
           (array[pos + 8] &
-              ~(mask >>
-                  (64 -
-                      bit))); // This one can't use inverseMask because it would have incorrectly zeroed bits
+              ~(mask >> (64 - bit))); // This one can't use inverseMask because it would have incorrectly zeroed bits
     }
     // int startByte = startBit ~/ 8;
     // int offset = startBit % 8;
@@ -243,12 +214,9 @@ class Converter {
   /// [amount] : The number of bits to write.
   /// [array] : The array to write the bits into.
   /// [startBit] : The bit position in the array at which to start writing.
-  static void setBitsFromUlongWithUlongList(
-      int bitfield, int amount, Uint64List array, int startBit) {
-    int mask = (1 << (amount - 1) << 1) -
-        1; // Perform 2 shifts, doing it in 1 doesn't cause the value to wrap properly
-    bitfield &=
-        mask; // Discard any bits that are set beyond the ones we're setting
+  static void setBitsFromUlongWithUlongList(int bitfield, int amount, Uint64List array, int startBit) {
+    int mask = (1 << (amount - 1) << 1) - 1; // Perform 2 shifts, doing it in 1 doesn't cause the value to wrap properly
+    bitfield &= mask; // Discard any bits that are set beyond the ones we're setting
     int pos = startBit ~/ bitsPerULong;
     int bit = startBit % bitsPerULong;
 
@@ -257,8 +225,7 @@ class Converter {
     } else {
       array[pos] = (bitfield << bit) | (array[pos] & ~(mask << bit));
       if (bit + amount >= bitsPerULong) {
-        array[pos + 1] =
-            (bitfield >> (64 - bit)) | (array[pos + 1] & ~(mask >> (64 - bit)));
+        array[pos + 1] = (bitfield >> (64 - bit)) | (array[pos + 1] & ~(mask >> (64 - bit)));
       }
     }
     // int mask = ((1 << amount) - 1); // Mask to get the relevant bits from bitfield
@@ -281,8 +248,7 @@ class Converter {
   /// [startBit] : The bit position in the array at which to start reading.
   static int getBitsForByte(int amount, Uint8List array, int startBit) {
     int bitfield = byteFromByteBits(array, startBit);
-    bitfield &= (1 << amount) -
-        1; // Discard any bits that are set beyond the ones we're reading
+    bitfield &= (1 << amount) - 1; // Discard any bits that are set beyond the ones we're reading
     return bitfield;
   }
 
@@ -293,8 +259,7 @@ class Converter {
   /// [startBit] : The bit position in the array at which to start reading.
   static int getBitsForUshort(int amount, Uint8List array, int startBit) {
     int bitfield = uShortFromByteBits(array, startBit);
-    bitfield &= (1 << amount) -
-        1; // Discard any bits that are set beyond the ones we're reading
+    bitfield &= (1 << amount) - 1; // Discard any bits that are set beyond the ones we're reading
     return bitfield;
   }
 
@@ -305,8 +270,7 @@ class Converter {
   /// [startBit] : The bit position in the array at which to start reading.
   static int getBitsForUint(int amount, Uint8List array, int startBit) {
     int bitfield = uIntFromByteBits(array, startBit);
-    bitfield &= (1 << (amount - 1) << 1) -
-        1; // Discard any bits that are set beyond the ones we're reading
+    bitfield &= (1 << (amount - 1) << 1) - 1; // Discard any bits that are set beyond the ones we're reading
     return bitfield;
   }
 
@@ -317,8 +281,7 @@ class Converter {
   /// [startBit] : The bit position in the array at which to start reading.
   static int getBitsForUlong(int amount, Uint8List array, int startBit) {
     int bitfield = uLongFromByteBits(array, startBit);
-    bitfield &= (1 << (amount - 1) << 1) -
-        1; // Discard any bits that are set beyond the ones we're reading
+    bitfield &= (1 << (amount - 1) << 1) - 1; // Discard any bits that are set beyond the ones we're reading
     return bitfield;
   }
 
@@ -327,11 +290,9 @@ class Converter {
   /// [amount] : The number of bits to read.
   /// [array] : The array to read the bits from.
   /// [startBit] : The bit position in the array at which to start reading.
-  static int getBitsFromUlongforByte(
-      int amount, Uint64List array, int startBit) {
+  static int getBitsFromUlongforByte(int amount, Uint64List array, int startBit) {
     int bitfield = byteFromUlongBits(array, startBit);
-    bitfield &= (1 << amount) -
-        1; // Discard any bits that are set beyond the ones we're reading
+    bitfield &= (1 << amount) - 1; // Discard any bits that are set beyond the ones we're reading
     return bitfield;
   }
 
@@ -340,11 +301,9 @@ class Converter {
   /// [amount] : The number of bits to read.
   /// [array] : The array to read the bits from.
   /// [startBit] : The bit position in the array at which to start reading.
-  static int getBitsFromUlongForUshort(
-      int amount, Uint64List array, int startBit) {
+  static int getBitsFromUlongForUshort(int amount, Uint64List array, int startBit) {
     int bitfield = byteFromUlongBits(array, startBit);
-    bitfield &= (1 << amount) -
-        1; // Discard any bits that are set beyond the ones we're reading
+    bitfield &= (1 << amount) - 1; // Discard any bits that are set beyond the ones we're reading
     return bitfield;
   }
 
@@ -353,11 +312,9 @@ class Converter {
   /// [amount] : The number of bits to read.
   /// [array] : The array to read the bits from.
   /// [startBit] : The bit position in the array at which to start reading.
-  static int getBitsFromUlongForUint(
-      int amount, Uint64List array, int startBit) {
+  static int getBitsFromUlongForUint(int amount, Uint64List array, int startBit) {
     int bitfield = byteFromUlongBits(array, startBit);
-    bitfield &= (1 << (amount - 1) << 1) -
-        1; // Discard any bits that are set beyond the ones we're reading
+    bitfield &= (1 << (amount - 1) << 1) - 1; // Discard any bits that are set beyond the ones we're reading
     return bitfield;
   }
 
@@ -366,11 +323,9 @@ class Converter {
   /// [amount] : The number of bits to read.
   /// [array] : The array to read the bits from.
   /// [startBit] : The bit position in the array at which to start reading.
-  static int getBitsFromUlongForUlong(
-      int amount, Uint64List array, int startBit) {
+  static int getBitsFromUlongForUlong(int amount, Uint64List array, int startBit) {
     int bitfield = byteFromUlongBits(array, startBit);
-    bitfield &= (1 << (amount - 1) << 1) -
-        1; // Discard any bits that are set beyond the ones we're reading
+    bitfield &= (1 << (amount - 1) << 1) - 1; // Discard any bits that are set beyond the ones we're reading
     return bitfield;
   }
 
@@ -387,8 +342,7 @@ class Converter {
   /// [value] : The sbyte to convert.
   /// [array] : The array to write the bits into.
   /// [startBit] : The position in the array at which to write the bits.
-  static void sByteToBitsFromUlongs(
-          int value, Uint64List array, int startBit) =>
+  static void sByteToBitsFromUlongs(int value, Uint64List array, int startBit) =>
       byteToBitsFromUlongs(value, array, startBit);
 
   /// Converts [value] to 8 bits and writes them into [array] at [startBit].
@@ -420,12 +374,10 @@ class Converter {
   /// [array] : The array to convert the bits from.
   /// [startBit] : The position in the array from which to read the bits.
   /// Returns the converted [sbyte].
-  static int sByteFromByteBits(Uint8List array, int startBit) =>
-      byteFromByteBits(array, startBit);
+  static int sByteFromByteBits(Uint8List array, int startBit) => byteFromByteBits(array, startBit);
 
   /// <inheritdoc cref="SByteFromBits(byte[], int)"/>
-  static int sByteFromUlongBits(Uint64List array, int startBit) =>
-      byteFromUlongBits(array, startBit);
+  static int sByteFromUlongBits(Uint64List array, int startBit) => byteFromUlongBits(array, startBit);
 
   /// Converts the 8 bits at [startBit] in [array] to a [byte].
   ///
@@ -443,8 +395,7 @@ class Converter {
   }
 
   /// <inheritdoc cref="ByteFromBits(byte[], int)"/>
-  static int byteFromUlongBits(Uint64List array, int startBit) =>
-      fromBits(bitsPerByte, array, startBit);
+  static int byteFromUlongBits(Uint64List array, int startBit) => fromBits(bitsPerByte, array, startBit);
 
   /// Converts [value] to a bit and writes it into [array] at [startBit].
   ///
@@ -537,8 +488,7 @@ class Converter {
       uShortToBitsFromBytes(value, array, startBit);
 
   /// <inheritdoc cref="ShortToBits(short, byte[], int)"/>
-  static void shortToBitsFromUlongs(
-          int value, Uint64List array, int startBit) =>
+  static void shortToBitsFromUlongs(int value, Uint64List array, int startBit) =>
       uShortToBitsFromUlongs(value, array, startBit);
 
   /// Converts [value] to 16 bits and writes them into [array] at [startBit].
@@ -561,8 +511,7 @@ class Converter {
   }
 
   /// <inheritdoc cref="UShortToBits(ushort, byte[], int)"/>
-  static void uShortToBitsFromUlongs(
-          int value, Uint64List array, int startBit) =>
+  static void uShortToBitsFromUlongs(int value, Uint64List array, int startBit) =>
       toBits(value, Constants.ushortBytes * bitsPerByte, array, startBit);
 
   /// Converts the 16 bits at [startBit] in [array] to a [short].
@@ -570,8 +519,7 @@ class Converter {
   /// [array] : The array to convert the bits from.
   /// [startBit] : The position in the array from which to read the bits.
   /// Returns the converted [short].
-  static int shortFromByteBits(Uint8List array, int startBit) =>
-      Helper.toUShort(uShortFromByteBits(array, startBit));
+  static int shortFromByteBits(Uint8List array, int startBit) => Helper.toUShort(uShortFromByteBits(array, startBit));
 
   /// <inheritdoc cref="ShortFromBits(byte[], int)"/>
   static int shortFromUlongBits(Uint64List array, int startBit) =>
@@ -589,14 +537,12 @@ class Converter {
     if (bit == 0) return value;
 
     value >>= bit;
-    return (value | (array[pos + 2] << (16 - bit))) %
-        (pow(2, 8 * Constants.ushortBytes)).toInt();
+    return (value | (array[pos + 2] << (16 - bit))) % (pow(2, 8 * Constants.ushortBytes)).toInt();
   }
 
   /// <inheritdoc cref="UShortFromBits(byte[], int)"/>
   static int uShortFromUlongBits(Uint64List array, int startBit) =>
-      Helper.toUShort(
-          fromBits(Constants.ushortBytes * bitsPerByte, array, startBit));
+      Helper.toUShort(fromBits(Constants.ushortBytes * bitsPerByte, array, startBit));
 
   /// Converts a given int [value] to bytes and writes them to given [data].
   ///
@@ -649,12 +595,10 @@ class Converter {
   /// [value] : The [int] to convert.
   /// [array] : The array to write the bits into.
   /// [startBit] : The position in the array at which to write the bits.
-  static void intToBitsFromBytes(int value, Uint8List array, int startBit) =>
-      uIntToByteBits(value, array, startBit);
+  static void intToBitsFromBytes(int value, Uint8List array, int startBit) => uIntToByteBits(value, array, startBit);
 
   /// <inheritdoc cref="IntToBits(int, byte[], int)"/>
-  static void intToBitsFromUlong(int value, Uint64List array, int startBit) =>
-      uIntToUlongBits(value, array, startBit);
+  static void intToBitsFromUlong(int value, Uint64List array, int startBit) => uIntToUlongBits(value, array, startBit);
 
   /// Converts [value] to 32 bits and writes them into [array] at [startBit].
   ///
@@ -688,12 +632,10 @@ class Converter {
   /// [array] : The array to convert the bits from.
   /// [startBit] : The position in the array from which to read the bits.
   /// Returns the converted [int].
-  static int intFromByteBits(Uint8List array, int startBit) =>
-      uIntFromByteBits(array, startBit);
+  static int intFromByteBits(Uint8List array, int startBit) => uIntFromByteBits(array, startBit);
 
   /// <inheritdoc cref="IntFromBits(byte[], int)"/>
-  static int intFromUlongBits(Uint64List array, int startBit) =>
-      uIntFromUlongBits(array, startBit);
+  static int intFromUlongBits(Uint64List array, int startBit) => uIntFromUlongBits(array, startBit);
 
   /// Converts the 32 bits at [startBit] in [array] to a [uint].
   ///
@@ -703,10 +645,7 @@ class Converter {
   static int uIntFromByteBits(Uint8List array, int startBit) {
     int pos = startBit ~/ bitsPerByte;
     int bit = startBit % bitsPerByte;
-    int value = array[pos] |
-        (array[pos + 1] << 8) |
-        (array[pos + 2] << 16) |
-        (array[pos + 3] << 24);
+    int value = array[pos] | (array[pos + 1] << 8) | (array[pos + 2] << 16) | (array[pos + 3] << 24);
     if (bit == 0) return value;
 
     value >>= bit;
@@ -722,8 +661,7 @@ class Converter {
   /// [value] : The [long] to convert.
   /// [array] : The array to write the bytes into.
   /// [startIndex] : The position in the array at which to write the bytes.
-  static void fromLong(int value, Uint8List array, int startIndex) =>
-      fromULong(value, array, startIndex);
+  static void fromLong(int value, Uint8List array, int startIndex) => fromULong(value, array, startIndex);
 
   /// Converts a given [ulong] to bytes and writes them into the given array.
   ///
@@ -758,8 +696,7 @@ class Converter {
   /// [startIndex] : The position in the array at which to read the bytes.
   /// Returns the converted [long].
   static int toLong(Uint8List array, int startIndex) {
-    var buffer =
-        Uint8List.fromList(array.sublist(startIndex, startIndex + 8)).buffer;
+    var buffer = Uint8List.fromList(array.sublist(startIndex, startIndex + 8)).buffer;
     return Int64List.view(buffer)[0];
   }
 
@@ -769,8 +706,7 @@ class Converter {
   /// [startIndex] : The position in the array at which to read the bytes.
   /// Returns the converted [ulong].
   static int toULong(Uint8List array, int startIndex) {
-    var buffer =
-        Uint8List.fromList(array.sublist(startIndex, startIndex + 8)).buffer;
+    var buffer = Uint8List.fromList(array.sublist(startIndex, startIndex + 8)).buffer;
     return Uint64List.view(buffer)[0];
   }
 
@@ -779,12 +715,10 @@ class Converter {
   /// [value] : The [long] to convert.
   /// [array] : The array to write the bits into.
   /// [startBit] : The position in the array at which to write the bits.
-  static void longToByteBits(int value, Uint8List array, int startBit) =>
-      uLongToByteBits(value, array, startBit);
+  static void longToByteBits(int value, Uint8List array, int startBit) => uLongToByteBits(value, array, startBit);
 
   /// <inheritdoc cref="LongToBits(long, byte[], int)"/>
-  static void longToUlongBits(int value, Uint64List array, int startBit) =>
-      uLongToUlongBits(value, array, startBit);
+  static void longToUlongBits(int value, Uint64List array, int startBit) => uLongToUlongBits(value, array, startBit);
 
   /// Converts [value] to 64 bits and writes them into [array] at [startBit].
   ///
@@ -838,12 +772,10 @@ class Converter {
   /// [array] : The array to convert the bits from.
   /// [startBit] : The position in the array from which to read the bits.
   /// Returns the converted [long].
-  static int longFromByteBits(Uint8List array, int startBit) =>
-      uLongFromByteBits(array, startBit);
+  static int longFromByteBits(Uint8List array, int startBit) => uLongFromByteBits(array, startBit);
 
   /// <inheritdoc cref="LongFromBits(byte[], int)"/>
-  static int longFromUlongBits(Uint64List array, int startBit) =>
-      uLongFromUlongBits(array, startBit);
+  static int longFromUlongBits(Uint64List array, int startBit) => uLongFromUlongBits(array, startBit);
 
   /// Converts the 64 bits at [startBit] in [array] to a [ulong].
   ///
@@ -970,8 +902,7 @@ class Converter {
   /// [startIndex] : The position in the array at which to read the bytes.
   /// Returns the converted [float].
   static double toFloat(Uint8List array, int startIndex) {
-    var buffer =
-        Uint8List.fromList(array.sublist(startIndex, startIndex + 4)).buffer;
+    var buffer = Uint8List.fromList(array.sublist(startIndex, startIndex + 4)).buffer;
     return ByteData.view(buffer).getFloat32(0, endian);
   }
 

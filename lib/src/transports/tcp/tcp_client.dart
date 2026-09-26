@@ -32,8 +32,7 @@ class TcpClient extends TcpPeer implements IClient {
   Socket? socket;
 
   @override
-  Future<(bool connected, Connection? connection, String error)> connect(
-      InternetAddress hostAddress, int port) async {
+  Future<(bool connected, Connection? connection, String error)> connect(InternetAddress hostAddress, int port) async {
     try {
       socket = await Socket.connect(hostAddress, port);
     } catch (e) {
@@ -41,8 +40,7 @@ class TcpClient extends TcpPeer implements IClient {
     }
 
     InternetAddress fromEndPoint = socket!.address;
-    TcpConnection connection =
-        tcpConnection = TcpConnection(socket!, fromEndPoint, this);
+    TcpConnection connection = tcpConnection = TcpConnection(socket!, fromEndPoint, this);
     onConnected();
 
     return (true, connection, "");
@@ -73,7 +71,6 @@ class TcpClient extends TcpPeer implements IClient {
 
   @override
   void onDataReceived(int amount, TcpConnection fromConnection) {
-    dataReceived
-        .invoke(DataReceivedEventArgs(receiveBuffer, amount, fromConnection));
+    dataReceived.invoke(DataReceivedEventArgs(receiveBuffer, amount, fromConnection));
   }
 }
