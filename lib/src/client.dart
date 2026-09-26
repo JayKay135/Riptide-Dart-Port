@@ -165,18 +165,18 @@ class Client extends Peer {
 
   /// Subscribes appropriate methods to the transport's events.
   void _subToTransportEvents() {
-    _transport.connected.subscribe((args) => _transportConnected);
-    _transport.connectionFailed.subscribe((args) => _transportConnnectionFailed);
-    _transport.dataReceived.subscribe((args) => handleData(args!));
-    _transport.disconnected.subscribe((args) => _transportDisconnected(args!));
+    _transport.connected.subscribe(_transportConnected);
+    _transport.connectionFailed.subscribe(_transportConnectionFailed);
+    _transport.dataReceived.subscribe(handleData);
+    _transport.disconnected.subscribe(_transportDisconnected);
   }
 
   /// Unsubscribes methods from all of the transport's events.
   void _unsubFromTransportEvents() {
-    _transport.connected.unsubscribe((args) => _transportConnected);
-    _transport.connectionFailed.unsubscribe((args) => _transportConnnectionFailed);
-    _transport.dataReceived.unsubscribe((args) => handleData(args!));
-    _transport.disconnected.unsubscribe((args) => _transportDisconnected(args!));
+    _transport.connected.unsubscribe(_transportConnected);
+    _transport.connectionFailed.unsubscribe(_transportConnectionFailed);
+    _transport.dataReceived.unsubscribe(handleData);
+    _transport.disconnected.unsubscribe(_transportDisconnected);
   }
 
   /// Registers a callback handler for a specifc [messageID] when messages with this particular id are received.
@@ -335,16 +335,16 @@ class Client extends Peer {
   }
 
   /// What to do when the transport establishes a connection.
-  void _transportConnected(EventArgs e) {}
+  void _transportConnected(Object? e) {}
 
   /// What to do when the transport fails to connect.
-  void _transportConnnectionFailed(EventArgs e) {
+  void _transportConnectionFailed(Object? e) {
     localDisconnect(DisconnectReason.neverConnected);
   }
 
   /// What to do when the transport disconnects.
-  void _transportDisconnected(event_args.DisconnectedEventArgs e) {
-    if (_connection == e.connection) {
+  void _transportDisconnected(event_args.DisconnectedEventArgs? e) {
+    if (_connection == e!.connection) {
       localDisconnect(e.reason);
     }
   }

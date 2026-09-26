@@ -156,7 +156,11 @@ abstract class Peer {
   }
 
   /// Handles data received by the transport
-  void handleData(DataReceivedEventArgs e) {
+  ///
+  /// Subscribed to the transport's [IPeer.dataReceived] event, which is why [args] is nullable.
+  void handleData(DataReceivedEventArgs? args) {
+    DataReceivedEventArgs e = args!;
+
     // NOTE: C# can cast any header value to the MessageHeader enum and ends up discarding unknown ones when handling them,
     // whereas Dart has no enum values for them. Discard such messages right away instead.
     if ((e.dataBuffer[0] & Message.headerBitmask) >= MessageHeader.values.length) {

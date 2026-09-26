@@ -153,16 +153,16 @@ class Server extends Peer {
 
   /// Subscribes appropriate methods to the transport's events.
   void _subToTransportEvents() {
-    _transport.connected.subscribe((args) => _handleConnectionAttempt(args!));
-    _transport.dataReceived.subscribe((args) => handleData(args!));
-    _transport.disconnected.subscribe((args) => _transportDisconnected(args!));
+    _transport.connected.subscribe(_handleConnectionAttempt);
+    _transport.dataReceived.subscribe(handleData);
+    _transport.disconnected.subscribe(_transportDisconnected);
   }
 
   /// Unsubscribes methods from all of the transport's events.
   void _unsubFromTransportEvents() {
-    _transport.connected.unsubscribe((args) => _handleConnectionAttempt(args!));
-    _transport.dataReceived.unsubscribe((args) => handleData(args!));
-    _transport.disconnected.unsubscribe((args) => _transportDisconnected(args!));
+    _transport.connected.unsubscribe(_handleConnectionAttempt);
+    _transport.dataReceived.unsubscribe(handleData);
+    _transport.disconnected.unsubscribe(_transportDisconnected);
   }
 
   /// Registers a callback handler for a specifc [messageID] when messages with this particular id are received.
@@ -176,9 +176,8 @@ class Server extends Peer {
   }
 
   /// Handles an incoming connection attempt.
-  void _handleConnectionAttempt(event_args.ConnectedEventArgs e) {
-    // e.connection.peer = _transport as Peer;
-    e.connection.initialize(this, defaultTimeout);
+  void _handleConnectionAttempt(event_args.ConnectedEventArgs? e) {
+    e!.connection.initialize(this, defaultTimeout);
   }
 
   /// Handles a connect message.
@@ -498,8 +497,8 @@ class Server extends Peer {
   }
 
   /// What to do when the transport disconnects a client.
-  void _transportDisconnected(event_args.DisconnectedEventArgs e) {
-    _localDisconnect(e.connection, e.reason);
+  void _transportDisconnected(event_args.DisconnectedEventArgs? e) {
+    _localDisconnect(e!.connection, e.reason);
   }
 
   /// Stops the server.
