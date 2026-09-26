@@ -327,6 +327,25 @@ void main() {
       message.release();
     });
 
+    test('full messages can be received when the max size is a multiple of 8', () {
+      int original = Message.maxPayloadSize;
+      Message.maxPayloadSize = 1226; // Plus the 6 header bytes, this is a multiple of 8
+      expect(Message.maxSize % 8, equals(0));
+
+      // Fill the entire message (the unreliable header takes up 4 bits)
+      Message message = Message.createFromHeader(MessageHeader.unreliable);
+      message.addBytes(Uint8List(Message.maxSize - 1), false).addBitsByte(0xF, 4);
+      expect(message.bytesInUse, equals(Message.maxSize));
+
+      Message received = transmit(message);
+      expect(received.getBytesWithAmount(Message.maxSize - 1), equals(Uint8List(Message.maxSize - 1)));
+      expect(received.getBitsByte(4).$2, equals(0xF));
+
+      message.release();
+      received.release();
+      Message.maxPayloadSize = original;
+    });
+
     test('maxPayloadSize can be changed while no peers are running', () {
       int original = Message.maxPayloadSize;
       Message.maxPayloadSize = 100;

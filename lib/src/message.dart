@@ -88,6 +88,9 @@ class Message {
   /// The number of bits in each data segment.
   static const int _bitsPerSegment = Converter.bitsPerULong;
 
+  /// The value which [maxPayloadSize] starts out at.
+  static const int _defaultMaxPayloadSize = 1225;
+
   /// The maximum number of bytes that a message can contain, including the MaxHeaderSize.
   static late int _maxSize;
 
@@ -113,10 +116,7 @@ class Message {
       throw RangeError("'maxPayloadSize' cannot be negative!");
     }
 
-    _maxSize = maxHeaderSize ~/ _bitsPerByte + (maxHeaderSize % _bitsPerByte == 0 ? 0 : 1) + value;
-    _maxBitCount = _maxSize * _bitsPerByte;
-    _maxArraySize = _maxSize ~/ Constants.ulongBytes + (_maxSize % Constants.ulongBytes == 0 ? 0 : 1);
-    byteBuffer = Uint8List(_maxSize);
+    _updateSizes(value);
     _initialized = true; // Prevent initialize() from resetting the sizes
     trimPool(); // When ActiveSocketCount is 0, this clears the pool
     PendingMessage.clearPool();
@@ -144,17 +144,28 @@ class Message {
   /// NOTE: Dart lists have no capacity, so this emulates the capacity of the pool's list in C#.
   static int _poolCapacity = instancesPerPeer * 2;
 
+  /// Initializes the sizes which depend on [maxPayloadSize].
+  ///
+  /// NOTE: Replaces C#'s static constructor, which runs automatically before the class is first used.
   static void initialize() {
     if (_initialized) {
       return;
     }
 
-    _maxSize = maxHeaderSize ~/ _bitsPerByte + (maxHeaderSize % _bitsPerByte == 0 ? 0 : 1) + 1225;
-    _maxBitCount = _maxSize * _bitsPerByte;
-    _maxArraySize = _maxSize ~/ Constants.ulongBytes + (_maxSize % Constants.ulongBytes == 0 ? 0 : 1);
-    byteBuffer = Uint8List(_maxSize);
-
+    _updateSizes(_defaultMaxPayloadSize);
     _initialized = true;
+  }
+
+  /// Sets [maxSize] and everything which is derived from it.
+  ///
+  /// [maxPayloadSize] : The maximum number of bytes of payload data that a message can contain.
+  static void _updateSizes(int maxPayloadSize) {
+    _maxSize = maxHeaderSize ~/ _bitsPerByte + (maxHeaderSize % _bitsPerByte == 0 ? 0 : 1) + maxPayloadSize;
+    _maxBitCount = _maxSize * _bitsPerByte;
+    // The methods which clear a message's trailing segment index it by the position just past the end of the
+    // data, so the array's highest index must be that of the segment a full message's end position lands in
+    _maxArraySize = _maxBitCount ~/ _bitsPerSegment + 1;
+    byteBuffer = Uint8List(_maxSize);
   }
 
   /// The message's send mode.
