@@ -92,15 +92,19 @@ class Message {
   static late int _maxSize;
 
   /// Returns the maximum message size allowed
-  static int get maxSize => _maxSize;
+  static int get maxSize {
+    initialize();
+    return _maxSize;
+  }
 
   /// Returns the maximal payload size allowed for messages
-  int get maxPayloadSize => _maxSize - (maxHeaderSize ~/ _bitsPerByte + (maxHeaderSize % _bitsPerByte == 0 ? 0 : 1));
+  static int get maxPayloadSize =>
+      maxSize - (maxHeaderSize ~/ _bitsPerByte + (maxHeaderSize % _bitsPerByte == 0 ? 0 : 1));
 
   /// Sets the maximum message payload size
   ///
   /// [value] : maximal payload size
-  set maxPayloadSize(int value) {
+  static set maxPayloadSize(int value) {
     if (Peer.activeCount > 0) {
       throw Exception("Changing the 'maxPayloadSize' is not allowed while a Server or Client is running!");
     }
@@ -113,6 +117,7 @@ class Message {
     _maxBitCount = _maxSize * _bitsPerByte;
     _maxArraySize = _maxSize ~/ Constants.ulongBytes + (_maxSize % Constants.ulongBytes == 0 ? 0 : 1);
     byteBuffer = Uint8List(_maxSize);
+    _initialized = true; // Prevent initialize() from resetting the sizes
     trimPool(); // When ActiveSocketCount is 0, this clears the pool
     PendingMessage.clearPool();
   }
@@ -132,7 +137,12 @@ class Message {
   static int instancesPerPeer = 4;
 
   /// A pool of reusable message instances.
-  static final List<Message> _pool = List.generate(instancesPerPeer * 2, (index) => Message());
+  static final List<Message> _pool = <Message>[];
+
+  /// The capacity of [_pool], which limits how many released message instances are kept for reuse.
+  ///
+  /// NOTE: Dart lists have no capacity, so this emulates the capacity of the pool's list in C#.
+  static int _poolCapacity = instancesPerPeer * 2;
 
   static void initialize() {
     if (_initialized) {
@@ -246,15 +256,16 @@ class Message {
     if (Peer.activeCount == 0) {
       // No Servers or Clients are running, empty the list and reset the capacity
       _pool.clear();
-      _pool.length = instancesPerPeer *
+      _poolCapacity = instancesPerPeer *
           2; // x2 so there's some buffer room for extra Message instances in the event that more are needed
     } else {
       // Reset the pool capacity and number of Message instances in the pool to what is appropriate for how many Servers & Clients are active
       int idealInstanceAmount = Peer.activeCount * instancesPerPeer;
 
       if (_pool.length > idealInstanceAmount) {
-        _pool.removeRange(Peer.activeCount * instancesPerPeer, _pool.length - idealInstanceAmount);
-        _pool.length = idealInstanceAmount * 2;
+        // NOTE: Unlike C#'s RemoveRange(index, count), Dart's removeRange takes a start and an end index
+        _pool.removeRange(Peer.activeCount * instancesPerPeer, _pool.length);
+        _poolCapacity = idealInstanceAmount * 2;
       }
     }
   }
@@ -275,9 +286,12 @@ class Message {
 
   /// Returns the message instance to the internal pool so it can be reused.
   void release() {
-    if (!_pool.contains(this)) {
-      // Only add it if it's not already in the list, otherwise this method being called twice in a row for whatever reason could cause *serious* issues
-      _pool.add(this);
+    if (_pool.length < _poolCapacity) {
+      // Pool exists and there's room
+      if (!_pool.contains(this)) {
+        // Only add it if it's not already in the list, otherwise this method being called twice in a row for whatever reason could cause *serious* issues
+        _pool.add(this);
+      }
     }
   }
 
