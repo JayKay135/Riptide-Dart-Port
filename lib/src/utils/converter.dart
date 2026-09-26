@@ -828,19 +828,20 @@ class Converter {
   /// [array] : The array to write the bits into.
   /// [startBit] : The position in the array at which to write the bits.
   static void toBits(int value, int valueSize, Uint64List array, int startBit) {
-    final int mask = valueSize == 64 ? -1 : (1 << valueSize) - 1;
-    value &= mask;
+    // NOTE: C# receives the value zero-extended to a ulong, while Dart callers may pass negative (sign-extended) values
+    if (valueSize < bitsPerULong) {
+      value &= (1 << valueSize) - 1;
+    }
 
     int pos = startBit ~/ bitsPerULong;
     int bit = startBit % bitsPerULong;
-
-    // Clear the space for the new bits and then OR the new bits into place
-    array[pos] = (value << bit) | (array[pos] & ~(mask << bit));
-
-    if (bit + valueSize > bitsPerULong) {
-      // The value spills into the next ulong
-      // Clear the space in the next ulong and then OR the spilled bits into place
-      array[pos + 1] = (value >>> (bitsPerULong - bit)) | (array[pos + 1] & ~(mask >>> (bitsPerULong - bit)));
+    if (bit == 0) {
+      array[pos] = value;
+    } else if (bit + valueSize < bitsPerULong) {
+      array[pos] |= value << bit;
+    } else {
+      array[pos] |= value << bit;
+      array[pos + 1] = value >>> (bitsPerULong - bit);
     }
   }
 
@@ -875,30 +876,6 @@ class Converter {
     int nextValue = array[pos + 1] << (bitsPerULong - bit);
     int combined = value | nextValue;
     return combined & mask;
-    // if (pos + 1 < array.length) {
-    //   return value | (array[pos + 1] << (bitsPerULong - bit));
-    // } else {
-    //   return value;
-    // }
-
-    // int pos = startBit ~/ bitsPerULong;
-    // int bit = startBit % bitsPerULong;
-    // int value = array[pos].toUnsigned(64);
-    // if (bit == 0) {
-    //   return value;
-    // }
-
-    // value = (value >> bit).toUnsigned(64);
-    // if (bit + valueSize <= bitsPerULong) {
-    //   return value & ((1 << valueSize) - 1);
-    // }
-
-    // if (pos + 1 < array.length) {
-    //   int nextValue = (array[pos + 1] << (bitsPerULong - bit)).toUnsigned(64);
-    //   return (value | (nextValue >> (bit + valueSize - bitsPerULong))).toUnsigned(64);
-    // } else {
-    //   return value;
-    // }
   }
 
   /// Converts a given [float] to bytes and writes them into the given array.
