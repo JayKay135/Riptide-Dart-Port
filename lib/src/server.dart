@@ -203,7 +203,16 @@ class Server extends Peer {
         _pendingConnections.add(connection);
         sendWithConnection(Message.createFromHeader(MessageHeader.connect),
             connection); // Inform the client we've received the connection attempt
-        handleConnection!(connection, connectMessage); // Externally determines whether to accept
+
+        try {
+          handleConnection!(connection, connectMessage); // Externally determines whether to accept
+        } catch (e, stackTrace) {
+          RiptideLogger.logException(
+              logName,
+              "An exception was thrown while handling a connection attempt from $connection, so it was neither accepted nor rejected and will be left to time out!",
+              e,
+              stackTrace);
+        }
       } else {
         _reject(connection, RejectReason.alreadyConnected);
       }
@@ -313,13 +322,13 @@ class Server extends Peer {
       }
     }
 
+    executeLater(heartbeatInterval, HeartbeatEvent(this));
+
     for (Connection connection in _timedOutClients) {
       _localDisconnect(connection, DisconnectReason.timedOut);
     }
 
     _timedOutClients.clear();
-
-    executeLater(heartbeatInterval, HeartbeatEvent(this));
   }
 
   @override
@@ -491,13 +500,15 @@ class Server extends Peer {
       _availableClientIds.add(client.id);
     }
 
-    if (client.isConnected) {
+    bool wasConnected = client.isConnected;
+    bool wasPending = client.isPending;
+    client.localDisconnect(); // Disconnect before invoking events so connection state is not half disconnected
+
+    if (wasConnected) {
       onClientDisconnected(client, reason); // Only run if the client was ever actually connected
-    } else if (client.isPending) {
+    } else if (wasPending) {
       onConnectionFailed(client);
     }
-
-    client.localDisconnect();
   }
 
   /// What to do when the transport disconnects a client.
@@ -602,7 +613,12 @@ class Server extends Peer {
   void onClientConnected(Connection client) {
     RiptideLogger.logWithLogName(LogType.info, logName, "Client ${client.id} ($client) connected successfully!");
     _sendClientConnected(client);
-    clientConnected.invoke(ServerConnectedEventArgs(client));
+
+    try {
+      clientConnected.invoke(ServerConnectedEventArgs(client));
+    } catch (e, stackTrace) {
+      RiptideLogger.logEventException(logName, 'clientConnected', e, stackTrace);
+    }
   }
 
   /// Invokes the [connectionFailed] event.
@@ -611,7 +627,12 @@ class Server extends Peer {
   void onConnectionFailed(Connection connection) {
     RiptideLogger.logWithLogName(
         LogType.info, logName, "Client $connection stopped responding before the connection was fully established!");
-    connectionFailed.invoke(ServerConnectionFailedEventArgs(connection));
+
+    try {
+      connectionFailed.invoke(ServerConnectionFailedEventArgs(connection));
+    } catch (e, stackTrace) {
+      RiptideLogger.logEventException(logName, 'connectionFailed', e, stackTrace);
+    }
   }
 
   /// Invokes the MessageReceived event and initiates handling of the received message.
@@ -626,7 +647,11 @@ class Server extends Peer {
       return;
     }
 
-    messageReceived.invoke(MessageReceivedEventArgs(fromConnection, messageId, message));
+    try {
+      messageReceived.invoke(MessageReceivedEventArgs(fromConnection, messageId, message));
+    } catch (e, stackTrace) {
+      RiptideLogger.logEventException(logName, 'messageReceived', e, stackTrace);
+    }
 
     if (useMessageHandlers) {
       if (_messageHandlers.containsKey(messageId)) {
@@ -646,6 +671,11 @@ class Server extends Peer {
     RiptideLogger.logWithLogName(LogType.info, logName,
         "Client ${connection.id} ($connection) disconnected: ${Helper.getDisconnectReasonString(reason)}.");
     _sendClientDisconnected(connection.id);
-    clientDisconnected.invoke(ServerDisconnectedEventArgs(connection, reason));
+
+    try {
+      clientDisconnected.invoke(ServerDisconnectedEventArgs(connection, reason));
+    } catch (e, stackTrace) {
+      RiptideLogger.logEventException(logName, 'clientDisconnected', e, stackTrace);
+    }
   }
 }

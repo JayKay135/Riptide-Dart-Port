@@ -254,7 +254,12 @@ abstract class Connection {
     _metrics.receivedNotify(amount);
     if (_notify.shouldHandle(Converter.uShortFromByteBits(dataBuffer, Message.headerBits + 24))) {
       Helper.blockCopy(dataBuffer, 1, message.data, 1, amount - 1); // Copy payload
-      notifyReceived.invoke(message);
+
+      try {
+        notifyReceived.invoke(message);
+      } catch (e, stackTrace) {
+        RiptideLogger.logEventException(peer.logName, 'notifyReceived', e, stackTrace);
+      }
     } else {
       _metrics.notifyDiscarded++;
     }
@@ -297,9 +302,15 @@ abstract class Connection {
   /// [sequenceID] : The sequence ID that was acknowledged.
   void clearMessage(int sequenceID) {
     if (pendingMessages.containsKey(sequenceID)) {
-      reliableDelivered.invoke(sequenceID);
       pendingMessages[sequenceID]!.clear();
       pendingMessages.remove(sequenceID);
+
+      try {
+        reliableDelivered.invoke(sequenceID);
+      } catch (e, stackTrace) {
+        RiptideLogger.logEventException(peer.logName, 'reliableDelivered', e, stackTrace);
+      }
+
       _updateSendAttemptsViolations();
     }
   }
@@ -465,7 +476,13 @@ abstract class Connection {
   /// [sequenceId] : The sequence ID of the delivered message.
   void onNotifyDelivered(int sequenceId) {
     _metrics.deliveredNotify();
-    notifyDelivered.invoke(sequenceId);
+
+    try {
+      notifyDelivered.invoke(sequenceId);
+    } catch (e, stackTrace) {
+      RiptideLogger.logEventException(peer.logName, 'notifyDelivered', e, stackTrace);
+    }
+
     _updateLossViolations();
   }
 
@@ -474,7 +491,13 @@ abstract class Connection {
   /// [sequenceId] : The sequence ID of the lost message.
   void onNotifyLost(int sequenceId) {
     _metrics.lostNotify();
-    notifyLost.invoke(sequenceId);
+
+    try {
+      notifyLost.invoke(sequenceId);
+    } catch (e, stackTrace) {
+      RiptideLogger.logEventException(peer.logName, 'notifyLost', e, stackTrace);
+    }
+
     _updateLossViolations();
   }
 }
