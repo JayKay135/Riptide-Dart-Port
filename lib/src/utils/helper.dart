@@ -138,43 +138,31 @@ class Helper {
     return value & 0xff;
   }
 
-  /// Copies a block of data from a [Uint8List] to a [Uint64List].
+  /// Copies [count] bytes from a [Uint8List] into the bytes of a [Uint64List].
+  ///
+  /// Equivalent of C#'s `Buffer.BlockCopy(byte[], int, ulong[], int, int)`. Just like in C#, all offsets are in bytes and the
+  /// bytes of [dst] are accessed in the platform's (little-endian) byte order.
   ///
   /// [src] : The source list from which the data will be copied.
-  /// [srcOffset] : The starting index in the source list.
+  /// [srcOffset] : The byte offset in the source list.
   /// [dst] : The destination list where the data will be copied to.
-  /// [dstOffset] : The starting index in the destination list.
-  /// [count] : The number of elements to be copied.
+  /// [dstOffset] : The byte offset in the destination list.
+  /// [count] : The number of bytes to be copied.
   static void blockCopy(Uint8List src, int srcOffset, Uint64List dst, int dstOffset, int count) {
-    // create a byte buffer from the destination Uint64List
-    var dstBuffer = dst.buffer.asUint8List();
-
-    // copy bytes from the source Uint8List to the destination buffer
-    for (var i = 0; i < count; i++) {
-      dstBuffer[dstOffset + i] = src[srcOffset + i];
-    }
+    dst.buffer.asUint8List(dst.offsetInBytes, dst.lengthInBytes).setRange(dstOffset, dstOffset + count, src, srcOffset);
   }
 
-  /// Copies a block of data from a [Uint64List] to a [Uint8List] in reverse order.
+  /// Copies [count] bytes from the bytes of a [Uint64List] into a [Uint8List].
   ///
-  /// The data is copied from the source [Uint64List] starting at the specified [srcOffset],
-  /// and copied to the destination [Uint8List] starting at the specified [dstOffset].
-  /// The number of elements to be copied is determined by the [count] parameter.
+  /// Equivalent of C#'s `Buffer.BlockCopy(ulong[], int, byte[], int, int)`. Just like in C#, all offsets are in bytes and the
+  /// bytes of [src] are accessed in the platform's (little-endian) byte order.
   ///
-  /// Note: The source and destination lists must have enough capacity to accommodate the specified offsets and count.
-  ///
-  /// Example usage:
-  /// ```dart
-  /// Uint64List source = Uint64List.fromList([1, 2, 3, 4, 5]);
-  /// Uint8List destination = Uint8List(20);
-  /// Helper.blockCopyReversed(source, 0, destination, 10, 5);
-  /// ```
+  /// [src] : The source list from which the data will be copied.
+  /// [srcOffset] : The byte offset in the source list.
+  /// [dst] : The destination list where the data will be copied to.
+  /// [dstOffset] : The byte offset in the destination list.
+  /// [count] : The number of bytes to be copied.
   static void blockCopyReversed(Uint64List src, int srcOffset, Uint8List dst, int dstOffset, int count) {
-    for (var i = 0; i < count; i++) {
-      int byteIndex = i;
-      var value = src[byteIndex ~/ 8];
-      var byte = (value >>> (((srcOffset + byteIndex) % 8) * 8)) & 0xFF;
-      dst[dstOffset + i] = byte;
-    }
+    dst.setRange(dstOffset, dstOffset + count, src.buffer.asUint8List(src.offsetInBytes, src.lengthInBytes), srcOffset);
   }
 }
