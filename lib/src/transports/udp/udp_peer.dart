@@ -1,3 +1,4 @@
+import 'dart:collection';
 import 'dart:io';
 import 'dart:typed_data';
 
@@ -45,6 +46,15 @@ abstract class UdpPeer {
 
   /// The port the socket is bound to.
   int _port = 0;
+
+  /// The maximum number of datagrams which may be waiting to be sent.
+  static const int _maxQueuedDatagrams = 4096;
+
+  /// Datagrams which couldn't be sent right away because the socket's send buffer was full.
+  ///
+  /// NOTE: C# sockets block until data can be sent, whereas Dart's datagram sockets return without sending it, so the
+  /// datagrams are queued and sent once the socket is writable again.
+  final ListQueue<(Uint8List data, InternetAddress toEndPoint, int port)> _sendQueue = ListQueue();
 
   /// Initializes the transport.
   ///
@@ -106,6 +116,7 @@ abstract class UdpPeer {
 
     _isRunning = false;
     _reopenOnClose = false;
+    _sendQueue.clear();
     _socket?.close();
   }
 
@@ -117,8 +128,36 @@ abstract class UdpPeer {
   /// [port] : The port to send the data to.
   void send(Uint8List data, int numBytes, InternetAddress toEndPoint, int port) {
     // NOTE: dart:io doesn't throw when sending fails, but reports the error to the socket's listener instead
-    if (_isRunning) {
-      _socket!.send(Uint8List.sublistView(data, 0, numBytes), toEndPoint, port);
+    if (!_isRunning) {
+      return;
+    }
+
+    RawDatagramSocket socket = _socket!;
+    if (_sendQueue.isEmpty && socket.send(Uint8List.sublistView(data, 0, numBytes), toEndPoint, port) > 0) {
+      return;
+    }
+
+    // The data couldn't be sent right away (or older data is still waiting to be sent), so queue a copy of it, as the
+    // given buffer is reused
+    if (_sendQueue.length < _maxQueuedDatagrams) {
+      _sendQueue.add((Uint8List.fromList(Uint8List.sublistView(data, 0, numBytes)), toEndPoint, port));
+    }
+
+    socket.writeEventsEnabled = true;
+  }
+
+  /// Sends the queued datagrams, as far as the given socket's send buffer allows it.
+  ///
+  /// [socket] : The socket to send the datagrams with.
+  void _sendQueued(RawDatagramSocket socket) {
+    while (_sendQueue.isNotEmpty) {
+      var (Uint8List data, InternetAddress toEndPoint, int port) = _sendQueue.first;
+      if (socket.send(data, toEndPoint, port) == 0) {
+        socket.writeEventsEnabled = true; // Try again once the socket is writable
+        return;
+      }
+
+      _sendQueue.removeFirst();
     }
   }
 
@@ -141,6 +180,8 @@ abstract class UdpPeer {
           onDataReceived(datagram.data, byteCount, datagram.address, datagram.port);
         }
       }
+    } else if (event == RawSocketEvent.write) {
+      _sendQueued(socket);
     } else if (event == RawSocketEvent.closed) {
       if (_reopenOnClose) {
         _reopenOnClose = false;
@@ -164,6 +205,7 @@ abstract class UdpPeer {
 
     RiptideLogger.log(LogType.warning, "UDP socket error, reopening the socket: $error");
     _reopenOnClose = true;
+    _sendQueue.clear(); // One of the queued datagrams may have caused the error
   }
 
   /// Reopens the socket on the endpoint it was previously bound to.
