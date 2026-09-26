@@ -119,7 +119,9 @@ class Converter {
   /// [array] : The array to write the bits into.
   /// [startBit] : The bit position in the array at which to start writing.
   static void setBitsFromUint(int bitfield, int amount, Uint8List array, int startBit) {
-    int mask = (1 << (amount - 1) << 1) - 1; // Perform 2 shifts, doing it in 1 doesn't cause the value to wrap properly
+    // NOTE: C# performs 2 shifts here so the value wraps properly. Dart ints are 64 bits wide and shift counts aren't
+    // masked, so a single shift is correct for up to 32 bits (and also works for an amount of 0)
+    int mask = (1 << amount) - 1;
     bitfield &= mask; // Discard any bits that are set beyond the ones we're setting
     int inverseMask = ~mask;
     int pos = startBit ~/ bitsPerByte;
@@ -163,7 +165,9 @@ class Converter {
   /// [array] : The array to write the bits into.
   /// [startBit] : The bit position in the array at which to start writing.
   static void setBitsFromUlongWithByteList(int bitfield, int amount, Uint8List array, int startBit) {
-    int mask = (1 << (amount - 1) << 1) - 1; // Perform 2 shifts, doing it in 1 doesn't cause the value to wrap properly
+    // NOTE: C# performs 2 shifts here so the value wraps properly. Dart doesn't mask shift counts, so a shift by 64 has
+    // to be special-cased instead (this also makes an amount of 0 work)
+    int mask = amount == bitsPerULong ? -1 : (1 << amount) - 1;
     bitfield &= mask; // Discard any bits that are set beyond the ones we're setting
     int inverseMask = ~mask;
     int pos = startBit ~/ bitsPerByte;
@@ -215,7 +219,9 @@ class Converter {
   /// [array] : The array to write the bits into.
   /// [startBit] : The bit position in the array at which to start writing.
   static void setBitsFromUlongWithUlongList(int bitfield, int amount, Uint64List array, int startBit) {
-    int mask = (1 << (amount - 1) << 1) - 1; // Perform 2 shifts, doing it in 1 doesn't cause the value to wrap properly
+    // NOTE: C# performs 2 shifts here so the value wraps properly. Dart doesn't mask shift counts, so a shift by 64 has
+    // to be special-cased instead (this also makes an amount of 0 work)
+    int mask = amount == bitsPerULong ? -1 : (1 << amount) - 1;
     bitfield &= mask; // Discard any bits that are set beyond the ones we're setting
     int pos = startBit ~/ bitsPerULong;
     int bit = startBit % bitsPerULong;
@@ -270,7 +276,7 @@ class Converter {
   /// [startBit] : The bit position in the array at which to start reading.
   static int getBitsForUint(int amount, Uint8List array, int startBit) {
     int bitfield = uIntFromByteBits(array, startBit);
-    bitfield &= (1 << (amount - 1) << 1) - 1; // Discard any bits that are set beyond the ones we're reading
+    bitfield &= (1 << amount) - 1; // Discard any bits that are set beyond the ones we're reading
     return bitfield;
   }
 
@@ -281,7 +287,8 @@ class Converter {
   /// [startBit] : The bit position in the array at which to start reading.
   static int getBitsForUlong(int amount, Uint8List array, int startBit) {
     int bitfield = uLongFromByteBits(array, startBit);
-    bitfield &= (1 << (amount - 1) << 1) - 1; // Discard any bits that are set beyond the ones we're reading
+    bitfield &=
+        amount == bitsPerULong ? -1 : (1 << amount) - 1; // Discard any bits that are set beyond the ones we're reading
     return bitfield;
   }
 
@@ -302,7 +309,7 @@ class Converter {
   /// [array] : The array to read the bits from.
   /// [startBit] : The bit position in the array at which to start reading.
   static int getBitsFromUlongForUshort(int amount, Uint64List array, int startBit) {
-    int bitfield = byteFromUlongBits(array, startBit);
+    int bitfield = uShortFromUlongBits(array, startBit);
     bitfield &= (1 << amount) - 1; // Discard any bits that are set beyond the ones we're reading
     return bitfield;
   }
@@ -313,8 +320,8 @@ class Converter {
   /// [array] : The array to read the bits from.
   /// [startBit] : The bit position in the array at which to start reading.
   static int getBitsFromUlongForUint(int amount, Uint64List array, int startBit) {
-    int bitfield = byteFromUlongBits(array, startBit);
-    bitfield &= (1 << (amount - 1) << 1) - 1; // Discard any bits that are set beyond the ones we're reading
+    int bitfield = uIntFromUlongBits(array, startBit);
+    bitfield &= (1 << amount) - 1; // Discard any bits that are set beyond the ones we're reading
     return bitfield;
   }
 
@@ -324,8 +331,9 @@ class Converter {
   /// [array] : The array to read the bits from.
   /// [startBit] : The bit position in the array at which to start reading.
   static int getBitsFromUlongForUlong(int amount, Uint64List array, int startBit) {
-    int bitfield = byteFromUlongBits(array, startBit);
-    bitfield &= (1 << (amount - 1) << 1) - 1; // Discard any bits that are set beyond the ones we're reading
+    int bitfield = uLongFromUlongBits(array, startBit);
+    bitfield &=
+        amount == bitsPerULong ? -1 : (1 << amount) - 1; // Discard any bits that are set beyond the ones we're reading
     return bitfield;
   }
 
@@ -351,6 +359,7 @@ class Converter {
   /// [array] : The array to write the bits into.
   /// [startBit] : The position in the array at which to write the bits.
   static void byteToBitsFromBytes(int value, Uint8List array, int startBit) {
+    value &= 0xFF; // C# takes a byte
     int pos = startBit ~/ bitsPerByte;
     int bit = startBit % bitsPerByte;
     if (bit == 0) {
@@ -497,6 +506,7 @@ class Converter {
   /// [array] : The array to write the bits into.
   /// [startBit] : The position in the array at which to write the bits.
   static void uShortToBitsFromBytes(int value, Uint8List array, int startBit) {
+    value &= 0xFFFF; // C# takes a ushort
     int pos = startBit ~/ bitsPerByte;
     int bit = startBit % bitsPerByte;
     if (bit == 0) {
@@ -605,6 +615,7 @@ class Converter {
   /// [array] : The array to write the bits into.
   /// [startBit] : The position in the array at which to write the bits.
   static void uIntToByteBits(int value, Uint8List array, int startBit) {
+    value &= 0xFFFFFFFF; // C# takes a uint
     int pos = startBit ~/ bitsPerByte;
     int bit = startBit % bitsPerByte;
     if (bit == 0) {

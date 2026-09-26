@@ -580,7 +580,7 @@ class Message {
           "AddBitsUint cannot be used to add more than ${Constants.uintBytes * _bitsPerByte} bits at a time!");
     }
 
-    bitfield &= (1 << (amount - 1) << 1) - 1; // Discard any bits that are set beyond the ones we're adding
+    bitfield &= (1 << amount) - 1; // Discard any bits that are set beyond the ones we're adding
     Converter.uIntToUlongBits(bitfield, data, _writeBit);
     _writeBit += amount;
     return this;
@@ -600,7 +600,10 @@ class Message {
           "AddBitsUlong cannot be used to add more than ${Constants.ulongBytes * _bitsPerByte} bits at a time!");
     }
 
-    bitfield &= (1 << (amount - 1) << 1) - 1; // Discard any bits that are set beyond the ones we're adding
+    // NOTE: Dart doesn't mask shift counts, so a shift by 64 has to be special-cased
+    bitfield &= amount == _bitsPerSegment
+        ? -1
+        : (1 << amount) - 1; // Discard any bits that are set beyond the ones we're adding
     Converter.uLongToUlongBits(bitfield, data, _writeBit);
     _writeBit += amount;
     return this;

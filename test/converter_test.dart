@@ -1,9 +1,10 @@
 import 'dart:typed_data';
 
 import 'package:test/test.dart';
+import 'package:riptide/src/message.dart';
 import 'package:riptide/src/utils/converter.dart';
 
-void converterTests() {
+void main() {
   group('zigZagEncodeInt', () {
     test('Test positive number', () {
       expect(Converter.zigZagEncodeInt(5), equals(10));
@@ -90,15 +91,17 @@ void converterTests() {
     });
 
     test('Test with startBit at 4', () {
-      Uint8List array = Uint8List(1);
+      Uint8List array = Uint8List(2); // Any unaligned start bit touches the following byte as well
       Converter.setBitsFromByte(15, 4, array, 4);
       expect(array[0], equals(240));
+      expect(array[1], equals(0));
     });
 
     test('Test with more complex value', () {
-      Uint8List array = Uint8List(1);
+      Uint8List array = Uint8List(2);
       Converter.setBitsFromByte(109, 7, array, 1);
       expect(array[0], equals(218));
+      expect(array[1], equals(0));
     });
   });
 
@@ -125,16 +128,18 @@ void converterTests() {
     });
 
     test('Test with startBit at 8', () {
-      Uint8List array = Uint8List(2);
+      Uint8List array = Uint8List(3); // 16 bits are always written, starting at byte 1
       Converter.setBitsFromUshort(255, 8, array, 8);
       expect(array[0], equals(0));
       expect(array[1], equals(255));
+      expect(array[2], equals(0));
     });
 
     test('Test with more complex value', () {
-      Uint8List array = Uint8List(1);
+      Uint8List array = Uint8List(3);
       Converter.setBitsFromUshort(109, 7, array, 1);
       expect(array[0], equals(218));
+      expect(array[1], equals(0));
     });
   });
 
@@ -167,12 +172,14 @@ void converterTests() {
     });
 
     test('Test with startBit at 16', () {
-      Uint8List array = Uint8List(4);
+      Uint8List array = Uint8List(6); // 32 bits are always written, starting at byte 2
       Converter.setBitsFromUint(65535, 16, array, 16);
       expect(array[0], equals(0));
       expect(array[1], equals(0));
       expect(array[2], equals(255));
       expect(array[3], equals(255));
+      expect(array[4], equals(0));
+      expect(array[5], equals(0));
     });
   });
 
@@ -217,7 +224,7 @@ void converterTests() {
     });
 
     test('Test with startBit at 32', () {
-      Uint8List array = Uint8List(8);
+      Uint8List array = Uint8List(12); // 64 bits are always written, starting at byte 4
       Converter.setBitsFromUlongWithByteList(4294967295, 32, array, 32);
       expect(array[0], equals(0));
       expect(array[1], equals(0));
@@ -227,6 +234,7 @@ void converterTests() {
       expect(array[5], equals(255));
       expect(array[6], equals(255));
       expect(array[7], equals(255));
+      expect(array[8], equals(0));
     });
   });
 
@@ -251,9 +259,10 @@ void converterTests() {
     });
 
     test('Test with startBit at 32', () {
-      Uint64List array = Uint64List(1);
+      Uint64List array = Uint64List(2); // Bits ending exactly at the end of a segment also touch the next one
       Converter.setBitsFromUlongWithUlongList(2147483647, 32, array, 32);
-      expect(array[0], equals(9223372030412324864)); // 2147483647 << 32
+      expect(array[0], equals(2147483647 << 32));
+      expect(array[1], equals(0));
     });
   });
 
@@ -309,7 +318,7 @@ void converterTests() {
     test('Test with 64 bits', () {
       Uint8List array = Uint8List.fromList([255, 255, 255, 255, 255, 255, 255, 255, 0, 0, 0, 0, 0, 0, 0, 0]);
       int result = Converter.getBitsForUlong(64, array, 0);
-      expect(result, equals(9223372036854775807));
+      expect(result, equals(-1)); // ulong.MaxValue is represented as -1 in Dart
     });
   });
 
@@ -379,7 +388,7 @@ void converterTests() {
     test('Test with startBit not at 0', () {
       Uint8List array = Uint8List(2);
       Converter.sByteToBitsFromBytes(127, array, 4);
-      expect(array[0], equals(127 << 4));
+      expect(array[0], equals((127 << 4) & 0xFF));
       expect(array[1], equals(127 >> 4));
     });
   });
@@ -395,7 +404,7 @@ void converterTests() {
       Uint64List array = Uint64List(2);
       Converter.sByteToBitsFromUlongs(127, array, 4);
       expect(array[0], equals(127 << 4));
-      expect(array[1], equals(127 >> 4));
+      expect(array[1], equals(0)); // The bits fit into the first segment
     });
   });
 
@@ -409,7 +418,7 @@ void converterTests() {
     test('Test with startBit not at 0', () {
       Uint8List array = Uint8List(2);
       Converter.byteToBitsFromBytes(255, array, 4);
-      expect(array[0], equals(255 << 4));
+      expect(array[0], equals((255 << 4) & 0xFF));
       expect(array[1], equals(255 >> 4));
     });
   });
@@ -425,7 +434,7 @@ void converterTests() {
       Uint64List array = Uint64List(2);
       Converter.byteToBitsFromUlongs(255, array, 4);
       expect(array[0], equals(255 << 4));
-      expect(array[1], equals(255 >> 4));
+      expect(array[1], equals(0)); // The bits fit into the first segment
     });
   });
 
@@ -456,9 +465,9 @@ void converterTests() {
 
     test('Test with welcome values', () {
       var array = Uint64List(154);
-      array[0] = 0x18;
+      array[0] = 0x18; // Welcome header (8) followed by sequence ID 1
       array[2] = 0x40;
-      var result = Converter.fromBits(16, array, 20);
+      var result = Converter.fromBits(16, array, Message.headerBits);
       expect(result, equals(1));
     });
   });
