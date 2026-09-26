@@ -287,7 +287,7 @@ class Message {
   static Message _retrieveFromPool() {
     Message message;
     if (_pool.isNotEmpty) {
-      message = _pool.removeAt(0);
+      message = _pool.removeLast();
     } else {
       message = Message();
     }

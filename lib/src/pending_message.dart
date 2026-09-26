@@ -70,8 +70,7 @@ class PendingMessage {
   static PendingMessage _retrieveFromPool() {
     PendingMessage message;
     if (_pool.isNotEmpty) {
-      message = _pool[0];
-      _pool.removeAt(0);
+      message = _pool.removeLast();
     } else {
       message = PendingMessage();
     }
