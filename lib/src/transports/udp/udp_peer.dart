@@ -98,13 +98,14 @@ abstract class UdpPeer {
 
   /// Closes the socket and stops the transport.
   void closeSocket() {
+    _socketGeneration++; // Also cancels binds which are still in progress
+
     if (!_isRunning) {
       return;
     }
 
     _isRunning = false;
     _reopenOnClose = false;
-    _socketGeneration++;
     _socket?.close();
   }
 

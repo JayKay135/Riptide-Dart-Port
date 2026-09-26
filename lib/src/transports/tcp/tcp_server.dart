@@ -55,17 +55,17 @@ class TcpServer extends TcpPeer implements IServer {
   }
 
   @override
-  void start(int port) {
+  Future<void> start(int port) async {
     this.port = port;
     _connections = {};
 
-    _startListening(port);
+    await _startListening(port);
   }
 
   /// Starts listening for connections on the given port.
   ///
   /// [port] : The port to listen on.
-  void _startListening(int port) async {
+  Future<void> _startListening(int port) async {
     if (_isRunning) {
       _stopListening();
     }

@@ -127,12 +127,15 @@ class Server extends Peer {
   /// [useMessageHandlers] : Whether or not the server should use the built-in message handler system.
   ///
   /// Setting [useMessageHandlers] to false will disable the message specific subscription system, which is beneficial if you prefer to handle messages via the [messageReceived] event.
-  void start(
+  ///
+  /// NOTE: Returns a future which completes once the server is running, as sockets are bound asynchronously in Dart.
+  /// If the transport fails to start, the future completes with the transport's error.
+  Future<void> start(
     int port,
     int maxClientCount, {
     int messageHandlerGroupId = 0,
     bool useMessageHandlers = true,
-  }) {
+  }) async {
     stop();
 
     increaseActiveCount();
@@ -143,7 +146,13 @@ class Server extends Peer {
     _initializeClientIds();
 
     _subToTransportEvents();
-    _transport.start(port);
+    try {
+      await _transport.start(port);
+    } catch (_) {
+      _unsubFromTransportEvents();
+      decreaseActiveCount();
+      rethrow;
+    }
 
     startTime();
     heartbeat();

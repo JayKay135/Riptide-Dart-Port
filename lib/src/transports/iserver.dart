@@ -13,7 +13,10 @@ abstract class IServer implements IPeer {
   /// Starts the transport and begins listening for incoming connections.
   ///
   /// [port] : The local port on which to listen for connections.
-  void start(int port);
+  ///
+  /// NOTE: Returns a future which completes once the server is listening (or completes with an error if it couldn't be
+  /// started), as sockets are bound asynchronously in Dart.
+  Future<void> start(int port);
 
   /// Closes an active connection.
   ///

@@ -42,11 +42,11 @@ class UdpServer extends UdpPeer implements IServer {
   }
 
   @override
-  void start(int port) {
+  Future<void> start(int port) async {
     this.port = port;
     _connections = {};
 
-    openSocket(listenAddress: listenAddress, port: port);
+    await openSocket(listenAddress: listenAddress, port: port);
   }
 
   /// Decides what to do with a connection attempt.
