@@ -94,8 +94,9 @@ class Bitfield {
   /// Returns whether or not the checked bit was set and the checked bit's position in the bitfield.
   (bool isSet, int checkedPosition) checkAndTrimLast() {
     int checkedPosition = _count;
-    int bitToCheck = (1 << ((_count - 1) % _segmentSize));
-    bool isSet = (segments[segments.length - 1] & bitToCheck) != 0;
+    int bit = _count - 1;
+    int bitToCheck = (1 << (bit % _segmentSize));
+    bool isSet = (segments[bit ~/ _segmentSize] & bitToCheck) != 0;
     _count--;
     return (isSet, checkedPosition);
   }

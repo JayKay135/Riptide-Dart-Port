@@ -91,6 +91,17 @@ void main() {
       expect(bitfield.segments[0], equals(0xFFFF));
     });
 
+    test('checkAndTrimLast checks the segment containing the last bit', () {
+      Bitfield bitfield = Bitfield();
+      bitfield.shiftBy(40); // Grows the bitfield to 3 segments
+      expect(bitfield.segments.length, greaterThan(2));
+      bitfield.set(40);
+
+      var (bool isSet, int checkedPosition) = bitfield.checkAndTrimLast();
+      expect(checkedPosition, equals(40));
+      expect(isSet, isTrue);
+    });
+
     test('checkAndTrimLast checks and removes the last bit', () {
       Bitfield bitfield = Bitfield(isDynamicCapacity: false);
       bitfield.shiftBy(2);
