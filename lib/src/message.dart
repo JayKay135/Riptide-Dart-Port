@@ -569,6 +569,10 @@ class Message {
       throw RangeError("AddBitsByte cannot be used to add more than $_bitsPerByte bits at a time!");
     }
 
+    if (unwrittenBits < amount) {
+      throw InsufficientCapacityException.withDetails(this, bitfieldName, amount);
+    }
+
     bitfield &= (1 << amount) - 1; // Discard any bits that are set beyond the ones we're setting
     Converter.byteToBitsFromUlongs(bitfield, data, _writeBit);
     _writeBit += amount;
@@ -585,6 +589,10 @@ class Message {
     if (amount > Constants.ushortBytes * _bitsPerByte) {
       throw RangeError(
           "AddBitsUshort cannot be used to add more than ${Constants.ushortBytes * _bitsPerByte} bits at a time!");
+    }
+
+    if (unwrittenBits < amount) {
+      throw InsufficientCapacityException.withDetails(this, bitfieldName, amount);
     }
 
     bitfield &= (1 << amount) - 1; // Discard any bits that are set beyond the ones we're adding
@@ -605,6 +613,10 @@ class Message {
           "AddBitsUint cannot be used to add more than ${Constants.uintBytes * _bitsPerByte} bits at a time!");
     }
 
+    if (unwrittenBits < amount) {
+      throw InsufficientCapacityException.withDetails(this, bitfieldName, amount);
+    }
+
     bitfield &= (1 << amount) - 1; // Discard any bits that are set beyond the ones we're adding
     Converter.uIntToUlongBits(bitfield, data, _writeBit);
     _writeBit += amount;
@@ -623,6 +635,10 @@ class Message {
     if (amount > Constants.ulongBytes * _bitsPerByte) {
       throw RangeError(
           "AddBitsUlong cannot be used to add more than ${Constants.ulongBytes * _bitsPerByte} bits at a time!");
+    }
+
+    if (unwrittenBits < amount) {
+      throw InsufficientCapacityException.withDetails(this, bitfieldName, amount);
     }
 
     // NOTE: Dart doesn't mask shift counts, so a shift by 64 has to be special-cased
@@ -2030,6 +2046,9 @@ class Message {
 
   /// The name of an array length value.
   final String arrayLengthName = "array length";
+
+  /// The name of a bitfield value.
+  final String bitfieldName = "bitfield";
 
   /// Constructs an error message for when a message contains insufficient unread bytes to retrieve a certain value.
   ///

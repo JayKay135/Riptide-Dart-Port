@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 
 import 'package:collection/collection.dart';
+import 'package:riptide/src/exceptions.dart';
 import 'package:riptide/src/message.dart';
 import 'package:riptide/src/transports/ipeer.dart';
 import 'package:riptide/src/utils/helper.dart';
@@ -311,6 +312,18 @@ void main() {
       expect(received.getULong(), equals(0));
       expect(received.getBool(), isFalse);
       received.release();
+    });
+
+    test('adding bits throws if there is insufficient capacity', () {
+      Message message = Message.create();
+      message.addBytes(Uint8List(Message.maxSize - 1), false).addBitsByte(0x7F, 7); // Leaves 1 bit
+      expect(() => message.addBitsByte(0x3, 2), throwsA(isA<InsufficientCapacityException>()));
+      expect(() => message.addBitsUshort(0x3, 2), throwsA(isA<InsufficientCapacityException>()));
+      expect(() => message.addBitsUint(0x3, 2), throwsA(isA<InsufficientCapacityException>()));
+      expect(() => message.addBitsUlong(0x3, 2), throwsA(isA<InsufficientCapacityException>()));
+      message.addBitsByte(1, 1);
+      expect(message.unwrittenBits, equals(0));
+      message.release();
     });
 
     test('setBits and peekBits', () {
