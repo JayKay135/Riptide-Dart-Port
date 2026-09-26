@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import '../event_args.dart';
+import '../socket_buffer_size.dart';
 import '../../connection.dart';
 import '../../message.dart';
 import '../../peer.dart';
@@ -22,8 +23,6 @@ abstract class UdpPeer {
   final int receivePollingTime = 500000; // 0.5 seconds
 
   /// The size to use for the socket's send and receive buffers.
-  ///
-  /// NOTE: Not applied to the socket, as dart:io doesn't provide a platform independent way of setting the buffer sizes.
   late int _socketBufferSize;
   int get socketBufferSize => _socketBufferSize;
 
@@ -92,6 +91,7 @@ abstract class UdpPeer {
   /// [socket] : The socket to use.
   void _listen(RawDatagramSocket socket) {
     _socket = socket;
+    setSocketBufferSizes(socket.setRawOption, _socketBufferSize);
     socket.listen((RawSocketEvent event) => _receive(socket, event),
         onError: (Object error) => _onSocketError(socket, error));
   }

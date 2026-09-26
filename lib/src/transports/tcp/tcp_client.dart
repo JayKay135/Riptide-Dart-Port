@@ -5,6 +5,7 @@ import 'tcp_connection.dart';
 import 'tcp_peer.dart';
 import 'tcp_server.dart';
 import '../event_args.dart';
+import '../socket_buffer_size.dart';
 import '../iclient.dart';
 import '../../connection.dart';
 import '../../utils/event_handler.dart';
@@ -38,6 +39,7 @@ class TcpClient extends TcpPeer implements IClient {
     try {
       socket = await Socket.connect(hostAddress, port);
       socket!.setOption(SocketOption.tcpNoDelay, true);
+      setSocketBufferSizes(socket!.setRawOption, socketBufferSize);
     } on SocketException catch (e) {
       return (false, null, e.toString());
     }

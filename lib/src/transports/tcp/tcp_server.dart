@@ -4,6 +4,7 @@ import 'dart:io';
 import 'tcp_connection.dart';
 import 'tcp_peer.dart';
 import '../event_args.dart';
+import '../socket_buffer_size.dart';
 import '../ipeer.dart';
 import '../iserver.dart';
 import '../../connection.dart';
@@ -93,6 +94,7 @@ class TcpServer extends TcpPeer implements IServer {
     (InternetAddress, int) fromEndPoint;
     try {
       acceptedSocket.setOption(SocketOption.tcpNoDelay, true);
+      setSocketBufferSizes(acceptedSocket.setRawOption, socketBufferSize);
       fromEndPoint = (acceptedSocket.remoteAddress, acceptedSocket.remotePort);
     } on SocketException {
       acceptedSocket.destroy(); // The connection was closed already
