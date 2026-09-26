@@ -1251,7 +1251,7 @@ class Message {
   void _readShorts(int amount, Int16List intoArray, [int startIndex = 0]) {
     if (unreadBits < amount * Constants.shortBytes * _bitsPerByte) {
       RiptideLogger.log(LogType.error, _notEnoughBitsError2(amount, shortName));
-      amount = unreadBits ~/ (Constants.sbyteDefault * _bitsPerByte);
+      amount = unreadBits ~/ (Constants.shortBytes * _bitsPerByte);
     }
 
     for (int i = 0; i < amount; i++) {
@@ -1324,8 +1324,8 @@ class Message {
   /// Returns the [uint] that was retrieved.
   int getUInt() {
     if (unreadBits < Constants.uintBytes * _bitsPerByte) {
-      RiptideLogger.log(LogType.error, _notEnoughBitsError(uIntName, "${Constants.uintBytes}"));
-      return Constants.uintBytes;
+      RiptideLogger.log(LogType.error, _notEnoughBitsError(uIntName, "${Constants.uintDefault}"));
+      return Constants.uintDefault;
     }
 
     int value = Converter.uIntFromUlongBits(data, _readBit);
