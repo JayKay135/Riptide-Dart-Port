@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'utils/constants.dart';
 
 /// Provides functionality for enabling/disabling automatic message relaying by message type.
@@ -21,9 +23,11 @@ class MessageRelayFilter<T extends Enum> {
 
   /// Creates a filter based on an enum of message IDs.
   ///
-  /// [idEnum] : The enum type.
-  MessageRelayFilter.fromType(Type idEnum) {
-    _set(_getSizeFromEnum(idEnum));
+  /// [idEnumValues] : The values of the enum type (for example `MessageId.values`).
+  ///
+  /// NOTE: C# takes the enum type itself, but Dart can't retrieve an enum's values from its type.
+  MessageRelayFilter.fromType(List<T> idEnumValues) {
+    _set(_getSizeFromEnum(idEnumValues));
   }
 
   /// Creates a filter of a given size and enables relaying for the given message IDs.
@@ -41,10 +45,12 @@ class MessageRelayFilter<T extends Enum> {
 
   /// Creates a filter based on an enum of message IDs and enables relaying for the given message IDs.
   ///
-  /// [idEnum] : The enum type.
+  /// [idEnumValues] : The values of the enum type (for example `MessageId.values`).
   /// [idsToEnable] : Message IDs to enable relaying for.
-  MessageRelayFilter.fromTypeAndIds(Type idEnum, List<T> idsToEnable) {
-    _set(_getSizeFromEnum(idEnum));
+  ///
+  /// NOTE: C# takes the enum type itself, but Dart can't retrieve an enum's values from its type.
+  MessageRelayFilter.fromTypeAndIds(List<T> idEnumValues, List<T> idsToEnable) {
+    _set(_getSizeFromEnum(idEnumValues));
     enableIds(idsToEnable.map((e) => e.index).toList());
   }
 
@@ -59,23 +65,18 @@ class MessageRelayFilter<T extends Enum> {
 
   /// Calculate the filter size necessary to manage all message IDs in the given enum.
   ///
-  /// [idEnum] : The enum type.
+  /// [idEnumValues] : The values of the enum type.
   ///
   /// Returns the appropriate filter size.
-  // ignore: avoid_shadowing_type_parameters
-  int _getSizeFromEnum<T>(Type idEnum) {
-    if (idEnum is! Enum) {
-      throw ArgumentError("Parameter '($idEnum)' must be an enum type!");
-    }
-
-    return ((idEnum as Enum) as List).length;
+  int _getSizeFromEnum(List<T> idEnumValues) {
+    return idEnumValues.fold(0, (int size, T id) => max(size, id.index + 1));
   }
 
   /// Sets the filter size.
   ///
   /// [size] : How big to make the filter.
   void _set(int size) {
-    _filter = List<int>.filled((size / _bitsPerInt + (size % _bitsPerInt > 0 ? 1 : 0)).toInt(), 0);
+    _filter = List<int>.filled(size ~/ _bitsPerInt + (size % _bitsPerInt > 0 ? 1 : 0), 0);
   }
 
   /// Enables auto relaying for the given message ID.
