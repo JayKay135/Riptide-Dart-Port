@@ -280,8 +280,10 @@ class Server extends Peer {
       message.release();
     }
 
-    connection
-        .resetTimeout(); // Keep the connection alive for a moment so the same client can't immediately attempt to connect again
+    _transport.close(connection);
+
+    // Keep the connection alive for a moment so the same client can't immediately attempt to connect again
+    connection.resetTimeout();
     connection.localDisconnect(wasRejected: true);
 
     RiptideLogger.logWithLogName(
@@ -507,11 +509,8 @@ class Server extends Peer {
     }
 
     _pendingConnections.clear();
-    Uint8List disconnectBytes =
-        Uint8List.fromList([MessageHeader.disconnect.index, DisconnectReason.serverStopped.index]);
-    for (Connection client in _clients.values) {
-      client.send(disconnectBytes, disconnectBytes.length);
-    }
+    sendToAll(Message.createFromHeader(MessageHeader.disconnect).addByte(DisconnectReason.serverStopped.index));
+
     _clients.clear();
 
     _transport.shutdown();

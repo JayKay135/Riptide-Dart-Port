@@ -1,5 +1,3 @@
-library riptide;
-
 export 'src/server.dart' show Server;
 export 'src/client.dart' show Client;
 export 'src/utils/multi_threading.dart' show MultiThreadedTransportType, MultiThreadedServer, MultiThreadedClient;

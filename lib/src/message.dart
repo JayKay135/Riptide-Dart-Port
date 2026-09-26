@@ -374,7 +374,7 @@ class Message {
       // Source needs to be shifted right, source bits may span more segments than dest bits
       bitOffset = -bitOffset;
       int firstSegment = message.data[sourcePos] & ~((1 << sourceBit) - 1);
-      firstSegment >>= bitOffset;
+      firstSegment >>>= bitOffset;
       if (destBit == 0) {
         data[destPos] = firstSegment;
       } else {
@@ -667,7 +667,7 @@ class Message {
   Message addVarULong(int value) {
     do {
       int byteValue = (value & 0x7f);
-      value >>= 7;
+      value >>>= 7;
       if (value != 0) {
         // There's more to write
         byteValue |= 0x80;
@@ -1891,7 +1891,9 @@ class Message {
       length = unreadBits ~/ _bitsPerByte;
     }
 
-    String value = utf8.decode(getBytesWithAmount(length));
+    Uint8List bytes = getBytesWithAmount(length);
+
+    String value = utf8.decode(bytes);
     return value;
   }
 

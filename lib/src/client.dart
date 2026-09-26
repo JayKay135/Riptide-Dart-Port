@@ -51,7 +51,7 @@ class Client extends Peer {
   @override
   set timeoutTime(int value) {
     defaultTimeout = value;
-    connection!.timeoutTime = defaultTimeout;
+    connection?.timeoutTime = value;
   }
 
   /// Whether or not the client is currently not trying to connect, pending, nor actively connected.
@@ -65,6 +65,9 @@ class Client extends Peer {
 
   /// Whether or not the client is currently connected.
   bool get isConnected => !(connection == null) && _connection!.isConnected;
+
+  /// The client's current [ConnectionState].
+  ConnectionState? get state => _connection?.state;
 
   Connection? _connection;
 

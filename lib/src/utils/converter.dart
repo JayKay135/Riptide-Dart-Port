@@ -48,7 +48,7 @@ class Converter {
   /// while all negative numbers become positive odd numbers. In contrast, simply casting a negative value to its unsigned counterpart would result in a large positive
   /// number which uses the high bit, rendering compression via [Message.addVarULong] and [Message.getVarULong] ineffective.
   static int zigZagDecode(int value) {
-    return (value >> 1) ^ -(value & 1);
+    return (value >>> 1) ^ -(value & 1);
   }
 
   /// Takes [amount] bits from [bitfield] and writes them into [array], starting at [startBit].
@@ -67,7 +67,7 @@ class Converter {
       array[pos] = bitfield | (array[pos] & inverseMask);
     } else {
       array[pos] = (bitfield << bit) | (array[pos] & ~(mask << bit));
-      array[pos + 1] = (bitfield >> (8 - bit)) | (array[pos + 1] & (inverseMask >> (8 - bit)));
+      array[pos + 1] = (bitfield >>> (8 - bit)) | (array[pos + 1] & (inverseMask >>> (8 - bit)));
     }
     // int startByte = startBit ~/ 8;
     // int offset = startBit % 8;
@@ -90,13 +90,13 @@ class Converter {
     int bit = startBit % bitsPerByte;
     if (bit == 0) {
       array[pos] = bitfield | (array[pos] & inverseMask);
-      array[pos + 1] = (bitfield >> 8) | (array[pos + 1] & (inverseMask >> 8));
+      array[pos + 1] = (bitfield >>> 8) | (array[pos + 1] & (inverseMask >>> 8));
     } else {
       array[pos] = (bitfield << bit) | (array[pos] & ~(mask << bit));
-      bitfield >>= 8 - bit;
-      inverseMask >>= 8 - bit;
+      bitfield >>>= 8 - bit;
+      inverseMask >>>= 8 - bit;
       array[pos + 1] = bitfield | (array[pos + 1] & inverseMask);
-      array[pos + 2] = (bitfield >> 8) | (array[pos + 2] & (inverseMask >> 8));
+      array[pos + 2] = (bitfield >>> 8) | (array[pos + 2] & (inverseMask >>> 8));
     }
     // int startByte = startBit ~/ 8;
     // int offset = startBit % 8;
@@ -126,19 +126,19 @@ class Converter {
     int bit = startBit % bitsPerByte;
     if (bit == 0) {
       array[pos] = bitfield | (array[pos] & inverseMask);
-      array[pos + 1] = (bitfield >> 8) | (array[pos + 1] & (inverseMask >> 8));
-      array[pos + 2] = (bitfield >> 16) | (array[pos + 2] & (inverseMask >> 16));
-      array[pos + 3] = (bitfield >> 24) | (array[pos + 3] & (inverseMask >> 24));
+      array[pos + 1] = (bitfield >>> 8) | (array[pos + 1] & (inverseMask >>> 8));
+      array[pos + 2] = (bitfield >>> 16) | (array[pos + 2] & (inverseMask >>> 16));
+      array[pos + 3] = (bitfield >>> 24) | (array[pos + 3] & (inverseMask >>> 24));
     } else {
       array[pos] = (bitfield << bit) | (array[pos] & ~(mask << bit));
-      bitfield >>= 8 - bit;
-      inverseMask >>= 8 - bit;
+      bitfield >>>= 8 - bit;
+      inverseMask >>>= 8 - bit;
       array[pos + 1] = bitfield | (array[pos + 1] & inverseMask);
-      array[pos + 2] = (bitfield >> 8) | (array[pos + 2] & (inverseMask >> 8));
-      array[pos + 3] = (bitfield >> 16) | (array[pos + 3] & (inverseMask >> 16));
-      array[pos + 4] = (bitfield >> 24) |
+      array[pos + 2] = (bitfield >>> 8) | (array[pos + 2] & (inverseMask >>> 8));
+      array[pos + 3] = (bitfield >>> 16) | (array[pos + 3] & (inverseMask >>> 16));
+      array[pos + 4] = (bitfield >>> 24) |
           (array[pos + 4] &
-              ~(mask >> (32 - bit))); // This one can't use inverseMask because it would have incorrectly zeroed bits
+              ~(mask >>> (32 - bit))); // This one can't use inverseMask because it would have incorrectly zeroed bits
     }
     // int startByte = startBit ~/ 8;
     // int offset = startBit % 8;
@@ -170,27 +170,27 @@ class Converter {
     int bit = startBit % bitsPerByte;
     if (bit == 0) {
       array[pos] = bitfield | (array[pos] & inverseMask);
-      array[pos + 1] = (bitfield >> 8) | (array[pos + 1] & (inverseMask >> 8));
-      array[pos + 2] = (bitfield >> 16) | (array[pos + 2] & (inverseMask >> 16));
-      array[pos + 3] = (bitfield >> 24) | (array[pos + 3] & (inverseMask >> 24));
-      array[pos + 4] = (bitfield >> 32) | (array[pos + 4] & (inverseMask >> 32));
-      array[pos + 5] = (bitfield >> 40) | (array[pos + 5] & (inverseMask >> 40));
-      array[pos + 6] = (bitfield >> 48) | (array[pos + 6] & (inverseMask >> 48));
-      array[pos + 7] = (bitfield >> 56) | (array[pos + 7] & (inverseMask >> 56));
+      array[pos + 1] = (bitfield >>> 8) | (array[pos + 1] & (inverseMask >>> 8));
+      array[pos + 2] = (bitfield >>> 16) | (array[pos + 2] & (inverseMask >>> 16));
+      array[pos + 3] = (bitfield >>> 24) | (array[pos + 3] & (inverseMask >>> 24));
+      array[pos + 4] = (bitfield >>> 32) | (array[pos + 4] & (inverseMask >>> 32));
+      array[pos + 5] = (bitfield >>> 40) | (array[pos + 5] & (inverseMask >>> 40));
+      array[pos + 6] = (bitfield >>> 48) | (array[pos + 6] & (inverseMask >>> 48));
+      array[pos + 7] = (bitfield >>> 56) | (array[pos + 7] & (inverseMask >>> 56));
     } else {
       array[pos] = (bitfield << bit) | (array[pos] & ~(mask << bit));
-      bitfield >>= 8 - bit;
-      inverseMask >>= 8 - bit;
+      bitfield >>>= 8 - bit;
+      inverseMask >>>= 8 - bit;
       array[pos + 1] = bitfield | (array[pos + 1] & inverseMask);
-      array[pos + 2] = (bitfield >> 8) | (array[pos + 2] & (inverseMask >> 8));
-      array[pos + 3] = (bitfield >> 16) | (array[pos + 3] & (inverseMask >> 16));
-      array[pos + 4] = (bitfield >> 24) | (array[pos + 4] & (inverseMask >> 24));
-      array[pos + 5] = (bitfield >> 32) | (array[pos + 5] & (inverseMask >> 32));
-      array[pos + 6] = (bitfield >> 40) | (array[pos + 6] & (inverseMask >> 40));
-      array[pos + 7] = (bitfield >> 48) | (array[pos + 7] & (inverseMask >> 48));
-      array[pos + 8] = (bitfield >> 56) |
+      array[pos + 2] = (bitfield >>> 8) | (array[pos + 2] & (inverseMask >>> 8));
+      array[pos + 3] = (bitfield >>> 16) | (array[pos + 3] & (inverseMask >>> 16));
+      array[pos + 4] = (bitfield >>> 24) | (array[pos + 4] & (inverseMask >>> 24));
+      array[pos + 5] = (bitfield >>> 32) | (array[pos + 5] & (inverseMask >>> 32));
+      array[pos + 6] = (bitfield >>> 40) | (array[pos + 6] & (inverseMask >>> 40));
+      array[pos + 7] = (bitfield >>> 48) | (array[pos + 7] & (inverseMask >>> 48));
+      array[pos + 8] = (bitfield >>> 56) |
           (array[pos + 8] &
-              ~(mask >> (64 - bit))); // This one can't use inverseMask because it would have incorrectly zeroed bits
+              ~(mask >>> (64 - bit))); // This one can't use inverseMask because it would have incorrectly zeroed bits
     }
     // int startByte = startBit ~/ 8;
     // int offset = startBit % 8;
@@ -225,7 +225,7 @@ class Converter {
     } else {
       array[pos] = (bitfield << bit) | (array[pos] & ~(mask << bit));
       if (bit + amount >= bitsPerULong) {
-        array[pos + 1] = (bitfield >> (64 - bit)) | (array[pos + 1] & ~(mask >> (64 - bit)));
+        array[pos + 1] = (bitfield >>> (64 - bit)) | (array[pos + 1] & ~(mask >>> (64 - bit)));
       }
     }
     // int mask = ((1 << amount) - 1); // Mask to get the relevant bits from bitfield
@@ -357,7 +357,7 @@ class Converter {
       array[pos] = value;
     } else {
       array[pos] |= value << bit;
-      array[pos + 1] = value >> (8 - bit);
+      array[pos + 1] = value >>> (8 - bit);
     }
   }
 
@@ -390,8 +390,8 @@ class Converter {
     int value = array[pos];
     if (bit == 0) return value;
 
-    value >>= bit;
-    return value | (array[pos + 1] << (8 - bit));
+    value >>>= bit;
+    return (value | (array[pos + 1] << (8 - bit))) & 0xFF;
   }
 
   /// <inheritdoc cref="ByteFromBits(byte[], int)"/>
@@ -501,12 +501,12 @@ class Converter {
     int bit = startBit % bitsPerByte;
     if (bit == 0) {
       array[pos] = value;
-      array[pos + 1] = value >> 8;
+      array[pos + 1] = value >>> 8;
     } else {
       array[pos] |= value << bit;
-      value >>= 8 - bit;
+      value >>>= 8 - bit;
       array[pos + 1] = value;
-      array[pos + 2] = value >> 8;
+      array[pos + 2] = value >>> 8;
     }
   }
 
@@ -536,8 +536,8 @@ class Converter {
     int value = array[pos] | (array[pos + 1] << 8);
     if (bit == 0) return value;
 
-    value >>= bit;
-    return (value | (array[pos + 2] << (16 - bit))) % (pow(2, 8 * Constants.ushortBytes)).toInt();
+    value >>>= bit;
+    return (value | (array[pos + 2] << (16 - bit))) & Constants.ushortMaxVal;
   }
 
   /// <inheritdoc cref="UShortFromBits(byte[], int)"/>
@@ -610,16 +610,16 @@ class Converter {
     int bit = startBit % bitsPerByte;
     if (bit == 0) {
       array[pos] = value;
-      array[pos + 1] = value >> 8;
-      array[pos + 2] = value >> 16;
-      array[pos + 3] = value >> 24;
+      array[pos + 1] = value >>> 8;
+      array[pos + 2] = value >>> 16;
+      array[pos + 3] = value >>> 24;
     } else {
       array[pos] |= value << bit;
-      value >>= 8 - bit;
+      value >>>= 8 - bit;
       array[pos + 1] = value;
-      array[pos + 2] = value >> 8;
-      array[pos + 3] = value >> 16;
-      array[pos + 4] = value >> 24;
+      array[pos + 2] = value >>> 8;
+      array[pos + 3] = value >>> 16;
+      array[pos + 4] = value >>> 24;
     }
   }
 
@@ -648,8 +648,9 @@ class Converter {
     int value = array[pos] | (array[pos + 1] << 8) | (array[pos + 2] << 16) | (array[pos + 3] << 24);
     if (bit == 0) return value;
 
-    value >>= bit;
-    return value | array[pos + 4] << (32 - bit);
+    value >>>= bit;
+    // Mask with 0xFFFFFFFF to ensure the returned value is in the 32-bit unsigned range
+    return (value | (array[pos + 4] << (32 - bit))) & 0xFFFFFFFF;
   }
 
   /// <inheritdoc cref="UIntFromBits(byte[], int)"/>
@@ -671,22 +672,22 @@ class Converter {
   static void fromULong(int value, Uint8List array, int startIndex) {
     if (endian == Endian.big) {
       array[startIndex + 7] = value;
-      array[startIndex + 6] = (value >> 8);
-      array[startIndex + 5] = (value >> 16);
-      array[startIndex + 4] = (value >> 24);
-      array[startIndex + 3] = (value >> 32);
-      array[startIndex + 2] = (value >> 40);
-      array[startIndex + 1] = (value >> 48);
-      array[startIndex] = (value >> 56);
+      array[startIndex + 6] = (value >>> 8);
+      array[startIndex + 5] = (value >>> 16);
+      array[startIndex + 4] = (value >>> 24);
+      array[startIndex + 3] = (value >>> 32);
+      array[startIndex + 2] = (value >>> 40);
+      array[startIndex + 1] = (value >>> 48);
+      array[startIndex] = (value >>> 56);
     } else {
       array[startIndex] = value;
-      array[startIndex + 1] = (value >> 8);
-      array[startIndex + 2] = (value >> 16);
-      array[startIndex + 3] = (value >> 24);
-      array[startIndex + 4] = (value >> 32);
-      array[startIndex + 5] = (value >> 40);
-      array[startIndex + 6] = (value >> 48);
-      array[startIndex + 7] = (value >> 56);
+      array[startIndex + 1] = (value >>> 8);
+      array[startIndex + 2] = (value >>> 16);
+      array[startIndex + 3] = (value >>> 24);
+      array[startIndex + 4] = (value >>> 32);
+      array[startIndex + 5] = (value >>> 40);
+      array[startIndex + 6] = (value >>> 48);
+      array[startIndex + 7] = (value >>> 56);
     }
   }
 
@@ -732,24 +733,24 @@ class Converter {
     int bit = startBit % bitsPerByte;
     if (bit == 0) {
       array[pos] = value;
-      array[pos + 1] = value >> 8;
-      array[pos + 2] = value >> 16;
-      array[pos + 3] = value >> 24;
-      array[pos + 4] = value >> 32;
-      array[pos + 5] = value >> 40;
-      array[pos + 6] = value >> 48;
-      array[pos + 7] = value >> 56;
+      array[pos + 1] = value >>> 8;
+      array[pos + 2] = value >>> 16;
+      array[pos + 3] = value >>> 24;
+      array[pos + 4] = value >>> 32;
+      array[pos + 5] = value >>> 40;
+      array[pos + 6] = value >>> 48;
+      array[pos + 7] = value >>> 56;
     } else {
       array[pos] |= value << bit;
-      value >>= 8 - bit;
+      value >>>= 8 - bit;
       array[pos + 1] = value;
-      array[pos + 2] = value >> 8;
-      array[pos + 3] = value >> 16;
-      array[pos + 4] = value >> 24;
-      array[pos + 5] = value >> 32;
-      array[pos + 6] = value >> 40;
-      array[pos + 7] = value >> 48;
-      array[pos + 8] = value >> 56;
+      array[pos + 2] = value >>> 8;
+      array[pos + 3] = value >>> 16;
+      array[pos + 4] = value >>> 24;
+      array[pos + 5] = value >>> 32;
+      array[pos + 6] = value >>> 40;
+      array[pos + 7] = value >>> 48;
+      array[pos + 8] = value >>> 56;
     }
   }
 
@@ -763,7 +764,7 @@ class Converter {
       array[pos] = value;
     } else {
       array[pos] |= value << bit;
-      array[pos + 1] = value >> (bitsPerULong - bit);
+      array[pos + 1] = value >>> (bitsPerULong - bit);
     }
   }
 
@@ -784,13 +785,22 @@ class Converter {
   /// Returns the converted [ulong].
   /// IMPORTANT: Originally returns a ulong [value] aka unsigned 64 bits. Dart only has int aka 64 signed bits. This might cause problems
   static int uLongFromByteBits(Uint8List array, int startBit) {
-    int pos = startBit ~/ bitsPerULong;
-    int bit = startBit % bitsPerULong;
-    int value = array[pos];
-    if (bit == 0) return value;
+    int pos = startBit ~/ bitsPerByte;
+    int bit = startBit % bitsPerByte;
 
-    value >>= bit;
-    return value | (array[pos + 1] << (bitsPerULong - bit));
+    // Use ByteData to safely read a 64-bit integer from a byte list.
+    var byteData = array.buffer.asByteData(array.offsetInBytes);
+    int value = byteData.getUint64(pos, Endian.little);
+
+    if (bit == 0) {
+      return value;
+    }
+
+    value >>>= bit; // Use logical shift for unsigned behavior
+    if (pos + 8 < array.length) {
+      value |= (array[pos + 8] << (64 - bit));
+    }
+    return value;
   }
 
   /// <inheritdoc cref="ULongFromBits(byte[], int)"/>
@@ -799,10 +809,16 @@ class Converter {
     int pos = startBit ~/ bitsPerULong;
     int bit = startBit % bitsPerULong;
     int value = array[pos];
-    if (bit == 0) return value;
+    if (bit == 0) {
+      return value;
+    }
 
-    value >>= bit;
-    return value | (array[pos + 1] << (bitsPerULong - bit));
+    // Use logical right shift (>>>) to correctly handle unsigned 64-bit behavior
+    value >>>= bit;
+    if (pos + 1 < array.length) {
+      return value | (array[pos + 1] << (bitsPerULong - bit));
+    }
+    return value;
   }
 
   /// Converts [value] to [valueSize] bits and writes them into [array] at [startBit].
@@ -813,16 +829,19 @@ class Converter {
   /// [array] : The array to write the bits into.
   /// [startBit] : The position in the array at which to write the bits.
   static void toBits(int value, int valueSize, Uint64List array, int startBit) {
+    final int mask = valueSize == 64 ? -1 : (1 << valueSize) - 1;
+    value &= mask;
+
     int pos = startBit ~/ bitsPerULong;
     int bit = startBit % bitsPerULong;
 
-    if (bit == 0) {
-      array[pos] = value;
-    } else if (bit + valueSize < bitsPerULong) {
-      array[pos] |= value << bit;
-    } else {
-      array[pos] |= value << bit;
-      array[pos + 1] = value >> (bitsPerULong - bit);
+    // Clear the space for the new bits and then OR the new bits into place
+    array[pos] = (value << bit) | (array[pos] & ~(mask << bit));
+
+    if (bit + valueSize > bitsPerULong) {
+      // The value spills into the next ulong
+      // Clear the space in the next ulong and then OR the spilled bits into place
+      array[pos + 1] = (value >>> (bitsPerULong - bit)) | (array[pos + 1] & ~(mask >>> (bitsPerULong - bit)));
     }
   }
 
@@ -838,16 +857,25 @@ class Converter {
     int pos = startBit ~/ bitsPerULong;
     int bit = startBit % bitsPerULong;
     int value = array[pos];
+
+    // Create a mask for the lower 'valueSize' bits.
+    // `(1 << valueSize) - 1` works for valueSize up to 63.
+    // For valueSize = 64, we need a mask of all 1s, which is -1 in two's complement.
+    final int mask = valueSize == 64 ? -1 : (1 << valueSize) - 1;
+
     if (bit == 0) {
-      return value;
+      return value & mask;
     }
 
-    value >>= bit;
-    if (bit + valueSize < bitsPerULong) {
-      return value;
+    // Use logical right shift (>>>) to correctly handle unsigned 64-bit behavior
+    value = value >>> bit;
+    if (bit + valueSize <= bitsPerULong) {
+      return value & mask;
     }
 
-    return value | (array[pos + 1] << (bitsPerULong - bit));
+    int nextValue = array[pos + 1] << (bitsPerULong - bit);
+    int combined = value | nextValue;
+    return combined & mask;
     // if (pos + 1 < array.length) {
     //   return value | (array[pos + 1] << (bitsPerULong - bit));
     // } else {

@@ -146,6 +146,7 @@ abstract class Connection {
 
   /// Whether or not the connection is currently not trying to connect, pending, nor actively connected.
   late ConnectionState _state;
+  ConnectionState get state => _state;
 
   /// The number of consecutive times that the [maxAvgSendAttempts] threshold was exceeded.
   int _sendAttemptsViolations = 0;

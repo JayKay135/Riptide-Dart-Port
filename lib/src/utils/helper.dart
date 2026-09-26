@@ -121,8 +121,6 @@ class Helper {
         return _crRejected;
       case RejectReason.custom:
         return _crCustom;
-      default:
-        return "$_unknownReason '$forReason'";
     }
   }
 
@@ -173,8 +171,9 @@ class Helper {
   /// ```
   static void blockCopyReversed(Uint64List src, int srcOffset, Uint8List dst, int dstOffset, int count) {
     for (var i = 0; i < count; i++) {
-      var value = src[(srcOffset + i) ~/ 8];
-      var byte = (value >> ((i % 8) * 8)) & 0xFF;
+      int byteIndex = i;
+      var value = src[byteIndex ~/ 8];
+      var byte = (value >>> (((srcOffset + byteIndex) % 8) * 8)) & 0xFF;
       dst[dstOffset + i] = byte;
     }
   }
