@@ -11,6 +11,9 @@ class TcpConnection extends Connection {
   /// The endpoint representing the other end of the connection.
   late final InternetAddress remoteEndPoint;
 
+  /// The port of the other end of the connection.
+  late final int remotePort;
+
   /// Whether or not the server has received a connection attempt from this connection.
   bool didReceiveConnect = false;
 
@@ -36,6 +39,7 @@ class TcpConnection extends Connection {
   TcpConnection(Socket socket, this.remoteEndPoint, TcpPeer peer) {
     _socket = socket;
     _peer = peer;
+    remotePort = socket.remotePort;
 
     _socket.listen((Uint8List data) {
       if (data.isNotEmpty) {

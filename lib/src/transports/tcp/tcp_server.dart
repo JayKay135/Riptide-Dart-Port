@@ -32,10 +32,12 @@ class TcpServer extends TcpPeer implements IServer {
   bool _isRunning = false;
 
   /// The currently open connections, accessible by their endpoints.
-  late Map<InternetAddress, TcpConnection> _connections;
+  ///
+  /// NOTE: Dart has no equivalent of C#'s IPEndPoint, so endpoints are represented by records of the address and port.
+  late Map<(InternetAddress, int), TcpConnection> _connections;
 
-  /// Connections that have been closed and need to be removed from <see cref="connections"/>.
-  final List<InternetAddress> _closedConnections = [];
+  /// Connections that have been closed and need to be removed from [_connections].
+  final List<(InternetAddress, int)> _closedConnections = [];
 
   /// The IP address to bind the socket to.
   late InternetAddress _listenAddress;
@@ -54,7 +56,7 @@ class TcpServer extends TcpPeer implements IServer {
 
   @override
   void start(int port) {
-    port = port;
+    this.port = port;
     _connections = {};
 
     _startListening(port);
@@ -71,10 +73,10 @@ class TcpServer extends TcpPeer implements IServer {
     serverSocket = await ServerSocket.bind(_listenAddress, port);
 
     serverSocket!.listen((Socket newSocket) {
-      InternetAddress fromEndPoint = newSocket.remoteAddress;
+      (InternetAddress, int) fromEndPoint = (newSocket.remoteAddress, newSocket.remotePort);
 
       if (!_connections.containsKey(fromEndPoint)) {
-        TcpConnection newConnection = TcpConnection(newSocket, fromEndPoint, this);
+        TcpConnection newConnection = TcpConnection(newSocket, fromEndPoint.$1, this);
         _connections[fromEndPoint] = newConnection;
         onConnected(newConnection);
       } else {
@@ -95,7 +97,7 @@ class TcpServer extends TcpPeer implements IServer {
       connection.receive();
     }
 
-    for (InternetAddress endPoint in _closedConnections) {
+    for ((InternetAddress, int) endPoint in _closedConnections) {
       _connections.remove(endPoint);
     }
 
@@ -115,7 +117,7 @@ class TcpServer extends TcpPeer implements IServer {
   @override
   void close(Connection connection) {
     if (connection is TcpConnection) {
-      _closedConnections.add(connection.remoteEndPoint);
+      _closedConnections.add((connection.remoteEndPoint, connection.remotePort));
       connection.close();
     }
   }
@@ -135,7 +137,7 @@ class TcpServer extends TcpPeer implements IServer {
 
   @override
   void onDataReceived(int amount, TcpConnection fromConnection) {
-    if (MessageHeader.values[receiveBuffer.first & Message.headerBitmask] == MessageHeader.connect) {
+    if ((receiveBuffer[0] & Message.headerBitmask) == MessageHeader.connect.index) {
       if (fromConnection.didReceiveConnect) {
         return;
       }

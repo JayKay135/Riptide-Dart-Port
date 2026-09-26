@@ -7,6 +7,7 @@ import '../event_args.dart';
 import '../ipeer.dart';
 import '../iserver.dart';
 import '../../connection.dart';
+import '../../message.dart';
 import '../../utils/event_handler.dart';
 
 /// A server which can accept connections from UdpClients
@@ -24,7 +25,9 @@ class UdpServer extends UdpPeer implements IServer {
   late int port;
 
   /// The currently open connections, accessible by their endpoints.
-  late Map<InternetAddress, Connection> _connections;
+  ///
+  /// NOTE: Dart has no equivalent of C#'s IPEndPoint, so endpoints are represented by records of the address and port.
+  late Map<(InternetAddress, int), Connection> _connections;
 
   /// The IP address to bind the socket to, if any.
   late InternetAddress _listenAddress;
@@ -40,7 +43,7 @@ class UdpServer extends UdpPeer implements IServer {
 
   @override
   void start(int port) {
-    port = port;
+    this.port = port;
     _connections = {};
 
     openSocket(listenAddress: listenAddress, port: port);
@@ -52,12 +55,12 @@ class UdpServer extends UdpPeer implements IServer {
   ///
   /// Returns whether or not the connection attempt was from a new connection.
   bool _handleConnectionAttempt(InternetAddress fromEndPoint, int port) {
-    if (_connections.containsKey(fromEndPoint)) {
+    if (_connections.containsKey((fromEndPoint, port))) {
       return false;
     }
 
     UdpConnection connection = UdpConnection(fromEndPoint, port, this);
-    _connections[fromEndPoint] = connection;
+    _connections[(fromEndPoint, port)] = connection;
     onConnected(connection);
     return true;
   }
@@ -65,7 +68,7 @@ class UdpServer extends UdpPeer implements IServer {
   @override
   void close(Connection connection) {
     if (connection is UdpConnection) {
-      _connections.remove(connection.remoteEndPoint);
+      _connections.remove((connection.remoteEndPoint, connection.port));
     }
   }
 
@@ -84,18 +87,14 @@ class UdpServer extends UdpPeer implements IServer {
 
   @override
   void onDataReceived(Uint8List data, int amount, InternetAddress fromEndPoint, int port) {
-    if (data.first < MessageHeader.values.length &&
-        MessageHeader.values[data.first] == MessageHeader.connect &&
+    if ((data[0] & Message.headerBitmask) == MessageHeader.connect.index &&
         !_handleConnectionAttempt(fromEndPoint, port)) {
       return;
     }
 
-    if (_connections.containsKey(fromEndPoint)) {
-      Connection connection = _connections[fromEndPoint]!;
-
-      if (!connection.isNotConnected) {
-        dataReceived.invoke(DataReceivedEventArgs(data, amount, connection));
-      }
+    Connection? connection = _connections[(fromEndPoint, port)];
+    if (connection != null && !connection.isNotConnected) {
+      dataReceived.invoke(DataReceivedEventArgs(data, amount, connection));
     }
   }
 }
