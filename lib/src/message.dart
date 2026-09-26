@@ -377,7 +377,7 @@ class Message {
       }
 
       for (int i = 1; i < destSegments; i++) {
-        data[destPos + i] = (message.data[sourcePos + i - 1] >> (_bitsPerSegment - bitOffset)) |
+        data[destPos + i] = (message.data[sourcePos + i - 1] >>> (_bitsPerSegment - bitOffset)) |
             (message.data[sourcePos + i] << bitOffset);
       }
     } else {
@@ -394,7 +394,7 @@ class Message {
       int sourceSegments = (startBit + amount) ~/ _bitsPerSegment - sourcePos + 1;
       for (int i = 1; i < sourceSegments; i++) {
         data[destPos + i - 1] |= message.data[sourcePos + i] << (_bitsPerSegment - bitOffset);
-        data[destPos + i] = message.data[sourcePos + i] >> bitOffset;
+        data[destPos + i] = message.data[sourcePos + i] >>> bitOffset;
       }
     }
 
