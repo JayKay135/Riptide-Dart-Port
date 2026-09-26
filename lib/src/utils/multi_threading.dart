@@ -5,8 +5,6 @@ import 'dart:isolate';
 import '../../riptide.dart';
 import 'event_handler.dart';
 import 'riptide_logger.dart';
-import '../server.dart';
-import '../client.dart';
 import '../server.dart' as server_ref;
 import '../client.dart' as client_ref;
 
@@ -63,6 +61,7 @@ class MultiThreadedServer {
   /// [toClient] : The numeric ID of the client to send the message to.
   void send(Message message, int toClient) {
     _sendPort.send({'id': toClient, 'message': message});
+    message.release(); // The message was copied to the isolate
   }
 
   /// Sends a message to all connected clients.
@@ -70,6 +69,7 @@ class MultiThreadedServer {
   /// [message] : The message to send.
   void sendToAll(Message message) {
     _sendPort.send({'message': message});
+    message.release(); // The message was copied to the isolate
   }
 
   /// Registers a callback handler for a specifc [messageID] when messages with this particular id are received.
@@ -87,124 +87,165 @@ class MultiThreadedServer {
       MultiThreadedTransportType transportType, int port, int maxClientCount, bool loggingEnabled) async {
     Completer<SendPort> completer = Completer<SendPort>();
     ReceivePort receivePort = ReceivePort();
+    ReceivePort errorPort = ReceivePort();
+    ReceivePort exitPort = ReceivePort();
 
-    Isolate.spawn((Map<String, dynamic> map) {
-      ReceivePort receiver = ReceivePort();
-
-      final SendPort sendPort = map['sendPort'] as SendPort;
-      sendPort.send(receiver.sendPort);
-
-      if (map['loggingEnabled'] as bool) {
-        RiptideLogger.initializeExtended(
-          (debugMessage) => sendPort.send({'debug': debugMessage}),
-          (infoMessage) => sendPort.send({'info': infoMessage}),
-          (warningMessage) => sendPort.send({'warning': warningMessage}),
-          (errorMessage) => sendPort.send({'error': errorMessage}),
-          true,
-        );
-      }
-
-      MultiThreadedTransportType transportType = MultiThreadedTransportType.values[map['transportType'] as int];
-
-      // actual riptide code
-      IServer transport = transportType == MultiThreadedTransportType.udp ? UdpServer() : TcpServer();
-      Server server = Server(transport: transport);
-      server.start(map['port'] as int, map['maxClientCount'] as int, useMessageHandlers: false);
-
-      // received command or message data
-      receiver.listen((data) {
-        // NOTE: Isolates only allow for a few data types to be passed through ports.
-        // The nicest way is to use maps to send multiple objects at once.
-        // Downside is that the whole api infrastructure from the Server class has to be encoded and decoded through maps.
-        Map<String, dynamic> map = data as Map<String, dynamic>;
-
-        bool? stop = map['stop'] as bool?;
-        int? id = map['id'] as int?;
-        Message? message = map['message'] as Message?;
-
-        // execute different server function based on given map content
-
-        if (stop != null && stop) {
-          server.stop();
-
-          return Isolate.current.kill();
-        }
-
-        if (id != null) {
-          server.send(message!, id);
-        } else {
-          server.sendToAll(message!);
-        }
-      });
-
-      server.clientConnected.subscribe((ServerConnectedEventArgs? args) {
-        sendPort.send({'clientConnected': args!.client.id});
-      });
-
-      server.clientDisconnected.subscribe((ServerDisconnectedEventArgs? args) {
-        sendPort.send({'clientDisconnected': args!.client.id, 'reason': args.reason});
-      });
-
-      // listen for received messages and forward them through the sendPort
-      server.messageReceived.subscribe((MessageReceivedEventArgs? args) {
-        sendPort.send({'messageId': args!.messageID, 'connectionId': args.fromConnection.id, 'message': args.message});
-      });
-
-      Timer.periodic(const Duration(milliseconds: 20), (timer) {
-        server.update();
-      });
-    }, {
-      'sendPort': receivePort.sendPort,
-      'port': port,
-      'maxClientCount': maxClientCount,
-      'loggingEnabled': loggingEnabled,
-      'transportType': transportType.index,
-    });
-
-    // send received socket data
+    // received events, logs and messages from the isolate
     receivePort.listen((data) {
       if (data is SendPort) {
         completer.complete(data);
       } else {
-        Map<String, dynamic> map = data as Map<String, dynamic>;
-
-        // distinguish between certain events from the isolate
-        if (map.containsKey('clientConnected')) {
-          return clientConnected.invoke(MultiThreadedServerConnectedEventArgs(map['clientConnected'] as int));
-        }
-        if (map.containsKey('clientDisconnected')) {
-          return clientDisconnected.invoke(MultiThreadedServerDisconnectedEventArgs(
-              map['clientDisconnected'] as int, map['reason'] as DisconnectReason));
-        }
-
-        if (map.containsKey('debug')) {
-          return RiptideLogger.logWithLogName(LogType.debug, logName, map['debug'] as String);
-        }
-        if (map.containsKey('info')) {
-          return RiptideLogger.logWithLogName(LogType.info, logName, map['info'] as String);
-        }
-        if (map.containsKey('warning')) {
-          return RiptideLogger.logWithLogName(LogType.warning, logName, map['warning'] as String);
-        }
-        if (map.containsKey('error')) {
-          return RiptideLogger.logWithLogName(LogType.error, logName, map['error'] as String);
-        }
-
-        // received message data
-        int messageId = map['messageId'] as int;
-        int connectionId = map['connectionId'] as int;
-        Message message = map['message'] as Message;
-
-        if (_messageHandlers.containsKey(messageId)) {
-          _messageHandlers[messageId]!(connectionId, message);
-        } else {
-          RiptideLogger.logWithLogName(
-              LogType.warning, logName, "No message handler method found for message ID $messageId!");
-        }
+        _handleIsolateData(data as Map<String, dynamic>);
       }
     });
 
+    errorPort.listen((error) {
+      List<dynamic> errorAndStackTrace = error as List<dynamic>;
+      RemoteError remoteError = RemoteError(errorAndStackTrace[0] as String, errorAndStackTrace[1] as String);
+      if (!completer.isCompleted) {
+        completer.completeError(remoteError);
+      } else {
+        RiptideLogger.logWithLogName(LogType.error, logName, "The server isolate encountered an error: $remoteError");
+      }
+    });
+
+    exitPort.listen((_) {
+      receivePort.close();
+      errorPort.close();
+      exitPort.close();
+      if (!completer.isCompleted) {
+        completer.completeError(StateError("The server isolate exited before the server was started!"));
+      }
+    });
+
+    await Isolate.spawn(
+        _serverIsolate,
+        {
+          'sendPort': receivePort.sendPort,
+          'port': port,
+          'maxClientCount': maxClientCount,
+          'loggingEnabled': loggingEnabled,
+          'transportType': transportType.index,
+        },
+        onError: errorPort.sendPort,
+        onExit: exitPort.sendPort);
+
     return completer.future;
+  }
+
+  /// Handles data received from the server isolate.
+  ///
+  /// [map] : The received data.
+  void _handleIsolateData(Map<String, dynamic> map) {
+    // distinguish between certain events from the isolate
+    if (map.containsKey('clientConnected')) {
+      return clientConnected.invoke(MultiThreadedServerConnectedEventArgs(map['clientConnected'] as int));
+    }
+    if (map.containsKey('clientDisconnected')) {
+      return clientDisconnected.invoke(MultiThreadedServerDisconnectedEventArgs(
+          map['clientDisconnected'] as int, map['reason'] as DisconnectReason));
+    }
+
+    if (map.containsKey('debug')) {
+      return RiptideLogger.logWithLogName(LogType.debug, logName, map['debug'] as String);
+    }
+    if (map.containsKey('info')) {
+      return RiptideLogger.logWithLogName(LogType.info, logName, map['info'] as String);
+    }
+    if (map.containsKey('warning')) {
+      return RiptideLogger.logWithLogName(LogType.warning, logName, map['warning'] as String);
+    }
+    if (map.containsKey('error')) {
+      return RiptideLogger.logWithLogName(LogType.error, logName, map['error'] as String);
+    }
+
+    // received message data
+    int messageId = map['messageId'] as int;
+    int connectionId = map['connectionId'] as int;
+    Message message = map['message'] as Message;
+
+    if (_messageHandlers.containsKey(messageId)) {
+      _messageHandlers[messageId]!(connectionId, message);
+    } else {
+      RiptideLogger.logWithLogName(
+          LogType.warning, logName, "No message handler method found for message ID $messageId!");
+    }
+  }
+
+  /// The entry point of the server isolate.
+  ///
+  /// NOTE: This is a static method so that it doesn't capture anything from the spawning isolate (like this instance's
+  /// event subscribers), which would otherwise be copied into the new isolate.
+  static Future<void> _serverIsolate(Map<String, dynamic> map) async {
+    ReceivePort receiver = ReceivePort();
+
+    final SendPort sendPort = map['sendPort'] as SendPort;
+
+    if (map['loggingEnabled'] as bool) {
+      // Timestamps are added when the logs are forwarded
+      RiptideLogger.initializeExtended(
+        (debugMessage) => sendPort.send({'debug': debugMessage}),
+        (infoMessage) => sendPort.send({'info': infoMessage}),
+        (warningMessage) => sendPort.send({'warning': warningMessage}),
+        (errorMessage) => sendPort.send({'error': errorMessage}),
+        false,
+      );
+    }
+
+    MultiThreadedTransportType transportType = MultiThreadedTransportType.values[map['transportType'] as int];
+
+    // actual riptide code
+    IServer transport = transportType == MultiThreadedTransportType.udp ? UdpServer() : TcpServer();
+    Server server = Server(transport: transport);
+    await server.start(map['port'] as int, map['maxClientCount'] as int, useMessageHandlers: false);
+
+    Timer timer = Timer.periodic(const Duration(milliseconds: 20), (timer) {
+      server.update();
+    });
+
+    // received command or message data
+    receiver.listen((data) {
+      // NOTE: Isolates only allow for a few data types to be passed through ports.
+      // The nicest way is to use maps to send multiple objects at once.
+      // Downside is that the whole api infrastructure from the Server class has to be encoded and decoded through maps.
+      Map<String, dynamic> map = data as Map<String, dynamic>;
+
+      bool? stop = map['stop'] as bool?;
+      int? id = map['id'] as int?;
+      Message? message = map['message'] as Message?;
+
+      // execute different server function based on given map content
+
+      if (stop != null && stop) {
+        server.stop();
+
+        // The isolate exits once everything (like data which is still being sent) is done
+        timer.cancel();
+        receiver.close();
+        return;
+      }
+
+      if (id != null) {
+        server.send(message!, id);
+      } else {
+        server.sendToAll(message!);
+      }
+    });
+
+    server.clientConnected.subscribe((ServerConnectedEventArgs? args) {
+      sendPort.send({'clientConnected': args!.client.id});
+    });
+
+    server.clientDisconnected.subscribe((ServerDisconnectedEventArgs? args) {
+      sendPort.send({'clientDisconnected': args!.client.id, 'reason': args.reason});
+    });
+
+    // listen for received messages and forward them through the sendPort
+    server.messageReceived.subscribe((MessageReceivedEventArgs? args) {
+      sendPort.send({'messageId': args!.messageID, 'connectionId': args.fromConnection.id, 'message': args.message});
+    });
+
+    sendPort.send(receiver.sendPort);
   }
 }
 
@@ -271,6 +312,7 @@ class MultiThreadedClient {
   /// [message] : The message to send.
   void send(Message message) {
     _sendPort.send({'message': message});
+    message.release(); // The message was copied to the isolate
   }
 
   /// Registers a callback handler for a specifc [messageID] when messages with this particular id are received.
@@ -288,136 +330,180 @@ class MultiThreadedClient {
       int maxConnectionAttempts, bool loggingEnabled) async {
     Completer<SendPort> completer = Completer<SendPort>();
     ReceivePort receivePort = ReceivePort();
+    ReceivePort errorPort = ReceivePort();
+    ReceivePort exitPort = ReceivePort();
 
-    Isolate.spawn((Map<String, dynamic> map) {
-      ReceivePort receiver = ReceivePort();
-
-      final SendPort sendPort = map['sendPort'] as SendPort;
-      sendPort.send(receiver.sendPort);
-
-      if (map['loggingEnabled'] as bool) {
-        RiptideLogger.initializeExtended(
-          (debugMessage) => sendPort.send({'debug': debugMessage}),
-          (infoMessage) => sendPort.send({'info': infoMessage}),
-          (warningMessage) => sendPort.send({'warning': warningMessage}),
-          (errorMessage) => sendPort.send({'error': errorMessage}),
-          true,
-        );
-      }
-
-      MultiThreadedTransportType transportType = MultiThreadedTransportType.values[map['transportType'] as int];
-
-      // actual riptide code
-      IClient transport = transportType == MultiThreadedTransportType.udp ? UdpClient() : TcpClient();
-      Client client = Client(transport: transport);
-      client.connect(map['hostAddress'] as InternetAddress, map['port'] as int,
-          maxConnectionAttempts: map['maxConnectionAttempts'] as int, useMessageHandlers: false);
-
-      // received command or message data
-      receiver.listen((data) {
-        // NOTE: Isolates only allow for a few data types to be passed through ports.
-        // The nicest way is to use maps to send multiple objects at once.
-        // Downside is that the whole api infrastructure from the Client class has to be encoded and decoded through maps.
-        Map<String, dynamic> map = data as Map<String, dynamic>;
-
-        bool? disconnect = map['disconnect'] as bool?;
-        Message? message = map['message'] as Message?;
-
-        // execute different server function based on given map content
-
-        if (disconnect != null && disconnect) {
-          client.disconnect();
-
-          return Isolate.current.kill();
-        }
-
-        client.send(message!);
-      });
-
-      client.connected.subscribe((_) => sendPort.send({'connected': null}));
-
-      client.connectionFailed.subscribe((_) => sendPort.send({'connectionFailed': null}));
-
-      client.disconnected.subscribe((DisconnectedEventArgs? args) {
-        sendPort.send({'disconnected': args!.message, 'reason': args.reason});
-      });
-
-      client.clientConnected.subscribe((ClientConnectedEventArgs? args) {
-        sendPort.send({'clientConnected': args!.id});
-      });
-
-      client.clientDisconnected.subscribe((ClientDisconnectedEventArgs? args) {
-        sendPort.send({'clientDisconnected': args!.id});
-      });
-
-      // listen for received messages and forward them through the sendPort
-      client.messageReceived.subscribe((MessageReceivedEventArgs? args) {
-        sendPort.send({'messageId': args!.messageID, 'message': args.message});
-      });
-
-      Timer.periodic(const Duration(milliseconds: 20), (timer) {
-        client.update();
-      });
-    }, {
-      'sendPort': receivePort.sendPort,
-      'hostAddress': hostAddress,
-      'port': port,
-      'maxConnectionAttempts': maxConnectionAttempts,
-      'loggingEnabled': loggingEnabled,
-      'transportType': transportType.index,
-    });
-
-    // send received socket data
+    // received events, logs and messages from the isolate
     receivePort.listen((data) {
       if (data is SendPort) {
         completer.complete(data);
       } else {
-        Map<String, dynamic> map = data as Map<String, dynamic>;
-
-        // distinguish between certain events from the isolate
-        if (map.containsKey('connected')) {
-          return connected.invoke(null);
-        }
-        if (map.containsKey('connectionFailed')) {
-          return connectionFailed.invoke(null);
-        }
-        if (map.containsKey('disconnected')) {
-          return disconnected
-              .invoke(DisconnectedEventArgs(map['reason'] as DisconnectReason, map['disconnected'] as Message?));
-        }
-        if (map.containsKey('clientConnected')) {
-          return clientConnected.invoke(ClientConnectedEventArgs(map['clientConnected'] as int));
-        }
-        if (map.containsKey('clientDisconnected')) {
-          return clientDisconnected.invoke(ClientDisconnectedEventArgs(map['clientDisconnected'] as int));
-        }
-
-        if (map.containsKey('debug')) {
-          return RiptideLogger.logWithLogName(LogType.debug, logName, map['debug'] as String);
-        }
-        if (map.containsKey('info')) {
-          return RiptideLogger.logWithLogName(LogType.info, logName, map['info'] as String);
-        }
-        if (map.containsKey('warning')) {
-          return RiptideLogger.logWithLogName(LogType.warning, logName, map['warning'] as String);
-        }
-        if (map.containsKey('error')) {
-          return RiptideLogger.logWithLogName(LogType.error, logName, map['error'] as String);
-        }
-
-        // received message data
-        int messageId = map['messageId'] as int;
-        Message message = map['message'] as Message;
-
-        if (_messageHandlers.containsKey(messageId)) {
-          _messageHandlers[messageId]!(message);
-        } else {
-          RiptideLogger.logWithLogName(
-              LogType.warning, logName, "No message handler method found for message ID $messageId!");
-        }
+        _handleIsolateData(data as Map<String, dynamic>);
       }
     });
 
+    errorPort.listen((error) {
+      List<dynamic> errorAndStackTrace = error as List<dynamic>;
+      RemoteError remoteError = RemoteError(errorAndStackTrace[0] as String, errorAndStackTrace[1] as String);
+      if (!completer.isCompleted) {
+        completer.completeError(remoteError);
+      } else {
+        RiptideLogger.logWithLogName(LogType.error, logName, "The client isolate encountered an error: $remoteError");
+      }
+    });
+
+    exitPort.listen((_) {
+      receivePort.close();
+      errorPort.close();
+      exitPort.close();
+      if (!completer.isCompleted) {
+        completer.completeError(StateError("The client isolate exited before the client was started!"));
+      }
+    });
+
+    await Isolate.spawn(
+        _clientIsolate,
+        {
+          'sendPort': receivePort.sendPort,
+          'hostAddress': hostAddress,
+          'port': port,
+          'maxConnectionAttempts': maxConnectionAttempts,
+          'loggingEnabled': loggingEnabled,
+          'transportType': transportType.index,
+        },
+        onError: errorPort.sendPort,
+        onExit: exitPort.sendPort);
+
     return completer.future;
+  }
+
+  /// Handles data received from the client isolate.
+  ///
+  /// [map] : The received data.
+  void _handleIsolateData(Map<String, dynamic> map) {
+    // distinguish between certain events from the isolate
+    if (map.containsKey('connected')) {
+      return connected.invoke(null);
+    }
+    if (map.containsKey('connectionFailed')) {
+      return connectionFailed.invoke(null);
+    }
+    if (map.containsKey('disconnected')) {
+      return disconnected
+          .invoke(DisconnectedEventArgs(map['reason'] as DisconnectReason, map['disconnected'] as Message?));
+    }
+    if (map.containsKey('clientConnected')) {
+      return clientConnected.invoke(ClientConnectedEventArgs(map['clientConnected'] as int));
+    }
+    if (map.containsKey('clientDisconnected')) {
+      return clientDisconnected.invoke(ClientDisconnectedEventArgs(map['clientDisconnected'] as int));
+    }
+
+    if (map.containsKey('debug')) {
+      return RiptideLogger.logWithLogName(LogType.debug, logName, map['debug'] as String);
+    }
+    if (map.containsKey('info')) {
+      return RiptideLogger.logWithLogName(LogType.info, logName, map['info'] as String);
+    }
+    if (map.containsKey('warning')) {
+      return RiptideLogger.logWithLogName(LogType.warning, logName, map['warning'] as String);
+    }
+    if (map.containsKey('error')) {
+      return RiptideLogger.logWithLogName(LogType.error, logName, map['error'] as String);
+    }
+
+    // received message data
+    int messageId = map['messageId'] as int;
+    Message message = map['message'] as Message;
+
+    if (_messageHandlers.containsKey(messageId)) {
+      _messageHandlers[messageId]!(message);
+    } else {
+      RiptideLogger.logWithLogName(
+          LogType.warning, logName, "No message handler method found for message ID $messageId!");
+    }
+  }
+
+  /// The entry point of the client isolate.
+  ///
+  /// NOTE: This is a static method so that it doesn't capture anything from the spawning isolate (like this instance's
+  /// event subscribers), which would otherwise be copied into the new isolate.
+  static Future<void> _clientIsolate(Map<String, dynamic> map) async {
+    ReceivePort receiver = ReceivePort();
+
+    final SendPort sendPort = map['sendPort'] as SendPort;
+
+    if (map['loggingEnabled'] as bool) {
+      // Timestamps are added when the logs are forwarded
+      RiptideLogger.initializeExtended(
+        (debugMessage) => sendPort.send({'debug': debugMessage}),
+        (infoMessage) => sendPort.send({'info': infoMessage}),
+        (warningMessage) => sendPort.send({'warning': warningMessage}),
+        (errorMessage) => sendPort.send({'error': errorMessage}),
+        false,
+      );
+    }
+
+    MultiThreadedTransportType transportType = MultiThreadedTransportType.values[map['transportType'] as int];
+
+    // actual riptide code
+    IClient transport = transportType == MultiThreadedTransportType.udp ? UdpClient() : TcpClient();
+    Client client = Client(transport: transport);
+
+    client.connected.subscribe((_) => sendPort.send({'connected': null}));
+
+    client.connectionFailed.subscribe((_) => sendPort.send({'connectionFailed': null}));
+
+    client.disconnected.subscribe((DisconnectedEventArgs? args) {
+      sendPort.send({'disconnected': args!.message, 'reason': args.reason});
+    });
+
+    client.clientConnected.subscribe((ClientConnectedEventArgs? args) {
+      sendPort.send({'clientConnected': args!.id});
+    });
+
+    client.clientDisconnected.subscribe((ClientDisconnectedEventArgs? args) {
+      sendPort.send({'clientDisconnected': args!.id});
+    });
+
+    // listen for received messages and forward them through the sendPort
+    client.messageReceived.subscribe((MessageReceivedEventArgs? args) {
+      sendPort.send({'messageId': args!.messageID, 'message': args.message});
+    });
+
+    Timer timer = Timer.periodic(const Duration(milliseconds: 20), (timer) {
+      client.update();
+    });
+
+    // received command or message data
+    receiver.listen((data) {
+      // NOTE: Isolates only allow for a few data types to be passed through ports.
+      // The nicest way is to use maps to send multiple objects at once.
+      // Downside is that the whole api infrastructure from the Client class has to be encoded and decoded through maps.
+      Map<String, dynamic> map = data as Map<String, dynamic>;
+
+      bool? disconnect = map['disconnect'] as bool?;
+      Message? message = map['message'] as Message?;
+
+      // execute different server function based on given map content
+
+      if (disconnect != null && disconnect) {
+        client.disconnect();
+
+        // The isolate exits once everything (like data which is still being sent) is done
+        timer.cancel();
+        receiver.close();
+        return;
+      }
+
+      client.send(message!);
+    });
+
+    sendPort.send(receiver.sendPort);
+
+    if (!await client.connect(map['hostAddress'] as InternetAddress, map['port'] as int,
+        maxConnectionAttempts: map['maxConnectionAttempts'] as int, useMessageHandlers: false)) {
+      sendPort.send({'connectionFailed': null});
+    }
   }
 }
