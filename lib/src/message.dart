@@ -209,7 +209,7 @@ class Message {
   ///
   /// Returns a message instance ready to be sent.
   static Message createFromInt(MessageSendMode sendMode, int id) {
-    return _retrieveFromPool()._initWithHeader(sendMode.messageHeader).addUShort(id);
+    return _retrieveFromPool()._initWithHeader(sendMode.messageHeader).addVarULong(id);
   }
 
   /// Gets a message instance that can be used for sending.
