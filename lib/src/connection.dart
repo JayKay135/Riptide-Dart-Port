@@ -578,7 +578,7 @@ class NotifySequencer extends Sequencer {
         {
           lastAckedSeqID = Helper.toUShort(lastAckedSeqID + 1);
           sequenceGap--;
-          _connection.notifyLost.invoke(lastAckedSeqID);
+          _connection.onNotifyLost(lastAckedSeqID);
         }
 
         int bitCount = sequenceGap - 1;
