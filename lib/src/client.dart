@@ -114,7 +114,7 @@ class Client extends Peer {
   /// [hostAddress] : The host address to connect to.
   /// [port] : The host port to connect to.
   /// [maxConnectionAttempts] : How many connection attempts to make before giving up.
-  /// [message] : Data that should be sent to the server with the connection attempt. Use Message.create() to get an empty message instance.
+  /// [message] : Data that should be sent to the server with the connection attempt. Use Message.create() to get an empty message instance. It is copied rather than sent directly, so it is not returned to the pool and can be reused.
   /// [useMessageHandlers] : Whether or not the client should use the built-in message handler system.
   ///
   /// Setting [useMessageHandlers] to false will disable the message specific subscription system, which is beneficial if you prefer to handle messages via the [messageReceived] event.
@@ -154,7 +154,6 @@ class Client extends Peer {
       }
 
       _connectMessage!.addMessage(message);
-      message.release();
     }
 
     startTime();

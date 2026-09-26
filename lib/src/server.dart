@@ -227,7 +227,7 @@ class Server extends Peer {
   /// Rejects the given pending connection.
   ///
   /// [connection] : The connection to reject.
-  /// [message] : Data that should be sent to the client being rejected. Use [Message.create] to get an empty message instance.
+  /// [message] : Data that should be sent to the client being rejected. Use [Message.create] to get an empty message instance. It is copied rather than sent directly, so it is not returned to the pool and can be reused.
   void reject(Connection connection, {Message? message}) {
     if (message != null && message.readBits != 0) {
       RiptideLogger.logWithLogName(
@@ -431,7 +431,7 @@ class Server extends Peer {
   /// Disconnects a specific client.
   ///
   /// [id] : The numeric ID of the client to disconnect.
-  /// [message] : Data that should be sent to the client being disconnected. Use Message.create() to get an empty message instance.
+  /// [message] : Data that should be sent to the client being disconnected. Use Message.create() to get an empty message instance. It is copied rather than sent directly, so it is not returned to the pool and can be reused.
   void disconnectClient(int id, [Message? message]) {
     if (message != null && message.readBits != 0) {
       RiptideLogger.logWithLogName(
@@ -452,7 +452,7 @@ class Server extends Peer {
   /// Disconnects the given client.
   ///
   /// [client] : The client to disconnect.
-  /// [message] : Data that should be sent to the client being disconnected. Use Message.create() to get an empty message instance.
+  /// [message] : Data that should be sent to the client being disconnected. Use Message.create() to get an empty message instance. It is copied rather than sent directly, so it is not returned to the pool and can be reused.
   void disconnectClientWithConnection(Connection client, [Message? message]) {
     if (message != null && message.readBits != 0) {
       RiptideLogger.logWithLogName(
