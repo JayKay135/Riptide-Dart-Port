@@ -44,9 +44,10 @@ class Bitfield {
   ///
   /// [amount] : The number of bits for which to check if there is capacity.
   ///
-  /// Whether or not there is sufficient capacity and the number of bits from [amount] which there is no capacity for.
+  /// Returns whether or not there is sufficient capacity and the number of bits which are currently in use and would be
+  /// pushed out of the bitfield (the overflow).
   (bool hasCapacity, int overflow) hasCapacityFor(int amount) {
-    int overflow = _count + amount - _capacity;
+    int overflow = min(_count + amount - _capacity, _count);
     return (overflow < 0, overflow);
   }
 
@@ -75,16 +76,16 @@ class Bitfield {
       _count += amount;
     }
 
-    int s = segments.length - 1;
-    segments[s] = (segments[s] << bitShift) & _segmentMask;
-    s -= 1 + segmentShift;
-    while (s > -1) {
-      int shiftedBits =
-          segments[s] << bitShift; // Fits into a Dart int (like the ulong in C#), as segments hold 32 bits
-      segments[s] = shiftedBits & _segmentMask;
+    // Work from the last segment backwards so that no segment is overwritten before its bits have been moved
+    for (int s = segments.length - 1; s > -1; s--) {
+      int source = s - segmentShift;
+      int shiftedBits = source > -1 ? (segments[source] << bitShift) & _segmentMask : 0;
+      if (bitShift > 0 && source > 0) {
+        // Carry over the bits shifted out of the previous segment
+        shiftedBits |= segments[source - 1] >>> (_segmentSize - bitShift);
+      }
 
-      segments[s + 1 + segmentShift] |= shiftedBits >>> _segmentSize;
-      s--;
+      segments[s] = shiftedBits;
     }
   }
 

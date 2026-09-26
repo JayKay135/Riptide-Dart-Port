@@ -31,6 +31,47 @@ void main() {
       }
     });
 
+    test('shifting by more than a segment moves bits across segments', () {
+      Bitfield bitfield = Bitfield();
+      bitfield.shiftBy(3);
+      bitfield.set(1);
+      bitfield.set(3);
+
+      bitfield.shiftBy(40);
+      expect(bitfield.isSet(41), isTrue);
+      expect(bitfield.isSet(43), isTrue);
+      for (int bit in [1, 2, 20, 32, 33, 40, 42]) {
+        expect(bitfield.isSet(bit), isFalse, reason: 'bit $bit');
+      }
+
+      bitfield.shiftBy(29); // Moves bit 43 into the third segment
+      expect(bitfield.isSet(70), isTrue);
+      expect(bitfield.isSet(72), isTrue);
+      expect(bitfield.isSet(71), isFalse);
+    });
+
+    test('shifting a fixed capacity bitfield by 32 or more clears it', () {
+      Bitfield bitfield = Bitfield(isDynamicCapacity: false);
+      bitfield.shiftBy(32);
+      for (int bit = 1; bit <= 32; bit++) {
+        bitfield.set(bit);
+      }
+
+      bitfield.shiftBy(33);
+      expect(bitfield.segments[0], equals(0));
+      for (int bit = 1; bit <= 32; bit++) {
+        expect(bitfield.isSet(bit), isFalse, reason: 'bit $bit');
+      }
+    });
+
+    test('the overflow never exceeds the number of bits in use', () {
+      Bitfield bitfield = Bitfield(isDynamicCapacity: false);
+      bitfield.shiftBy(5);
+      var (bool hasCapacity, int overflow) = bitfield.hasCapacityFor(100);
+      expect(hasCapacity, isFalse);
+      expect(overflow, equals(5));
+    });
+
     test('segments stay within 32 bits and first8/first16 only contain their bits', () {
       Bitfield bitfield = Bitfield(isDynamicCapacity: false);
       bitfield.shiftBy(32);
