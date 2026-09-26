@@ -15,19 +15,19 @@ class UdpConnection extends Connection {
   int get port => _port;
 
   /// The local peer this connection is associated with.
-  late UdpPeer _peer;
-  @override
-  UdpPeer get peer => _peer;
+  ///
+  /// NOTE: Named peer in C#, which isn't possible in Dart as it would override [Connection.peer].
+  late final UdpPeer _udpPeer;
 
   UdpConnection(InternetAddress remoteEndPoint, int port, UdpPeer udpPeer) {
     _remoteEndPoint = remoteEndPoint;
     _port = port;
-    _peer = udpPeer;
+    _udpPeer = udpPeer;
   }
 
   @override
   void send(Uint8List dataBuffer, int amount) {
-    _peer.send(dataBuffer, amount, _remoteEndPoint, _port);
+    _udpPeer.send(dataBuffer, amount, _remoteEndPoint, _port);
   }
 
   @override

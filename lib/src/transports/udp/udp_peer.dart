@@ -7,7 +7,7 @@ import '../../peer.dart';
 import '../../utils/event_handler.dart';
 
 /// Provides base send &#38; receive functionality for TcpServer and TcpClient.
-abstract class UdpPeer extends Peer {
+abstract class UdpPeer {
   abstract Event<DisconnectedEventArgs> disconnected;
 
   /// The default size used for the socket's send and receive buffers.

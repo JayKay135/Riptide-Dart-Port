@@ -471,19 +471,13 @@ class Server extends Peer {
   /// [client] : The client to disconnect.
   /// [reason] : The reason why the client is being disconnected.
   void _localDisconnect(Connection client, DisconnectReason reason) {
-    // NOTE: The original C# implementation uses a simple check (client.peer != this).
-    // But for some reason, does the dynamic binding for the dart port work not as expected.
-    // The containsValue check should definetely work aswell, but is also more expensive.
-    if (!_clients.containsValue(client)) {
-      RiptideLogger.logWithLogName(LogType.warning, logName,
-          "Attempted to disconnect client from server $this, but client belongs to server ${client.peer}");
+    if (!identical(client.peer, this)) {
       return; // Client does not belong to this Server instance
     }
 
     _transport.close(client);
 
-    if (_clients.containsKey(client.id)) {
-      _clients.remove(client.id);
+    if (_clients.remove(client.id) != null) {
       _availableClientIds.add(client.id);
     }
 

@@ -9,7 +9,7 @@ import '../../utils/constants.dart';
 import '../../utils/event_handler.dart';
 
 /// Provides base send &#38; receive functionality for <see cref="TcpServer"/> and <see cref="TcpClient"/>.
-abstract class TcpPeer extends Peer {
+abstract class TcpPeer {
   abstract Event<DisconnectedEventArgs> disconnected;
 
   /// An array that incoming data is received into.
