@@ -374,10 +374,10 @@ class Converter {
   /// [array] : The array to convert the bits from.
   /// [startBit] : The position in the array from which to read the bits.
   /// Returns the converted [sbyte].
-  static int sByteFromByteBits(Uint8List array, int startBit) => byteFromByteBits(array, startBit);
+  static int sByteFromByteBits(Uint8List array, int startBit) => byteFromByteBits(array, startBit).toSigned(8);
 
   /// <inheritdoc cref="SByteFromBits(byte[], int)"/>
-  static int sByteFromUlongBits(Uint64List array, int startBit) => byteFromUlongBits(array, startBit);
+  static int sByteFromUlongBits(Uint64List array, int startBit) => byteFromUlongBits(array, startBit).toSigned(8);
 
   /// Converts the 8 bits at [startBit] in [array] to a [byte].
   ///
@@ -519,11 +519,10 @@ class Converter {
   /// [array] : The array to convert the bits from.
   /// [startBit] : The position in the array from which to read the bits.
   /// Returns the converted [short].
-  static int shortFromByteBits(Uint8List array, int startBit) => Helper.toUShort(uShortFromByteBits(array, startBit));
+  static int shortFromByteBits(Uint8List array, int startBit) => uShortFromByteBits(array, startBit).toSigned(16);
 
   /// <inheritdoc cref="ShortFromBits(byte[], int)"/>
-  static int shortFromUlongBits(Uint64List array, int startBit) =>
-      Helper.toUShort(uShortFromUlongBits(array, startBit));
+  static int shortFromUlongBits(Uint64List array, int startBit) => uShortFromUlongBits(array, startBit).toSigned(16);
 
   /// Converts the 16 bits at [startBit] in [array] to a [ushort].
   ///
@@ -632,10 +631,10 @@ class Converter {
   /// [array] : The array to convert the bits from.
   /// [startBit] : The position in the array from which to read the bits.
   /// Returns the converted [int].
-  static int intFromByteBits(Uint8List array, int startBit) => uIntFromByteBits(array, startBit);
+  static int intFromByteBits(Uint8List array, int startBit) => uIntFromByteBits(array, startBit).toSigned(32);
 
   /// <inheritdoc cref="IntFromBits(byte[], int)"/>
-  static int intFromUlongBits(Uint64List array, int startBit) => uIntFromUlongBits(array, startBit);
+  static int intFromUlongBits(Uint64List array, int startBit) => uIntFromUlongBits(array, startBit).toSigned(32);
 
   /// Converts the 32 bits at [startBit] in [array] to a [uint].
   ///
