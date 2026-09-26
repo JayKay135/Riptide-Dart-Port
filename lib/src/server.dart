@@ -511,10 +511,18 @@ class Server extends Peer {
       return;
     }
 
-    _pendingConnections.clear();
     sendToAll(Message.createFromHeader(MessageHeader.disconnect).addByte(DisconnectReason.serverStopped.index));
 
+    // Clean up the local side of every connection, so their state is accurate (disconnected) and their pending messages are returned to the pool
+    for (Connection client in _clients.values) {
+      client.localDisconnect();
+    }
     _clients.clear();
+
+    for (Connection pendingConnection in _pendingConnections) {
+      pendingConnection.localDisconnect();
+    }
+    _pendingConnections.clear();
 
     _transport.shutdown();
     _unsubFromTransportEvents();
