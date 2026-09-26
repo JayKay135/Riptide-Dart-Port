@@ -68,7 +68,7 @@ abstract class Peer {
   late String logName;
 
   /// Sets the relevant connections' [Connection.timeoutTime]s.
-  late int timeoutTime;
+  set timeoutTime(int value);
 
   /// The interval (in milliseconds) at which to send and expect heartbeats to be received.
   ///

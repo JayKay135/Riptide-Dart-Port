@@ -132,8 +132,8 @@ abstract class Connection {
   /// Whether or not the connection has timed out.
   bool get hasTimedOut => _canTimeout && peer.currentTime - _lastHeartbeat > timeoutTime;
 
-  /// Whether or not the connection attempt has timed out. Uses a multiple of timeoutTime and ignores the value of canTimeout.
-  bool get hasConnectAttemptTimedOut => peer.currentTime - _lastHeartbeat > peer.connectTimeoutTime;
+  /// Whether or not the connection attempt has timed out.
+  bool get hasConnectAttemptTimedOut => _canTimeout && peer.currentTime - _lastHeartbeat > peer.connectTimeoutTime;
 
   /// The sequencer for notify messages.
   late NotifySequencer _notify;
@@ -434,7 +434,8 @@ abstract class Connection {
 
   /// Sends a heartbeat message.
   void sendHeartbeat() {
-    _pendingPingID = _lastPingID++;
+    _pendingPingID = _lastPingID;
+    _lastPingID = Helper.toByte(_lastPingID + 1); // Wraps around like the byte in C#
     _pendingPingSendTime = peer.currentTime;
 
     Message message = Message.createFromHeader(MessageHeader.heartbeat);
@@ -479,7 +480,11 @@ abstract class Connection {
 abstract class Sequencer {
   /// The next sequence ID to use.
   int _nextSequenceID = 1;
-  int get nextSequenceID => _nextSequenceID++;
+  int get nextSequenceID {
+    int sequenceID = _nextSequenceID;
+    _nextSequenceID = Helper.toUShort(_nextSequenceID + 1); // Wraps around like the ushort in C#
+    return sequenceID;
+  }
 
   /// The connection this sequencer belongs to.
   late Connection _connection;
@@ -568,7 +573,7 @@ class NotifySequencer extends Sequencer {
         while (sequenceGap >
             9) // 9 because a gap of 1 means sequence IDs are consecutive, and notify uses 8 bits for the bitfield. 9 means all 8 bits are in use
         {
-          lastAckedSeqID++;
+          lastAckedSeqID = Helper.toUShort(lastAckedSeqID + 1);
           sequenceGap--;
           _connection.notifyLost?.invoke(lastAckedSeqID);
         }
@@ -576,7 +581,7 @@ class NotifySequencer extends Sequencer {
         int bitCount = sequenceGap - 1;
         int bit = 1 << bitCount;
         for (int i = 0; i < bitCount; i++) {
-          lastAckedSeqID++;
+          lastAckedSeqID = Helper.toUShort(lastAckedSeqID + 1);
           bit >>= 1;
           if ((remoteReceivedSeqIDs & bit) == 0) {
             _connection.onNotifyLost(lastAckedSeqID);

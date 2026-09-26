@@ -115,7 +115,7 @@ class PendingMessage {
   void trySend() {
     if (_sendAttempts >= _connection.maxSendAttempts && _connection.canQualityDisconnect) {
       RiptideLogger.logWithLogName(LogType.info, _connection.peer.logName,
-          "Could not guarantee delivery of a ${MessageHeader.values[data[0]]} message after $_sendAttempts attempts! Disconnecting...");
+          "Could not guarantee delivery of a ${MessageHeader.values[data[0] & Message.headerBitmask]} message after $_sendAttempts attempts! Disconnecting...");
       _connection.peer.disconnectConnection(_connection, DisconnectReason.poorConnection);
       return;
     }

@@ -46,7 +46,7 @@ class Server extends Peer {
   /// The local port that the server is running on.
   int get port => _transport.port;
 
-  @override
+  /// The default time (in milliseconds) after which to disconnect if no heartbeats are received.
   int get timeoutTime => defaultTimeout;
 
   /// Sets the default timeout time for future connections and updates the [Connection.timeoutTime] of all connected clients.
