@@ -1918,9 +1918,8 @@ class Message {
       length = unreadBits ~/ _bitsPerByte;
     }
 
-    Uint8List bytes = getBytesWithAmount(length);
-
-    String value = utf8.decode(bytes);
+    // NOTE: allowMalformed matches the behaviour of .NET, which replaces invalid bytes instead of throwing
+    String value = utf8.decode(getBytesWithAmount(length), allowMalformed: true);
     return value;
   }
 

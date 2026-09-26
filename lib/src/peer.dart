@@ -11,6 +11,7 @@ import 'utils/delayed_events.dart';
 import 'server.dart';
 import 'client.dart';
 import 'utils/helper.dart';
+import 'utils/riptide_logger.dart';
 
 /// The reason the connection attempt was rejected.
 enum RejectReason {
@@ -156,6 +157,14 @@ abstract class Peer {
 
   /// Handles data received by the transport
   void handleData(DataReceivedEventArgs e) {
+    // NOTE: C# can cast any header value to the MessageHeader enum and ends up discarding unknown ones when handling them,
+    // whereas Dart has no enum values for them. Discard such messages right away instead.
+    if ((e.dataBuffer[0] & Message.headerBitmask) >= MessageHeader.values.length) {
+      RiptideLogger.logWithLogName(LogType.warning, logName,
+          "Unexpected message header '${e.dataBuffer[0] & Message.headerBitmask}'! Discarding ${e.amount} bytes received from ${e.fromConnection}.");
+      return;
+    }
+
     var (Message message, MessageHeader header) = Message.create().initWithByte(e.dataBuffer[0], e.amount);
 
     if (message.sendMode == MessageSendMode.notify) {
