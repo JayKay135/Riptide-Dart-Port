@@ -28,8 +28,18 @@ enum MessageSendMode {
 }
 
 extension MessageSendModeExtension on MessageSendMode {
+  /// The [MessageHeader] which corresponds to the send mode.
+  ///
+  /// NOTE: In C#, the values of the MessageSendMode enum are set to those of their corresponding MessageHeader.
   MessageHeader get messageHeader {
-    return index == 0 || index == 1 ? MessageHeader.unreliable : MessageHeader.reliable;
+    switch (this) {
+      case MessageSendMode.notify:
+        return MessageHeader.notify;
+      case MessageSendMode.unreliable:
+        return MessageHeader.unreliable;
+      case MessageSendMode.reliable:
+        return MessageHeader.reliable;
+    }
   }
 }
 
