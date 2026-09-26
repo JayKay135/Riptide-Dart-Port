@@ -262,6 +262,20 @@ class Message {
     return _retrieveFromPool()._initWithHeader(header);
   }
 
+  /// Adds message instances to the pool for a newly started Server or Client.
+  static void expandPool() {
+    int idealInstanceAmount = Peer.activeCount * instancesPerPeer;
+    if (_poolCapacity < idealInstanceAmount * 2) {
+      _poolCapacity = idealInstanceAmount *
+          2; // x2 so there's some buffer room for extra Message instances in the event that more are needed
+    }
+
+    // Only top the pool up to the ideal amount, as instances which were released by other peers can be reused
+    for (int i = _pool.length; i < idealInstanceAmount; i++) {
+      _pool.add(Message());
+    }
+  }
+
   /// Trims the message pool to a more appropriate size for how many Server and Client instances are currently running.
   static void trimPool() {
     if (Peer.activeCount == 0) {

@@ -225,6 +225,7 @@ abstract class Peer {
   /// Increases [activeCount]. For use when a new [Server] or [Client] is started.
   void increaseActiveCount() {
     _activeCount++;
+    Message.expandPool();
   }
 
   /// Decreases [activeCount]>. For use when a [Server] or [Client] is stopped.
@@ -234,6 +235,8 @@ abstract class Peer {
     if (_activeCount < 0) {
       _activeCount = 0;
     }
+
+    Message.trimPool();
   }
 }
 
