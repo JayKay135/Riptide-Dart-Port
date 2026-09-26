@@ -486,9 +486,12 @@ abstract class Connection {
     _updateLossViolations();
   }
 
-  /// Invokes the [notifyLost] event.
+  /// Invokes the [notifyLost] event and updates metrics.
   ///
   /// [sequenceId] : The sequence ID of the lost message.
+  ///
+  /// For messages whose lost/delivered state is uncertain, [onNotifyAssumedLost] should be used instead to avoid
+  /// affecting metrics.
   void onNotifyLost(int sequenceId) {
     _metrics.lostNotify();
 
@@ -499,6 +502,21 @@ abstract class Connection {
     }
 
     _updateLossViolations();
+  }
+
+  /// Invokes the [notifyLost] event without updating metrics.
+  ///
+  /// [sequenceId] : The sequence ID of the message.
+  ///
+  /// Acks only cover a limited number of recent sequence IDs, and whether anything older than that arrived is uncertain.
+  /// Such messages should be reported as lost via this method which crucially does not affect the connection's metrics
+  /// and quality checks, unlike [onNotifyLost].
+  void onNotifyAssumedLost(int sequenceId) {
+    try {
+      notifyLost.invoke(sequenceId);
+    } catch (e, stackTrace) {
+      RiptideLogger.logEventException(peer.logName, 'notifyLost', e, stackTrace);
+    }
   }
 }
 
@@ -601,7 +619,8 @@ class NotifySequencer extends Sequencer {
         {
           lastAckedSeqID = Helper.toUShort(lastAckedSeqID + 1);
           sequenceGap--;
-          _connection.onNotifyLost(lastAckedSeqID);
+          // Nothing is known about messages this far back as the ack bitfield doesn't cover them, so we assume they were lost but don't know for sure
+          _connection.onNotifyAssumedLost(lastAckedSeqID);
         }
 
         int bitCount = sequenceGap - 1;
