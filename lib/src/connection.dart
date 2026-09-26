@@ -31,16 +31,16 @@ enum ConnectionState {
 /// Represents a connection to a Server or Client.
 abstract class Connection {
   /// Invoked when the notify message with the given sequence ID is successfully delivered.
-  Event<int>? notifyDelivered;
+  Event<int> notifyDelivered = Event<int>();
 
   /// Invoked when the notify message with the given sequence ID is lost.
-  Event<int>? notifyLost;
+  Event<int> notifyLost = Event<int>();
 
   /// Invoked when a notify message is received.
-  Event<Message>? notifyReceived;
+  Event<Message> notifyReceived = Event<Message>();
 
   /// Invoked when the reliable message with the given sequence ID is successfully delivered.
-  Event<int>? reliableDelivered;
+  Event<int> reliableDelivered = Event<int>();
 
   /// The connection's numeric ID.
   int id = 0;
@@ -254,7 +254,7 @@ abstract class Connection {
     _metrics.receivedNotify(amount);
     if (_notify.shouldHandle(Converter.uShortFromByteBits(dataBuffer, Message.headerBits + 24))) {
       Helper.blockCopy(dataBuffer, 1, message.data, 1, amount - 1); // Copy payload
-      notifyReceived?.invoke(message);
+      notifyReceived.invoke(message);
     } else {
       _metrics.notifyDiscarded++;
     }
@@ -295,6 +295,7 @@ abstract class Connection {
   /// [sequenceID] : The sequence ID that was acknowledged.
   void clearMessage(int sequenceID) {
     if (pendingMessages.containsKey(sequenceID)) {
+      reliableDelivered.invoke(sequenceID);
       pendingMessages[sequenceID]!.clear();
       pendingMessages.remove(sequenceID);
       _updateSendAttemptsViolations();
@@ -462,7 +463,7 @@ abstract class Connection {
   /// [sequenceId] : The sequence ID of the delivered message.
   void onNotifyDelivered(int sequenceId) {
     _metrics.deliveredNotify();
-    notifyDelivered?.invoke(sequenceId);
+    notifyDelivered.invoke(sequenceId);
     _updateLossViolations();
   }
 
@@ -471,7 +472,7 @@ abstract class Connection {
   /// [sequenceId] : The sequence ID of the lost message.
   void onNotifyLost(int sequenceId) {
     _metrics.lostNotify();
-    notifyLost?.invoke(sequenceId);
+    notifyLost.invoke(sequenceId);
     _updateLossViolations();
   }
 }
@@ -575,7 +576,7 @@ class NotifySequencer extends Sequencer {
         {
           lastAckedSeqID = Helper.toUShort(lastAckedSeqID + 1);
           sequenceGap--;
-          _connection.notifyLost?.invoke(lastAckedSeqID);
+          _connection.notifyLost.invoke(lastAckedSeqID);
         }
 
         int bitCount = sequenceGap - 1;
