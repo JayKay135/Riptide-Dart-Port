@@ -1,4 +1,3 @@
-import 'dart:math';
 import 'dart:typed_data';
 
 import 'constants.dart';
@@ -385,7 +384,7 @@ class Converter {
   /// Returns the converted [sbyte].
   static int sByteFromByteBits(Uint8List array, int startBit) => byteFromByteBits(array, startBit).toSigned(8);
 
-  /// <inheritdoc cref="SByteFromBits(byte[], int)"/>
+  /// `<inheritdoc cref="SByteFromBits(byte[], int)"/>`
   static int sByteFromUlongBits(Uint64List array, int startBit) => byteFromUlongBits(array, startBit).toSigned(8);
 
   /// Converts the 8 bits at [startBit] in [array] to a [byte].
@@ -403,7 +402,7 @@ class Converter {
     return (value | (array[pos + 1] << (8 - bit))) & 0xFF;
   }
 
-  /// <inheritdoc cref="ByteFromBits(byte[], int)"/>
+  /// `<inheritdoc cref="ByteFromBits(byte[], int)"/>`
   static int byteFromUlongBits(Uint64List array, int startBit) => fromBits(bitsPerByte, array, startBit);
 
   /// Converts [value] to a bit and writes it into [array] at [startBit].
@@ -424,7 +423,7 @@ class Converter {
     }
   }
 
-  /// <inheritdoc cref="BoolToBit(bool, byte[], int)"/>
+  /// `<inheritdoc cref="BoolToBit(bool, byte[], int)"/>`
   static void boolToBitFromUlongs(bool value, Uint64List array, int startBit) {
     int pos = startBit ~/ bitsPerULong;
     int bit = startBit % bitsPerULong;
@@ -448,7 +447,7 @@ class Converter {
     return (array[pos] & (1 << bit)) != 0;
   }
 
-  /// <inheritdoc cref="BoolFromBit(byte[], int)"/>
+  /// `<inheritdoc cref="BoolFromBit(byte[], int)"/>`
   static bool boolFromBitWithUlongs(Uint64List array, int startBit) {
     int pos = startBit ~/ bitsPerULong;
     int bit = startBit % bitsPerULong;
@@ -496,7 +495,7 @@ class Converter {
   static void shortToBitsFromBytes(int value, Uint8List array, int startBit) =>
       uShortToBitsFromBytes(value, array, startBit);
 
-  /// <inheritdoc cref="ShortToBits(short, byte[], int)"/>
+  /// `<inheritdoc cref="ShortToBits(short, byte[], int)"/>`
   static void shortToBitsFromUlongs(int value, Uint64List array, int startBit) =>
       uShortToBitsFromUlongs(value, array, startBit);
 
@@ -520,7 +519,7 @@ class Converter {
     }
   }
 
-  /// <inheritdoc cref="UShortToBits(ushort, byte[], int)"/>
+  /// `<inheritdoc cref="UShortToBits(ushort, byte[], int)"/>`
   static void uShortToBitsFromUlongs(int value, Uint64List array, int startBit) =>
       toBits(value, Constants.ushortBytes * bitsPerByte, array, startBit);
 
@@ -531,7 +530,7 @@ class Converter {
   /// Returns the converted [short].
   static int shortFromByteBits(Uint8List array, int startBit) => uShortFromByteBits(array, startBit).toSigned(16);
 
-  /// <inheritdoc cref="ShortFromBits(byte[], int)"/>
+  /// `<inheritdoc cref="ShortFromBits(byte[], int)"/>`
   static int shortFromUlongBits(Uint64List array, int startBit) => uShortFromUlongBits(array, startBit).toSigned(16);
 
   /// Converts the 16 bits at [startBit] in [array] to a [ushort].
@@ -549,7 +548,7 @@ class Converter {
     return (value | (array[pos + 2] << (16 - bit))) & Constants.ushortMaxVal;
   }
 
-  /// <inheritdoc cref="UShortFromBits(byte[], int)"/>
+  /// `<inheritdoc cref="UShortFromBits(byte[], int)"/>`
   static int uShortFromUlongBits(Uint64List array, int startBit) =>
       Helper.toUShort(fromBits(Constants.ushortBytes * bitsPerByte, array, startBit));
 
@@ -606,7 +605,7 @@ class Converter {
   /// [startBit] : The position in the array at which to write the bits.
   static void intToBitsFromBytes(int value, Uint8List array, int startBit) => uIntToByteBits(value, array, startBit);
 
-  /// <inheritdoc cref="IntToBits(int, byte[], int)"/>
+  /// `<inheritdoc cref="IntToBits(int, byte[], int)"/>`
   static void intToBitsFromUlong(int value, Uint64List array, int startBit) => uIntToUlongBits(value, array, startBit);
 
   /// Converts [value] to 32 bits and writes them into [array] at [startBit].
@@ -633,7 +632,7 @@ class Converter {
     }
   }
 
-  /// <inheritdoc cref="UIntToBits(uint, byte[], int)"/>
+  /// `<inheritdoc cref="UIntToBits(uint, byte[], int)"/>`
   static void uIntToUlongBits(int value, Uint64List array, int startBit) =>
       toBits(value, Constants.uintBytes * bitsPerByte, array, startBit);
 
@@ -644,7 +643,7 @@ class Converter {
   /// Returns the converted [int].
   static int intFromByteBits(Uint8List array, int startBit) => uIntFromByteBits(array, startBit).toSigned(32);
 
-  /// <inheritdoc cref="IntFromBits(byte[], int)"/>
+  /// `<inheritdoc cref="IntFromBits(byte[], int)"/>`
   static int intFromUlongBits(Uint64List array, int startBit) => uIntFromUlongBits(array, startBit).toSigned(32);
 
   /// Converts the 32 bits at [startBit] in [array] to a [uint].
@@ -663,7 +662,7 @@ class Converter {
     return (value | (array[pos + 4] << (32 - bit))) & 0xFFFFFFFF;
   }
 
-  /// <inheritdoc cref="UIntFromBits(byte[], int)"/>
+  /// `<inheritdoc cref="UIntFromBits(byte[], int)"/>`
   static int uIntFromUlongBits(Uint64List array, int startBit) =>
       fromBits(Constants.uintBytes * bitsPerByte, array, startBit);
 
@@ -728,7 +727,7 @@ class Converter {
   /// [startBit] : The position in the array at which to write the bits.
   static void longToByteBits(int value, Uint8List array, int startBit) => uLongToByteBits(value, array, startBit);
 
-  /// <inheritdoc cref="LongToBits(long, byte[], int)"/>
+  /// `<inheritdoc cref="LongToBits(long, byte[], int)"/>`
   static void longToUlongBits(int value, Uint64List array, int startBit) => uLongToUlongBits(value, array, startBit);
 
   /// Converts [value] to 64 bits and writes them into [array] at [startBit].
@@ -764,7 +763,7 @@ class Converter {
     }
   }
 
-  /// <inheritdoc cref="ULongToBits(ulong, byte[], int)"/>
+  /// `<inheritdoc cref="ULongToBits(ulong, byte[], int)"/>`
   ///
   /// IMPORTANT: Originally takes a ulong [value] aka unsigned 64 bits as parameter. Dart only has int aka 64 signed bits. This might cause problems
   static void uLongToUlongBits(int value, Uint64List array, int startBit) {
@@ -785,7 +784,7 @@ class Converter {
   /// Returns the converted [long].
   static int longFromByteBits(Uint8List array, int startBit) => uLongFromByteBits(array, startBit);
 
-  /// <inheritdoc cref="LongFromBits(byte[], int)"/>
+  /// `<inheritdoc cref="LongFromBits(byte[], int)"/>`
   static int longFromUlongBits(Uint64List array, int startBit) => uLongFromUlongBits(array, startBit);
 
   /// Converts the 64 bits at [startBit] in [array] to a [ulong].
@@ -813,7 +812,7 @@ class Converter {
     return value;
   }
 
-  /// <inheritdoc cref="ULongFromBits(byte[], int)"/>
+  /// `<inheritdoc cref="ULongFromBits(byte[], int)"/>`
   /// IMPORTANT: Originally returns a ulong [value] aka unsigned 64 bits. Dart only has int aka 64 signed bits. This might cause problems
   static int uLongFromUlongBits(Uint64List array, int startBit) {
     int pos = startBit ~/ bitsPerULong;
@@ -930,7 +929,7 @@ class Converter {
     uIntToByteBits(_floatToUInt(value), array, startBit);
   }
 
-  /// <inheritdoc cref="FloatToBits(float, byte[], int)"/>
+  /// `<inheritdoc cref="FloatToBits(float, byte[], int)"/>`
   static void floatToUlongBits(double value, Uint64List array, int startBit) {
     uIntToUlongBits(_floatToUInt(value), array, startBit);
   }
@@ -944,7 +943,7 @@ class Converter {
     return _uIntToFloat(uIntFromByteBits(array, startBit));
   }
 
-  /// <inheritdoc cref="FloatFromBits(byte[], int)"/>
+  /// `<inheritdoc cref="FloatFromBits(byte[], int)"/>`
   static double floatFromUlongBits(Uint64List array, int startBit) {
     return _uIntToFloat(uIntFromUlongBits(array, startBit));
   }
@@ -970,7 +969,7 @@ class Converter {
     uLongToByteBits(_doubleToULong(value), array, startBit);
   }
 
-  /// <inheritdoc cref="DoubleToBits(double, byte[], int)"/>
+  /// `<inheritdoc cref="DoubleToBits(double, byte[], int)"/>`
   static void doubleToUlongBits(double value, Uint64List array, int startBit) {
     uLongToUlongBits(_doubleToULong(value), array, startBit);
   }
@@ -984,7 +983,7 @@ class Converter {
     return _uLongToDouble(uLongFromByteBits(array, startBit));
   }
 
-  /// <inheritdoc cref="DoubleFromBits(byte[], int)"/>
+  /// `<inheritdoc cref="DoubleFromBits(byte[], int)"/>`
   static double doubleFromUlongBits(Uint64List array, int startBit) {
     return _uLongToDouble(uLongFromUlongBits(array, startBit));
   }

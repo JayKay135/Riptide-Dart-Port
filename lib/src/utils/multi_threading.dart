@@ -4,7 +4,6 @@ import 'dart:isolate';
 
 import '../../riptide.dart';
 import 'event_handler.dart';
-import 'riptide_logger.dart';
 import '../server.dart' as server_ref;
 import '../client.dart' as client_ref;
 
