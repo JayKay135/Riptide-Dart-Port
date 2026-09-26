@@ -3,10 +3,12 @@ import 'dart:typed_data';
 
 import '../event_args.dart';
 import '../../connection.dart';
+import '../../message.dart';
 import '../../peer.dart';
 import '../../utils/event_handler.dart';
+import '../../utils/riptide_logger.dart';
 
-/// Provides base send &#38; receive functionality for TcpServer and TcpClient.
+/// Provides base send &#38; receive functionality for UdpServer and UdpClient.
 abstract class UdpPeer {
   abstract Event<DisconnectedEventArgs> disconnected;
 
@@ -20,15 +22,30 @@ abstract class UdpPeer {
   final int receivePollingTime = 500000; // 0.5 seconds
 
   /// The size to use for the socket's send and receive buffers.
+  ///
+  /// NOTE: Not applied to the socket, as dart:io doesn't provide a platform independent way of setting the buffer sizes.
   late int _socketBufferSize;
   int get socketBufferSize => _socketBufferSize;
 
   /// The main socket, either used for listening for connections or for sending and receiving data.
-  late RawDatagramSocket socket;
+  RawDatagramSocket? _socket;
+  RawDatagramSocket? get socket => _socket;
 
+  /// Whether or not the transport is running.
   bool _isRunning = false;
 
-  late InternetAddress _remoteEndPoint;
+  /// Whether or not the socket should be reopened once it's closed, which is the case if it was closed due to an error.
+  bool _reopenOnClose = false;
+
+  /// Incremented whenever the socket is intentionally opened or closed, so that pending (re)binds can detect that
+  /// they're outdated.
+  int _socketGeneration = 0;
+
+  /// The address the socket is bound to.
+  late InternetAddress _listenAddress;
+
+  /// The port the socket is bound to.
+  int _port = 0;
 
   /// Initializes the transport.
   ///
@@ -39,29 +56,44 @@ abstract class UdpPeer {
     }
 
     _socketBufferSize = socketBufferSize;
-
-    _remoteEndPoint = InternetAddress.anyIPv4;
+    _listenAddress = InternetAddress.anyIPv4;
+    Message.initialize();
   }
 
   void poll() {
-    // NOTE: Not required for the underlying dart socket library
+    // NOTE: Not required, as dart:io notifies the socket's listener as soon as data is available
   }
 
   /// Opens the socket and starts the transport.
   ///
   /// [listenAddress] : The IP address to bind the socket to, if any.
   /// [port] : The port to bind the socket to.
-  Future<void> openSocket({InternetAddress? listenAddress, required int port, bool ipv6 = true}) async {
+  /// [ipv6] : Whether to bind to the IPv6 or IPv4 wildcard address if no [listenAddress] is given.
+  Future<void> openSocket({InternetAddress? listenAddress, int port = 0, bool ipv6 = true}) async {
     if (_isRunning) {
       closeSocket();
     }
 
-    _remoteEndPoint = listenAddress ?? (ipv6 ? InternetAddress.anyIPv6 : InternetAddress.anyIPv4);
+    _listenAddress = listenAddress ?? (ipv6 ? InternetAddress.anyIPv6 : InternetAddress.anyIPv4);
+    int generation = ++_socketGeneration;
+    RawDatagramSocket socket = await RawDatagramSocket.bind(_listenAddress, port);
+    if (generation != _socketGeneration) {
+      socket.close(); // The socket was closed or reopened while binding
+      return;
+    }
 
-    socket = await RawDatagramSocket.bind(_remoteEndPoint, port);
-    socket.listen(_receive);
-
+    _port = socket.port; // The actual port, in case an ephemeral one was requested
     _isRunning = true;
+    _listen(socket);
+  }
+
+  /// Makes the given socket the transport's socket and starts listening to it.
+  ///
+  /// [socket] : The socket to use.
+  void _listen(RawDatagramSocket socket) {
+    _socket = socket;
+    socket.listen((RawSocketEvent event) => _receive(socket, event),
+        onError: (Object error) => _onSocketError(socket, error));
   }
 
   /// Closes the socket and stops the transport.
@@ -71,7 +103,9 @@ abstract class UdpPeer {
     }
 
     _isRunning = false;
-    socket.close();
+    _reopenOnClose = false;
+    _socketGeneration++;
+    _socket?.close();
   }
 
   /// Sends data to a given endpoint.
@@ -79,31 +113,74 @@ abstract class UdpPeer {
   /// [data] : The array containing the data.
   /// [numBytes] : The number of bytes in the array which should be sent.
   /// [toEndPoint] : The endpoint to send the data to.
+  /// [port] : The port to send the data to.
   void send(Uint8List data, int numBytes, InternetAddress toEndPoint, int port) {
-    try {
-      if (_isRunning) {
-        socket.send(data.sublist(0, numBytes), toEndPoint, port);
-      }
-    } on SocketException {
-      // May want to consider triggering a disconnect here (perhaps depending on the type
-      // of SocketException)? Timeout should catch disconnections, but disconnecting
-      // explicitly might be better...
+    // NOTE: dart:io doesn't throw when sending fails, but reports the error to the socket's listener instead
+    if (_isRunning) {
+      _socket!.send(Uint8List.sublistView(data, 0, numBytes), toEndPoint, port);
     }
   }
 
-  /// Handles received data from the socket
-  void _receive(RawSocketEvent event) {
+  /// Handles events of the given socket.
+  ///
+  /// [socket] : The socket which emitted the event.
+  /// [event] : The event.
+  void _receive(RawDatagramSocket socket, RawSocketEvent event) {
+    if (!identical(socket, _socket)) {
+      return; // The event belongs to a socket which has been replaced already
+    }
+
     if (event == RawSocketEvent.read) {
-      Datagram? dg = socket.receive();
-      int byteCount = 0;
+      Datagram? datagram;
+      while (_isRunning && (datagram = socket.receive()) != null) {
+        int byteCount = datagram!.data.length;
 
-      if (dg != null) {
-        byteCount = dg.data.length;
-
-        onDataReceived(dg.data, byteCount, dg.address, dg.port);
+        // Like in C#, empty datagrams are ignored and those which don't fit into a message are discarded
+        if (byteCount > 0 && byteCount <= Message.maxSize) {
+          onDataReceived(datagram.data, byteCount, datagram.address, datagram.port);
+        }
       }
     } else if (event == RawSocketEvent.closed) {
-      _isRunning = false;
+      if (_reopenOnClose) {
+        _reopenOnClose = false;
+        _reopen();
+      } else {
+        _isRunning = false;
+      }
+    }
+  }
+
+  /// Handles errors of the given socket.
+  ///
+  /// [socket] : The socket which encountered the error.
+  /// [error] : The error.
+  ///
+  /// NOTE: Unlike C#, dart:io closes the socket after any error, so it has to be reopened to keep receiving data.
+  void _onSocketError(RawDatagramSocket socket, Object error) {
+    if (!identical(socket, _socket) || !_isRunning) {
+      return;
+    }
+
+    RiptideLogger.log(LogType.warning, "UDP socket error, reopening the socket: $error");
+    _reopenOnClose = true;
+  }
+
+  /// Reopens the socket on the endpoint it was previously bound to.
+  Future<void> _reopen() async {
+    int generation = _socketGeneration;
+    try {
+      RawDatagramSocket socket = await RawDatagramSocket.bind(_listenAddress, _port);
+      if (generation != _socketGeneration || !_isRunning) {
+        socket.close(); // The socket was closed or reopened in the meantime
+        return;
+      }
+
+      _listen(socket);
+    } on SocketException catch (e) {
+      if (generation == _socketGeneration) {
+        _isRunning = false;
+        RiptideLogger.log(LogType.error, "Failed to reopen the UDP socket: $e");
+      }
     }
   }
 
@@ -112,6 +189,7 @@ abstract class UdpPeer {
   /// [data] : A Uint8List containing the received data.
   /// [amount] : The number of bytes that were received.
   /// [fromEndPoint] : The connection from which the data was received.
+  /// [port] : The port from which the data was received.
   void onDataReceived(Uint8List data, int amount, InternetAddress fromEndPoint, int port);
 
   /// Invokes the disconnected event.
