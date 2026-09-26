@@ -176,6 +176,7 @@ abstract class Peer {
 
     if (message.sendMode == MessageSendMode.notify) {
       if (e.amount < Message.minNotifyBytes) {
+        message.release();
         return;
       }
 
@@ -189,6 +190,7 @@ abstract class Peer {
       e.fromConnection.metrics.receivedUnreliable(e.amount);
     } else {
       if (e.amount < Message.minReliableBytes) {
+        message.release();
         return;
       }
 
@@ -198,6 +200,7 @@ abstract class Peer {
         _messagesToHandle.add(MessageToHandle(message, header, e.fromConnection));
       } else {
         e.fromConnection.metrics.reliableDiscarded++;
+        message.release();
       }
     }
   }

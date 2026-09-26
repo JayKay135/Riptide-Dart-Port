@@ -258,6 +258,8 @@ abstract class Connection {
     } else {
       _metrics.notifyDiscarded++;
     }
+
+    message.release();
   }
 
   /// Determines if the message with the given sequence ID should be handled.
