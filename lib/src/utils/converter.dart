@@ -939,18 +939,12 @@ class Converter {
   /// [array] : The array to write the bits into.
   /// [startBit] : The position in the array at which to write the bits.
   static void floatToByteBits(double value, Uint8List array, int startBit) {
-    var buffer = Float32List(1);
-    buffer[0] = value;
-    var intValue = ByteData.view(buffer.buffer).getUint32(0, Endian.little);
-    uIntToByteBits(intValue, array, startBit);
+    uIntToByteBits(_floatToUInt(value), array, startBit);
   }
 
   /// <inheritdoc cref="FloatToBits(float, byte[], int)"/>
   static void floatToUlongBits(double value, Uint64List array, int startBit) {
-    var floatList = Float32List(1);
-    floatList[0] = value;
-    var intList = floatList.buffer.asUint32List();
-    uIntToUlongBits(intList[0], array, startBit);
+    uIntToUlongBits(_floatToUInt(value), array, startBit);
   }
 
   /// Converts the 32 bits at [startBit] in [array] to a [float].
@@ -959,12 +953,12 @@ class Converter {
   /// [startBit] : The position in the array from which to read the bits.
   /// Returns the converted [float].
   static double floatFromByteBits(Uint8List array, int startBit) {
-    return array.buffer.asByteData().getFloat32(startBit, endian);
+    return _uIntToFloat(uIntFromByteBits(array, startBit));
   }
 
   /// <inheritdoc cref="FloatFromBits(byte[], int)"/>
   static double floatFromUlongBits(Uint64List array, int startBit) {
-    return array.buffer.asByteData().getFloat32(startBit, endian);
+    return _uIntToFloat(uIntFromUlongBits(array, startBit));
   }
 
   /// Converts a given double [value] to bytes and writes them to given [data].
@@ -985,22 +979,12 @@ class Converter {
   /// [array] : The array to write the bits into.
   /// [startBit] : The position in the array at which to write the bits.
   static void doubleToByteBits(double value, Uint8List array, int startBit) {
-    // var buffer = Float64List(1);
-    // buffer[0] = value;
-    // var ulongValue = Uint64List.view(buffer.buffer)[0];
-    // uLongToByteBits(ulongValue, array, startBit);
-
-    array.buffer.asByteData().setFloat64(startBit, value, endian);
+    uLongToByteBits(_doubleToULong(value), array, startBit);
   }
 
   /// <inheritdoc cref="DoubleToBits(double, byte[], int)"/>
   static void doubleToUlongBits(double value, Uint64List array, int startBit) {
-    // var doubleList = Float64List(1);
-    // doubleList[0] = value;
-    // var longList = doubleList.buffer.asUint64List();
-    // uLongToUlongBits(longList[0], array, startBit);
-
-    array.buffer.asByteData().setFloat64(startBit, value, endian);
+    uLongToUlongBits(_doubleToULong(value), array, startBit);
   }
 
   /// Converts the 64 bits at [startBit] in [array] to a [double].
@@ -1009,16 +993,32 @@ class Converter {
   /// [startBit] : The position in the array from which to read the bits.
   /// Returns the converted [double].
   static double doubleFromByteBits(Uint8List array, int startBit) {
-    // var ulongValue = uLongFromByteBits(array, startBit);
-    // var buffer = Uint64List(1);
-    // buffer[0] = ulongValue;
-    // return Float64List.view(buffer.buffer)[0];
-
-    return array.buffer.asByteData().getFloat64(startBit, endian);
+    return _uLongToDouble(uLongFromByteBits(array, startBit));
   }
 
   /// <inheritdoc cref="DoubleFromBits(byte[], int)"/>
   static double doubleFromUlongBits(Uint64List array, int startBit) {
-    return array.buffer.asByteData().getFloat64(startBit, endian);
+    return _uLongToDouble(uLongFromUlongBits(array, startBit));
   }
+
+  // NOTE: The following methods replace C#'s FloatConverter and DoubleConverter structs, which reinterpret a value's bits.
+
+  /// Scratch buffer used to reinterpret the bits of floats and doubles.
+  static final ByteData _converterBuffer = ByteData(8);
+
+  /// Returns the bits of the given [float] as a [uint].
+  static int _floatToUInt(double value) =>
+      (_converterBuffer..setFloat32(0, value, Endian.little)).getUint32(0, Endian.little);
+
+  /// Returns the [float] represented by the given [uint] bits.
+  static double _uIntToFloat(int value) =>
+      (_converterBuffer..setUint32(0, value, Endian.little)).getFloat32(0, Endian.little);
+
+  /// Returns the bits of the given [double] as a [ulong].
+  static int _doubleToULong(double value) =>
+      (_converterBuffer..setFloat64(0, value, Endian.little)).getInt64(0, Endian.little);
+
+  /// Returns the [double] represented by the given [ulong] bits.
+  static double _uLongToDouble(int value) =>
+      (_converterBuffer..setInt64(0, value, Endian.little)).getFloat64(0, Endian.little);
 }
