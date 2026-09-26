@@ -101,8 +101,11 @@ abstract class Peer {
   Queue<MessageToHandle> get messageToHandle => _messagesToHandle;
 
   /// A queue of events to execute, ordered by how soon they need to be executed.
+  ///
+  /// NOTE: Uses the heap based PriorityQueue from package:collection instead of a port of Riptide's own implementation.
+  /// Its first element is the one which compares as the smallest, i.e. the event with the lowest execution time.
   final PriorityQueue<(DelayedEvent, int)> _eventQueue =
-      PriorityQueue<(DelayedEvent, int)>((a, b) => b.$2.compareTo(a.$2));
+      PriorityQueue<(DelayedEvent, int)>((a, b) => a.$2.compareTo(b.$2));
   PriorityQueue<(DelayedEvent, int)> get eventQueue => _eventQueue;
 
   /// Initializes the peer.
