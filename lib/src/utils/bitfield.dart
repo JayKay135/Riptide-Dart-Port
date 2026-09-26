@@ -6,13 +6,18 @@ import 'constants.dart';
 /// Provides functionality for managing and manipulating a collection of bits.
 class Bitfield {
   /// The first 8 bits stored in the bitfield.
-  int get first8 => segments[0];
+  int get first8 => segments[0] & 0xFF;
 
   /// The first 16 bits stored in the bitfield.
-  int get first16 => segments[0];
+  int get first16 => segments[0] & 0xFFFF;
 
   /// The number of bits which fit into a single segment.
   final int _segmentSize = Constants.uintBytes * 8;
+
+  /// A mask which only keeps the bits that fit into a single segment.
+  ///
+  /// NOTE: The segments are uints in C#, so values are truncated to 32 bits automatically, which Dart ints aren't.
+  static const int _segmentMask = 0xFFFFFFFF;
 
   /// The segments of the bitfield.
   late List<int> segments;
@@ -30,7 +35,7 @@ class Bitfield {
   ///
   /// [isDynamicCapacity] : Whether or not the bitfield's capacity should dynamically adjust when shifting.
   Bitfield({bool isDynamicCapacity = true}) {
-    segments = List<int>.generate(4, (_) => 0);
+    segments = <int>[0];
     _capacity = segments.length * _segmentSize;
     _isDynamicCapacity = isDynamicCapacity;
   }
@@ -71,15 +76,14 @@ class Bitfield {
     }
 
     int s = segments.length - 1;
-    segments[s] <<= bitShift;
+    segments[s] = (segments[s] << bitShift) & _segmentMask;
     s -= 1 + segmentShift;
     while (s > -1) {
-      // IMPORTANT: shiftedBits is originally of type ulong => Which has a size of 64bits in C#
-      // the int type in dart also has a size of 64bits, but this includes the negative numbers too
-      int shiftedBits = segments[s] << bitShift;
-      segments[s] = shiftedBits;
+      int shiftedBits =
+          segments[s] << bitShift; // Fits into a Dart int (like the ulong in C#), as segments hold 32 bits
+      segments[s] = shiftedBits & _segmentMask;
 
-      segments[s + 1 + segmentShift] |= (shiftedBits >> _segmentSize);
+      segments[s + 1 + segmentShift] |= shiftedBits >>> _segmentSize;
       s--;
     }
   }
@@ -150,6 +154,6 @@ class Bitfield {
   ///
   /// [other] : The bits to OR into the bitfield.
   void combine(int other) {
-    segments[0] |= other;
+    segments[0] |= other & 0xFFFF; // C# takes a ushort
   }
 }
