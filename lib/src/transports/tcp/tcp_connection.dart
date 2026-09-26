@@ -8,6 +8,7 @@ import '../../connection.dart';
 import '../../peer.dart';
 import '../../utils/constants.dart';
 import '../../utils/converter.dart';
+import '../../utils/extensions.dart';
 
 /// Represents a connection to a TcpServer or TcpClient.
 class TcpConnection extends Connection {
@@ -219,5 +220,5 @@ class TcpConnection extends Connection {
   }
 
   @override
-  String toString() => remoteEndPoint.toString();
+  String toString() => remoteEndPoint.toStringBasedOnIPFormat(remotePort);
 }

@@ -158,7 +158,7 @@ class Client extends Peer {
 
     startTime();
     heartbeat();
-    RiptideLogger.logWithLogName(LogType.info, logName, "Connecting to ${connection.runtimeType}...");
+    RiptideLogger.logWithLogName(LogType.info, logName, "Connecting to $connection...");
     return true;
   }
 
