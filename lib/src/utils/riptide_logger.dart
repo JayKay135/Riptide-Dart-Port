@@ -39,10 +39,10 @@ class RiptideLogger {
   static Map<LogType, LogMethod<String>> get logMethods => _logMethods;
 
   /// Whether or not to include timestamps when logging messages.
-  static late bool includeTimestamps;
+  static bool includeTimestamps = false;
 
   /// The format to use for timestamps.
-  static late String timestampFormat;
+  static String timestampFormat = "HH:mm:ss";
 
   /// Initializes RiptideLogger with all log types enabled.
   ///
