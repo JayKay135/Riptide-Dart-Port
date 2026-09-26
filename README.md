@@ -10,11 +10,11 @@ This port provides functionality for establishing connections with clients and s
 
 ## Compatibility
 
-This port was last tested for functionality with Riptide [Commit fc6e8d7](https://github.com/RiptideNetworking/Riptide/commit/fc6e8d7e16bd2b69b74843be9b69acd9df032e00), Sep 14 2025
+This port is up to date with Riptide [Commit bc3f3f2](https://github.com/RiptideNetworking/Riptide/commit/bc3f3f2) (Aug 19 2026, Riptide `v2.2.1` plus the fixes released since) and was tested for compatibility with it, using both the UDP and the TCP transport.
 
 ---
 
-**NOTE:** Riptide itself is not backward compatible. This library will currently only work with the newest Riptide versions `v2.1.2` or `v2.2.0` and newer ones.
+**NOTE:** Riptide itself is not backward compatible. This library will currently only work with Riptide `v2.1.2` and newer versions.
 
 The older version (pub `0.0.3`) will still work with Riptide `v2.0.0`, but with limited features (e.g. missing tcp support).
 For more details about which pub versions correspond to what Riptide version take a look at the [changelog](CHANGELOG.md).
@@ -25,7 +25,8 @@ The dart language differs C# in some key aspects.
 
 - There is no function overloading in dart. Therefore, you have to deal with many different function names in the message class.
   If you find a cleaner solution, do not hesitate to open up a pull request.
-- There is no ulong type in dart. C#'s longs are signed 64bit values. So are the int values in dart. Longs can be represented without any issues in dart using ints. Unfortunately, there is no unsigned 64-bit type in dart. The representation of ulongs in dart is, therefore, not easily possible. Currently, ulongs will get parsed to ints. **Please note that this might result in data loss**.
+- There is no ulong type in dart. C#'s longs are signed 64bit values. So are the int values in dart. Longs can be represented without any issues in dart using ints. Unfortunately, there is no unsigned 64-bit type in dart, so ulongs are represented by ints as well. All 64 bits are transmitted unchanged, but **ulong values above 9223372036854775807 appear as negative ints in dart** (use `BigInt.from(value).toUnsigned(64)` if you need their unsigned value).
+- Sockets are bound asynchronously in dart, so `Server.start` returns a `Future` which completes once the server is running (just like `Client.connect`).
 
 ## Compatible libraries in other languages
 
@@ -44,11 +45,18 @@ The API is mostly identical to [Riptide](https://github.com/RiptideNetworking/Ri
 RiptideLogger.initialize(print, true);
 ```
 
+Exceptions thrown by your event subscribers are caught and logged as errors. To pass them to a dedicated method (e.g. to show their stack traces), use:
+
+```dart
+RiptideLogger.initializeExtended(print, print, print, print, true,
+    exceptionMethod: (exception, stackTrace) => print('$exception\n$stackTrace'));
+```
+
 ### Create a new Server
 
 ```dart
 Server server = Server();
-server.start(PORT, 10);
+await server.start(PORT, 10);
 
 // timer to periodically update the server
 Timer.periodic(const Duration(milliseconds: 20), (timer) {
@@ -70,7 +78,7 @@ void handleMessage(int clientID, Message message) {
 
 ```dart
 Client client = Client();
-client.connect(InternetAddress("127.0.0.1"), PORT);
+await client.connect(InternetAddress("127.0.0.1"), PORT);
 
 // timer to periodically update the client
 Timer.periodic(const Duration(milliseconds: 20), (timer) {
@@ -88,14 +96,36 @@ void handleMessage(Message message) {
 }
 ```
 
+### Events
+
+```dart
+// Invoked when the client is connected to the server
+client.connected.subscribe((args) => print("Connected!"));
+client.disconnected.subscribe((args) => print("Disconnected: ${args!.reason}"));
+
+// Invoked when *other* clients connect to or disconnect from the server
+client.clientConnected.subscribe((args) => print("Client ${args!.id} connected"));
+client.clientDisconnected.subscribe((args) => print("Client ${args!.id} disconnected"));
+
+server.clientConnected.subscribe((args) => print("Client ${args!.client.id} connected"));
+server.clientDisconnected.subscribe((args) => print("Client ${args!.client.id} disconnected"));
+```
+
 ### Send Messages
 
 ```dart
 Message message = Message.createFromInt(MessageSendMode.reliable, MESSAGE_ID);
 message.addString("Hello World !");
 
-client.send(message);
-server.sendToAll(message);
+client.send(message); // or server.sendToAll(message), server.send(message, clientID), ...
+```
+
+Messages are returned to a pool once they're sent. If you want to send the same message multiple times, pass `false` for `shouldRelease` and release it manually afterwards:
+
+```dart
+server.send(message, firstClientID, false);
+server.send(message, secondClientID, false);
+message.release();
 ```
 
 ## Multi threaded Server/ Client
@@ -107,7 +137,7 @@ Simply swap from
 
 ```dart
 Server server = Server();
-server.start(PORT, 10);
+await server.start(PORT, 10);
 
 Timer.periodic(const Duration(milliseconds: 20), (timer) {
     server.update();
@@ -118,14 +148,14 @@ to
 
 ```dart
 MultiThreadedServer mtServer = MultiThreadedServer();
-mtServer.start(PORT, 10, loggingEnabled: true);
+await mtServer.start(PORT, 10, loggingEnabled: true);
 ```
 
 or
 
 ```dart
 Client client = Client();
-client.connect(InternetAddress("127.0.0.1"), PORT);
+await client.connect(InternetAddress("127.0.0.1"), PORT);
 
 Timer.periodic(const Duration(milliseconds: 20), (timer) {
     client.update();
@@ -136,7 +166,7 @@ to
 
 ```dart
 MultiThreadedClient mtClient = MultiThreadedClient();
-mtClient.connect(InternetAddress("127.0.0.1"), PORT, loggingEnabled: true);
+await mtClient.connect(InternetAddress("127.0.0.1"), PORT, loggingEnabled: true);
 ```
 
 ---
@@ -147,7 +177,7 @@ e.g.
 
 ```dart
 MultiThreadedClient mtClient = MultiThreadedClient(transportType: MultiThreadedTransportType.tcp);
-mtClient.connect(InternetAddress("127.0.0.1"), PORT, loggingEnabled: true);
+await mtClient.connect(InternetAddress("127.0.0.1"), PORT, loggingEnabled: true);
 ```
 
 ## Additional Note
