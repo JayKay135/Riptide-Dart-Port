@@ -104,4 +104,10 @@ class MessageRelayFilter<T extends Enum> {
   bool shouldRelay(int forMessageID) {
     return (_filter[forMessageID ~/ _bitsPerInt] & (1 << (forMessageID % _bitsPerInt))) != 0;
   }
+
+  /// Checks whether or not messages with the given ID should be relayed.
+  ///
+  /// [forMessageID] : The message ID to check.
+  /// Returns whether or not messages with the given ID should be relayed.
+  bool shouldRelayFromEnum(Enum forMessageID) => shouldRelay(forMessageID.index);
 }
