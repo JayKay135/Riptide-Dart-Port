@@ -148,16 +148,17 @@ class TestClient implements IClient {
 
 void main() {
   // With this much loss and reordering (out of order notify messages are discarded), the connection quality checks
-  // would rightfully disconnect, so they are only enabled with a more realistic network
+  // would rightfully disconnect, so they are only enabled with a more realistic network. Its loss rate has to be well
+  // below maxNotifyLoss (5%), as random clusters of losses would otherwise occasionally exceed it for long enough.
   for (var (int seed, double lossRate, int maxDelay, bool reorder) in [
     (1, 0.2, 30, true),
     (2, 0.2, 30, true),
     (3, 0.2, 30, true),
-    (4, 0.02, 2, false),
-    (5, 0.02, 2, false),
+    (4, 0.005, 2, false),
+    (5, 0.005, 2, false),
   ]) {
     bool canQualityDisconnect = !reorder;
-    String description = 'seed $seed, ${(lossRate * 100).round()}% loss, ${reorder ? 'reordering' : 'in order'}';
+    String description = 'seed $seed, ${lossRate * 100}% loss, ${reorder ? 'reordering' : 'in order'}';
     test('reliable and notify messages over an unreliable network ($description)', () async {
       UnreliableNetwork network = UnreliableNetwork(seed, lossRate: lossRate, maxDelay: maxDelay, reorder: reorder);
       List<String> logs = [];
@@ -215,7 +216,10 @@ void main() {
       await updateUntil(
           () => (received.length == count && client.connection!.pendingMessages.isEmpty) || disconnected != null);
 
-      expect(disconnected?.reason, isNull, reason: logs.where((log) => log.contains('isconnect')).join(', '));
+      expect(disconnected?.reason, isNull,
+          reason: '${logs.where((log) => log.contains('isconnect')).join(', ')} (average send attempts: '
+              '${client.connection!.metrics.rollingReliableSends.mean}, notify loss rate: '
+              '${client.connection!.metrics.rollingNotifyLossRate}, rtt: ${client.connection!.smoothRtt})');
       expect(received.length, equals(count), reason: 'every reliable message is handled exactly once');
       expect(received.toSet().length, equals(count));
       expect(client.connection!.pendingMessages, isEmpty);
