@@ -82,7 +82,14 @@ class MessageRelayFilter<T extends Enum> {
   /// Enables auto relaying for the given message ID.
   ///
   /// [forMessageID] : The message ID to enable relaying for.
+  ///
+  /// Throws a [RangeError] if the filter is too small to contain [forMessageID].
   void enableRelay(int forMessageID) {
+    if (forMessageID ~/ _bitsPerInt >= _filter.length) {
+      throw RangeError(
+          "The filter is too small to contain message ID $forMessageID! Create it with a size of at least ${forMessageID + 1}.");
+    }
+
     _filter[forMessageID ~/ _bitsPerInt] |= 1 << (forMessageID % _bitsPerInt);
   }
 
@@ -90,8 +97,15 @@ class MessageRelayFilter<T extends Enum> {
 
   /// Disables auto relaying for the given message ID.
   ///
-  /// [forMessageID] : The message ID to enable relaying for.
+  /// [forMessageID] : The message ID to disable relaying for.
+  ///
+  /// Throws a [RangeError] if the filter is too small to contain [forMessageID].
   void disableRelay(int forMessageID) {
+    if (forMessageID ~/ _bitsPerInt >= _filter.length) {
+      throw RangeError(
+          "The filter is too small to contain message ID $forMessageID! Create it with a size of at least ${forMessageID + 1}.");
+    }
+
     _filter[forMessageID ~/ _bitsPerInt] &= ~(1 << (forMessageID % _bitsPerInt));
   }
 
@@ -101,8 +115,16 @@ class MessageRelayFilter<T extends Enum> {
   ///
   /// [forMessageID] : The message ID to check.
   /// Returns whether or not messages with the given ID should be relayed.
+  ///
+  /// Message IDs are received from clients and are therefore not guaranteed to fall within the filter's size, so
+  /// any ID which the filter has no entry for is treated as having relaying disabled.
   bool shouldRelay(int forMessageID) {
-    return (_filter[forMessageID ~/ _bitsPerInt] & (1 << (forMessageID % _bitsPerInt))) != 0;
+    int index = forMessageID ~/ _bitsPerInt;
+    if (index >= _filter.length) {
+      return false;
+    }
+
+    return (_filter[index] & (1 << (forMessageID % _bitsPerInt))) != 0;
   }
 
   /// Checks whether or not messages with the given ID should be relayed.

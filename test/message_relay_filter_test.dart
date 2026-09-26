@@ -52,6 +52,15 @@ void main() {
       expect(filter.shouldRelay(MessageId.c.index), isTrue);
     });
 
+    test('handles message IDs outside of its size', () {
+      MessageRelayFilter filter = MessageRelayFilter(10);
+      expect(filter.shouldRelay(10000), isFalse);
+      expect(() => filter.enableRelay(32), throwsRangeError);
+      expect(() => filter.disableRelay(32), throwsRangeError);
+      filter.enableRelay(31); // Still fits into the filter's only int
+      expect(filter.shouldRelay(31), isTrue);
+    });
+
     test('can be created with a size', () {
       MessageRelayFilter filter = MessageRelayFilter.fromSize(40, [3, 39]);
       expect(filter.shouldRelay(3), isTrue);
