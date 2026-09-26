@@ -486,6 +486,7 @@ class Server extends Peer {
 
     _transport.close(client);
 
+    _pendingConnections.remove(client); // In case the connection attempt was never accepted or rejected
     if (_clients.remove(client.id) != null) {
       _availableClientIds.add(client.id);
     }
