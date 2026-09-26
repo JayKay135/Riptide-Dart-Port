@@ -92,9 +92,15 @@ class TcpConnection extends Connection {
       } else if (_available >= Constants.intBytes) {
         // We have enough bytes for a complete size value
         _read(_sizeBytes, Constants.intBytes);
-        _nextMessageSize = Converter.toInt(_sizeBytes.buffer.asByteData(), 0);
+        int messageSize = Converter.toInt(_sizeBytes.buffer.asByteData(), 0);
 
-        if (_nextMessageSize > 0) {
+        if (messageSize < 1 || messageSize > _peer.receiveBuffer.length) {
+          // A size value this far out of range means the stream is out of sync, and since
+          // there's no way of knowing where the next message starts, it can't be recovered
+          tryReceiveMore = false;
+          _peer.onDisconnected(this, DisconnectReason.transportError);
+        } else {
+          _nextMessageSize = messageSize;
           (bool canReceiveMesssage, int receivedByteCount) data = _tryReceiveMessage();
           tryReceiveMore = data.$1;
           byteCount = data.$2;
