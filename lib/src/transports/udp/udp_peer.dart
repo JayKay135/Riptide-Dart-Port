@@ -94,7 +94,8 @@ abstract class UdpPeer {
 
     _listenAddress = listenAddress ?? (ipv6 ? InternetAddress.anyIPv6 : InternetAddress.anyIPv4);
     int generation = ++_socketGeneration;
-    RawDatagramSocket socket = await RawDatagramSocket.bind(_listenAddress, port);
+    // NOTE: Dart allows binding ports which are already in use by default, whereas C# doesn't
+    RawDatagramSocket socket = await RawDatagramSocket.bind(_listenAddress, port, reuseAddress: false);
     if (generation != _socketGeneration) {
       socket.close(); // The socket was closed or reopened while binding
       return;
@@ -249,7 +250,7 @@ abstract class UdpPeer {
   Future<void> _reopen() async {
     int generation = _socketGeneration;
     try {
-      RawDatagramSocket socket = await RawDatagramSocket.bind(_listenAddress, _port);
+      RawDatagramSocket socket = await RawDatagramSocket.bind(_listenAddress, _port, reuseAddress: false);
       if (generation != _socketGeneration || !_isRunning) {
         socket.close(); // The socket was closed or reopened in the meantime
         return;
