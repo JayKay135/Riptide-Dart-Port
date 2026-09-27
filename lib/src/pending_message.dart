@@ -103,9 +103,11 @@ class PendingMessage {
         // Avoid triggering a resend if the latest resend was less than half a RTT ago
         trySend();
       } else {
+        // NOTE: C# passes the current time here, but ResendEvent only resends if it's equal to the time of the latest
+        // send attempt, so the resend would never happen and the message would never be resent again
         _connection.peer.executeLater(
             _connection.smoothRtt < 0 ? 50 : max(10, (_connection.smoothRtt * _retryTimeMultiplier).toInt()),
-            ResendEvent(this, time));
+            ResendEvent(this, lastSendTime));
       }
     }
   }
