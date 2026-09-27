@@ -180,6 +180,55 @@ MultiThreadedClient mtClient = MultiThreadedClient(transportType: MultiThreadedT
 await mtClient.connect(InternetAddress("127.0.0.1"), PORT, loggingEnabled: true);
 ```
 
+The update interval, heartbeat interval and timeout time can be passed to `start`/`connect` as well, and servers accept a `relayFilter`.
+
+### Messages and events
+
+Messages are sent and handled like with a regular server/ client. Received messages and events are passed on to the isolate which created the server/ client, so you can safely use them in your UI code:
+
+```dart
+mtServer.registerMessageHandler(MESSAGE_ID, (int fromClientID, Message message) {
+    // do something
+});
+mtClient.registerMessageHandler(MESSAGE_ID, (Message message) {
+    // do something
+});
+
+mtServer.clientConnected.subscribe((args) => print("Client ${args!.id} connected from ${args.endPoint}"));
+mtServer.clientDisconnected.subscribe((args) => print("Client ${args!.clientID} disconnected: ${args.disconnectReason}"));
+mtClient.connected.subscribe((args) => print("Connected as client ${mtClient.id}!"));
+mtClient.disconnected.subscribe((args) => print("Disconnected: ${args!.reason}"));
+
+mtServer.sendToAllExcept(message, clientID);
+mtServer.disconnectClient(clientID, Message.create().addString("Bye!"));
+```
+
+Notify messages are passed on as well, via `notifyReceived`, `notifyDelivered` and `notifyLost`. The client's `state`, `id`, `rtt` and `smoothRtt` are kept up to date.
+
+### Accepting connections
+
+To decide which clients may connect, set `handleConnection` before starting the server and accept or reject each attempt:
+
+```dart
+mtServer.handleConnection = (int attemptId, String endPoint, Message connectMessage) {
+    if (connectMessage.getString() == PASSWORD) {
+        mtServer.accept(attemptId);
+    } else {
+        mtServer.reject(attemptId, message: Message.create().addString("Wrong password!"));
+    }
+};
+await mtServer.start(PORT, 10);
+
+await mtClient.connect(InternetAddress("127.0.0.1"), PORT, message: Message.create().addString(PASSWORD));
+```
+
+### Lifecycle
+
+- `start` completes once the server is running, and throws if it couldn't be started (e.g. because the port is in use).
+- `connect` returns whether a connection attempt will be made. The client's isolate stops by itself once the client disconnects or fails to connect, and connecting again starts a new one.
+- `stop`/`disconnect` complete once the isolate has exited.
+- Sending while the server/ client's isolate isn't running throws a `StateError`.
+
 ## Additional Note
 
 If you are using Android: Make sure to enable the internet permission in the AndroidManifest.xml.
