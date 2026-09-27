@@ -176,6 +176,35 @@ void main() {
         expect(received, equals(200));
       });
 
+      test('bursts of reliable messages sent in between updates are delivered', () async {
+        int serverReceived = 0;
+        int clientReceived = 0;
+        server.registerMessageHandler(1, (int fromClientId, Message message) {
+          serverReceived++;
+          server.send(Message.createFromInt(MessageSendMode.reliable, 2).addInt(message.getInt()), fromClientId);
+        });
+        client.registerMessageHandler(2, (Message message) => clientReceived++);
+        DisconnectedEventArgs? disconnected;
+        client.disconnected.subscribe((args) => disconnected = args);
+
+        await connect(client);
+        // Let the RTT be measured, as resends are timed based on it
+        await updateFor([server, client], const Duration(milliseconds: 1200));
+
+        // NOTE: Dart's UDP sockets send and receive far fewer datagrams per second than C#'s (especially on Windows, and
+        // even more so with both peers in the same isolate), which limits the size of bursts UDP can handle at once
+        int count = type == TransportType.udp ? 300 : 5000;
+        for (int i = 0; i < count; i++) {
+          client.send(Message.createFromInt(MessageSendMode.reliable, 1).addInt(i));
+        }
+
+        await updateUntil([server, client], () => clientReceived == count || disconnected != null,
+            reason: 'the burst to be echoed',
+            details: () => 'server received $serverReceived, client received $clientReceived');
+        expect(disconnected?.reason, isNull);
+        expect(serverReceived, equals(count));
+      });
+
       test('connect data, reject data and kick data are passed on', () async {
         List<String> connectData = [];
         server.handleConnection = (Connection pendingConnection, Message connectMessage) {
