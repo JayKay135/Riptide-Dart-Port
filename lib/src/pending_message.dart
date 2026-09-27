@@ -127,7 +127,7 @@ class PendingMessage {
 
     _connection.peer.executeLater(
         _connection.smoothRtt < 0 ? 50 : max(10, (_connection.smoothRtt * _retryTimeMultiplier).toInt()),
-        ResendEvent(this, _connection.peer.currentTime));
+        ResendEvent(this, _lastSendTime)); // Must be exactly the time of this send attempt
   }
 
   /// Clears the message.

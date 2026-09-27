@@ -83,8 +83,12 @@ abstract class Peer {
   int connectTimeoutTime = 10000;
 
   /// The current time.
-  int _currentTime = 0;
-  int get currentTime => _currentTime;
+  ///
+  /// NOTE: In C#, the current time only advances in Update. Dart applications usually send messages from event callbacks
+  /// in between updates, and updates can be delayed by the socket events of the event loop. The time is therefore read
+  /// from the stopwatch directly, as a stale time made reliable messages which were sent in between updates get resent
+  /// prematurely (flooding the connection when sending many at once) and made RTT measurements less accurate.
+  int get currentTime => _time.elapsedMilliseconds;
 
   /// Whether or not the peer should use the subscription based message handler system.
   late bool useMessageHandlers;
@@ -115,14 +119,14 @@ abstract class Peer {
 
   /// Starts tracking how much time has passed.
   void startTime() {
-    _currentTime = 0;
     _time.reset();
     _time.start();
   }
 
   /// Stops tracking how much time has passed.
   void stopTime() {
-    _currentTime = 0;
+    // NOTE: Unlike in C#, resetting a Dart stopwatch doesn't stop it
+    _time.stop();
     _time.reset();
     eventQueue.clear();
   }
@@ -134,9 +138,9 @@ abstract class Peer {
 
   /// Handles any received messages and invokes any delayed events which need to be invoked.
   void update() {
-    _currentTime = _time.elapsedMilliseconds;
+    int currentTime = this.currentTime;
 
-    while (eventQueue.isNotEmpty && eventQueue.first.$2 <= _currentTime) {
+    while (eventQueue.isNotEmpty && eventQueue.first.$2 <= currentTime) {
       DelayedEvent event = eventQueue.removeFirst().$1;
       event.invoke();
     }
@@ -147,7 +151,7 @@ abstract class Peer {
   /// [delay] : How long from now to execute the delayed event, in milliseconds.
   /// [event] : The delayed event to execute later
   void executeLater(int delay, DelayedEvent event) {
-    eventQueue.add((event, _currentTime + delay));
+    eventQueue.add((event, currentTime + delay));
   }
 
   /// Handles all queued messages
