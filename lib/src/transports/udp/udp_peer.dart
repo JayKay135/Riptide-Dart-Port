@@ -6,6 +6,8 @@ import '../event_args.dart';
 import '../socket_buffer_size.dart';
 import '../../connection.dart';
 import '../../message.dart';
+import '../../utils/converter.dart';
+import '../ipeer.dart';
 import '../../peer.dart';
 import '../../utils/event_handler.dart';
 import '../../utils/riptide_logger.dart';
@@ -55,6 +57,13 @@ abstract class UdpPeer {
   /// NOTE: C# sockets block until data can be sent, whereas Dart's datagram sockets return without sending it, so the
   /// datagrams are queued and sent once the socket is writable again.
   final ListQueue<(Uint8List data, InternetAddress toEndPoint, int port)> _sendQueue = ListQueue();
+
+  /// The endpoints and sequence IDs of the reliable messages in [_sendQueue].
+  ///
+  /// Resending a reliable message while it's still waiting to be sent is pointless (the receiver discards duplicates),
+  /// but it happens when sending many messages at once, as the send queue then takes longer to be sent than it takes
+  /// for the messages to be resent. Skipping such resends prevents the queue from growing faster than it's sent.
+  final Set<(InternetAddress toEndPoint, int port, int sequenceId)> _queuedReliableMessages = {};
 
   /// Initializes the transport.
   ///
@@ -117,6 +126,7 @@ abstract class UdpPeer {
     _isRunning = false;
     _reopenOnClose = false;
     _sendQueue.clear();
+    _queuedReliableMessages.clear();
     _socket?.close();
   }
 
@@ -140,10 +150,32 @@ abstract class UdpPeer {
     // The data couldn't be sent right away (or older data is still waiting to be sent), so queue a copy of it, as the
     // given buffer is reused
     if (_sendQueue.length < _maxQueuedDatagrams) {
-      _sendQueue.add((Uint8List.fromList(Uint8List.sublistView(data, 0, numBytes)), toEndPoint, port));
+      (InternetAddress, int, int)? reliableMessage = _getReliableMessage(data, numBytes, toEndPoint, port);
+      if (reliableMessage == null || _queuedReliableMessages.add(reliableMessage)) {
+        _sendQueue.add((Uint8List.fromList(Uint8List.sublistView(data, 0, numBytes)), toEndPoint, port));
+      }
     }
 
     socket.writeEventsEnabled = true;
+  }
+
+  /// Identifies the reliable message contained in the given data, if it contains one.
+  ///
+  /// [data] : The data to check.
+  /// [numBytes] : The number of bytes in the data.
+  /// [toEndPoint] : The endpoint the data is sent to.
+  /// [port] : The port the data is sent to.
+  ///
+  /// Returns the endpoint and sequence ID of the reliable message, or null if the data doesn't contain one.
+  (InternetAddress, int, int)? _getReliableMessage(Uint8List data, int numBytes, InternetAddress toEndPoint, int port) {
+    int header = data[0] & Message.headerBitmask;
+    if (numBytes < Message.minReliableBytes ||
+        header < MessageHeader.reliable.index ||
+        header >= MessageHeader.values.length) {
+      return null;
+    }
+
+    return (toEndPoint, port, Converter.uShortFromByteBits(data, Message.headerBits));
   }
 
   /// Sends the queued datagrams, as far as the given socket's send buffer allows it.
@@ -158,6 +190,10 @@ abstract class UdpPeer {
       }
 
       _sendQueue.removeFirst();
+      (InternetAddress, int, int)? reliableMessage = _getReliableMessage(data, data.length, toEndPoint, port);
+      if (reliableMessage != null) {
+        _queuedReliableMessages.remove(reliableMessage);
+      }
     }
   }
 
@@ -206,6 +242,7 @@ abstract class UdpPeer {
     RiptideLogger.log(LogType.warning, "UDP socket error, reopening the socket: $error");
     _reopenOnClose = true;
     _sendQueue.clear(); // One of the queued datagrams may have caused the error
+    _queuedReliableMessages.clear();
   }
 
   /// Reopens the socket on the endpoint it was previously bound to.
