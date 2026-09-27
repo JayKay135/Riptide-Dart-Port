@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:collection';
 import 'dart:io';
 import 'dart:math';
@@ -46,6 +47,15 @@ class TcpConnection extends Connection {
 
   /// Whether or not the connection has been closed locally.
   bool _isClosed = false;
+
+  /// Data which has been sent but not written to the socket yet.
+  ///
+  /// NOTE: Every write to a Dart socket is processed separately, which limits how many messages can be sent when writing
+  /// each of them on its own. All messages which are sent during the same event loop turn are therefore written at once.
+  final BytesBuilder _unwrittenData = BytesBuilder();
+
+  /// Whether or not writing [_unwrittenData] to the socket has been scheduled.
+  bool _isWriteScheduled = false;
 
   /// The reason for a disconnection detected by the socket, which still has to be reported to the peer.
   DisconnectReason? _detectedDisconnectReason;
@@ -176,9 +186,23 @@ class TcpConnection extends Connection {
     // TODO: consider sending length separately with an extra socket.Send call instead of copying the data an extra time
     _peer.sendBuffer.setRange(Constants.intBytes, Constants.intBytes + amount, dataBuffer);
 
-    // NOTE: The data has to be copied, as the socket doesn't copy it and the send buffer is reused.
-    // Errors which occur while sending are reported to the socket's done future.
-    _socket.add(_peer.sendBuffer.sublist(0, amount + Constants.intBytes));
+    // NOTE: The data is copied, as the send buffer is reused
+    _unwrittenData.add(Uint8List.sublistView(_peer.sendBuffer, 0, amount + Constants.intBytes));
+    if (!_isWriteScheduled) {
+      _isWriteScheduled = true;
+      scheduleMicrotask(_write);
+    }
+  }
+
+  /// Writes the data which has been sent since the last write to the socket.
+  void _write() {
+    _isWriteScheduled = false;
+    if (_isClosed || _unwrittenData.isEmpty) {
+      return;
+    }
+
+    // Errors which occur while writing are reported to the socket's done future
+    _socket.add(_unwrittenData.takeBytes());
   }
 
   /// Closes the connection.
@@ -187,6 +211,7 @@ class TcpConnection extends Connection {
       return;
     }
 
+    _write(); // Data sent right before closing (like disconnect messages) still has to be written
     _isClosed = true;
     _socket.close().catchError((Object _) => null); // Errors while closing are irrelevant
   }
