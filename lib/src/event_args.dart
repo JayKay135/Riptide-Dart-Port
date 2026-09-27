@@ -1,4 +1,6 @@
 import 'connection.dart';
+// ignore: unused_import
+import 'utils/multi_threading.dart'; // Referenced by the documentation
 import 'message.dart';
 import 'peer.dart';
 import 'utils/event_handler.dart';
@@ -19,13 +21,83 @@ class ServerConnectedEventArgs extends EventArgs {
 
 /// Contains event data for when a client connects to the multi threaded server.
 class MultiThreadedServerConnectedEventArgs extends EventArgs {
-  // ID of the newly connected client
+  /// The ID of the newly connected client.
   int id;
+
+  /// The address and port of the newly connected client.
+  String endPoint;
 
   /// Initializes event data.
   ///
   /// [id] : The newly connected clients ID.
-  MultiThreadedServerConnectedEventArgs(this.id);
+  /// [endPoint] : The address and port of the newly connected client.
+  MultiThreadedServerConnectedEventArgs(this.id, {this.endPoint = ""});
+}
+
+/// Contains event data for when a connection to the multi threaded server fails to be fully established.
+class MultiThreadedServerConnectionFailedEventArgs extends EventArgs {
+  /// The ID of the connection attempt, if it was passed to [MultiThreadedServer.handleConnection].
+  int? attemptId;
+
+  /// The address and port of the connection which failed to be established.
+  String endPoint;
+
+  /// Initializes event data.
+  ///
+  /// [attemptId] : The ID of the connection attempt, if it was passed to [MultiThreadedServer.handleConnection].
+  /// [endPoint] : The address and port of the connection which failed to be established.
+  MultiThreadedServerConnectionFailedEventArgs(this.attemptId, this.endPoint);
+}
+
+/// Contains event data for when a multi threaded server or client receives a message.
+class MultiThreadedMessageReceivedEventArgs extends EventArgs {
+  /// The ID of the client the message was received from. Always 0 for messages received by a client.
+  int fromClientID;
+
+  /// The ID of the message.
+  int messageID;
+
+  /// The received message.
+  Message message;
+
+  /// Initializes event data.
+  ///
+  /// [fromClientID] : The ID of the client the message was received from. Always 0 for messages received by a client.
+  /// [messageID] : The ID of the message.
+  /// [message] : The received message.
+  MultiThreadedMessageReceivedEventArgs(this.fromClientID, this.messageID, this.message);
+}
+
+/// Contains event data for when a multi threaded server receives a notify message.
+class MultiThreadedNotifyReceivedEventArgs extends EventArgs {
+  /// The ID of the client the notify message was received from.
+  int fromClientID;
+
+  /// The received notify message.
+  Message message;
+
+  /// Initializes event data.
+  ///
+  /// [fromClientID] : The ID of the client the notify message was received from.
+  /// [message] : The received notify message.
+  MultiThreadedNotifyReceivedEventArgs(this.fromClientID, this.message);
+}
+
+/// Contains event data for when a notify message sent by a multi threaded server was delivered or lost.
+class MultiThreadedNotifyEventArgs extends EventArgs {
+  /// The ID of the client the notify message was sent to.
+  int clientID;
+
+  /// The sequence ID of the notify message.
+  ///
+  /// Each connection numbers its notify messages consecutively, starting at 1 (and wrapping around after 65535).
+  int sequenceID;
+
+  /// Initializes event data.
+  ///
+  /// [clientID] : The ID of the client the notify message was sent to.
+  /// [sequenceID] : The sequence ID of the notify message.
+  MultiThreadedNotifyEventArgs(this.clientID, this.sequenceID);
 }
 
 /// Contains event data for when a connection fails to be fully established.
@@ -64,15 +136,16 @@ class ServerDisconnectedEventArgs extends EventArgs {
 
 /// Contains event data for when a client disconnects from the multi threaded server.
 class MultiThreadedServerDisconnectedEventArgs extends EventArgs {
-  // ID of the newly connected client
+  /// The ID of the client that disconnected.
   int clientID;
 
-  // Reason for the disconnect
+  /// The reason for the disconnection.
   DisconnectReason disconnectReason;
 
   /// Initializes event data.
   ///
-  /// [clientID] : The newly connected clients ID.
+  /// [clientID] : The ID of the client that disconnected.
+  /// [disconnectReason] : The reason for the disconnection.
   MultiThreadedServerDisconnectedEventArgs(this.clientID, this.disconnectReason);
 }
 

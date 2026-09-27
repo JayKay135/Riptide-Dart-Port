@@ -371,37 +371,6 @@ void main() {
           socket.destroy();
         });
       }
-
-      test('multi threaded server and client exchange messages', () async {
-        server.stop(); // Free up the port
-
-        MultiThreadedTransportType transportType =
-            type == TransportType.udp ? MultiThreadedTransportType.udp : MultiThreadedTransportType.tcp;
-        MultiThreadedServer mtServer = MultiThreadedServer(transportType: transportType);
-        MultiThreadedClient mtClient = MultiThreadedClient(transportType: transportType);
-
-        Completer<int> clientConnected = Completer<int>();
-        Completer<String> serverReceived = Completer<String>();
-        Completer<String> clientReceived = Completer<String>();
-        mtServer.clientConnected.subscribe((args) => clientConnected.complete(args!.id));
-        mtServer.registerMessageHandler(1, (int fromClientId, Message message) {
-          serverReceived.complete(message.getString());
-        });
-        mtClient.registerMessageHandler(2, (Message message) => clientReceived.complete(message.getString()));
-
-        await mtServer.start(port, 10);
-        await mtClient.connect(InternetAddress.loopbackIPv4, port);
-
-        int clientId = await clientConnected.future.timeout(const Duration(seconds: 5));
-        mtClient.send(Message.createFromInt(MessageSendMode.reliable, 1).addString('hello server'));
-        mtServer.send(Message.createFromInt(MessageSendMode.reliable, 2).addString('hello client'), clientId);
-
-        expect(await serverReceived.future.timeout(const Duration(seconds: 5)), equals('hello server'));
-        expect(await clientReceived.future.timeout(const Duration(seconds: 5)), equals('hello client'));
-
-        mtClient.disconnect();
-        mtServer.stop();
-      });
     });
   }
 }

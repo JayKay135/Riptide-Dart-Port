@@ -1,6 +1,7 @@
 export 'src/server.dart' show Server;
 export 'src/client.dart' show Client;
-export 'src/utils/multi_threading.dart' show MultiThreadedTransportType, MultiThreadedServer, MultiThreadedClient;
+export 'src/utils/multi_threading.dart'
+    show MultiThreadedTransportType, MultiThreadedServer, MultiThreadedClient, MultiThreadedConnectionAttemptHandler;
 export 'src/message.dart' show Message, MessageSendMode;
 export 'src/message_relay_filter.dart' show MessageRelayFilter;
 export 'src/connection.dart' show Connection, ConnectionState;
@@ -18,6 +19,10 @@ export 'src/event_args.dart'
         ServerConnectedEventArgs,
         ServerConnectionFailedEventArgs,
         MultiThreadedServerConnectedEventArgs,
+        MultiThreadedServerConnectionFailedEventArgs,
+        MultiThreadedMessageReceivedEventArgs,
+        MultiThreadedNotifyReceivedEventArgs,
+        MultiThreadedNotifyEventArgs,
         ServerDisconnectedEventArgs,
         MultiThreadedServerDisconnectedEventArgs,
         MessageReceivedEventArgs,
